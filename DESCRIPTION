@@ -3,7 +3,7 @@ Type: Package
 Title: Translate CSS Selectors to XPath Expressions (Rust Port of 'selectr')
 Version: 0.0.0.9000
 Authors@R: c(
-    person("Simon", "Potter", email = "hazexp@gmail.com",
+    person("Simon", "Potter", email = "simon@sjp.co.nz",
            role = c("aut", "cre", "cph")))
 Description: Translates a CSS3 selector into an equivalent XPath expression.
     A standalone, API-compatible port of the 'selectr' package with the
