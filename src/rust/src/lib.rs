@@ -529,10 +529,7 @@ mod tests {
         assert_eq!(xpath("e:is(svg|*)"), "e[((self::svg:*))]");
         assert_eq!(xpath("e:has(svg|g)"), "e[(.//svg:g)]");
         assert_eq!(xpath("e:has(> svg|g)"), "e[(child::svg:g)]");
-        assert_eq!(
-            xpath("e:has(~ svg|g)"),
-            "e[(following-sibling::svg:g)]"
-        );
+        assert_eq!(xpath("e:has(~ svg|g)"), "e[(following-sibling::svg:g)]");
         assert_eq!(
             xpath("e:has(+ svg|g)"),
             "e[(following-sibling::*[1][(self::svg:g)])]"
