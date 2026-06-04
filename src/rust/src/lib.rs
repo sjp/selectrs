@@ -201,8 +201,10 @@ mod tests {
     #[test]
     fn unsupported_errors() {
         let t = Translator::new("generic").unwrap();
+        // The non-standard [a!=b] and :contains() error in both engines
+        // (removed from selectr at sjp/selectr@3de06f7).
         assert!(t.css_to_xpath("e[foo!=\"bar\"]", "").is_err());
-        assert!(t.css_to_xpath("e:hover", "").is_err()); // Phase 2
+        assert!(t.css_to_xpath("e:contains(\"foo\")", "").is_err());
         assert!(t.css_to_xpath("e::before", "").is_err());
         assert!(t.css_to_xpath("e:", "").is_err());
         assert!(t.css_to_xpath("", "").is_err());
@@ -210,6 +212,349 @@ mod tests {
         assert!(t.css_to_xpath("[rel i]", "").is_err());
         assert!(t.css_to_xpath("[rel=stylesheet k]", "").is_err());
         assert!(t.css_to_xpath("[rel=stylesheet i i]", "").is_err());
+        // Unknown pseudo-classes error, like selectr's
+        // "The pseudo-class :foo is unknown".
+        assert!(t.css_to_xpath("e:scope", "").is_err());
+        assert!(t.css_to_xpath("e:first-line", "").is_err()); // pseudo-element
+        // selectr's pseudo-class argument grammar: one compound per
+        // argument (after :has()'s optional leading combinator).
+        assert!(t.css_to_xpath("e:is(a b)", "").is_err());
+        assert!(t.css_to_xpath("e:is(> a)", "").is_err()); // :has()-only
+        assert!(t.css_to_xpath("e:has(a > b)", "").is_err());
+        assert!(t.css_to_xpath("e:has(> > a)", "").is_err());
+        assert!(t.css_to_xpath("e:has(>)", "").is_err());
+        assert!(t.css_to_xpath("e:has(a >)", "").is_err());
+        // Nested :has() is rejected in both engines (selectors-4;
+        // sjp/selectr@8d79636).
+        assert!(t.css_to_xpath("e:has(a:has(b))", "").is_err());
+        assert!(t.css_to_xpath("e:has(> a:has(b))", "").is_err());
+        // of-type pseudos on `*` are not implemented, as in selectr.
+        assert!(t.css_to_xpath("*:first-of-type", "").is_err());
+        assert!(t.css_to_xpath("*:nth-last-of-type(2)", "").is_err());
+        // :lang()/:dir() argument validation; a lone '-' is not a valid
+        // ident (both engines since sjp/selectr@04e450f).
+        assert!(t.css_to_xpath(":lang()", "").is_err());
+        assert!(t.css_to_xpath(":lang(5)", "").is_err());
+        assert!(t.css_to_xpath(":lang(-)", "").is_err());
+        // An+B must be whitespace-exact and integer-valued (both engines
+        // since sjp/selectr@a594f15 and @209e5ed).
+        assert!(t.css_to_xpath("e:nth-child(3 7)", "").is_err());
+        assert!(t.css_to_xpath("e:nth-child(2 n)", "").is_err());
+        assert!(t.css_to_xpath("e:nth-child(2.5)", "").is_err());
+        assert!(t.css_to_xpath("e:nth-child(2e1)", "").is_err());
+    }
+
+    /// Expectations harvested verbatim from selectr's test-translation.R
+    /// (nth/pseudo portion) at sjp/selectr@7776605.
+    #[test]
+    fn nth_family() {
+        assert_eq!(
+            xpath("e:nth-child(1)"),
+            "e[(count(preceding-sibling::*) = 0)]"
+        );
+        assert_eq!(
+            xpath("e:nth-child(3n+2)"),
+            "e[(count(preceding-sibling::*) >= 1 and (count(preceding-sibling::*) +2) mod 3 = 0)]"
+        );
+        assert_eq!(
+            xpath("e:nth-child(3n-2)"),
+            "e[(count(preceding-sibling::*) mod 3 = 0)]"
+        );
+        assert_eq!(
+            xpath("e:nth-child(-n+6)"),
+            "e[(count(preceding-sibling::*) <= 5)]"
+        );
+        assert_eq!(xpath("e:nth-child(n)"), "e");
+        assert_eq!(xpath("e:nth-child(odd)"), xpath("e:nth-child(2n+1)"));
+        assert_eq!(xpath("e:nth-child(even)"), xpath("e:nth-child(2n)"));
+        // An+B is ASCII case-insensitive per css-syntax; Servo handles it
+        // natively and selectr follows since sjp/selectr@f8043ff.
+        assert_eq!(xpath("e:nth-child(2N)"), xpath("e:nth-child(2n)"));
+        assert_eq!(xpath("e:nth-child(ODD)"), xpath("e:nth-child(odd)"));
+        assert_eq!(xpath("e:nth-child(EVEN)"), xpath("e:nth-child(even)"));
+        assert_eq!(xpath("e:nth-child(-N+3)"), xpath("e:nth-child(-n+3)"));
+        assert_eq!(
+            xpath("e:nth-last-child(1)"),
+            "e[(count(following-sibling::*) = 0)]"
+        );
+        assert_eq!(
+            xpath("e:nth-last-child(2n)"),
+            "e[((count(following-sibling::*) +1) mod 2 = 0)]"
+        );
+        assert_eq!(
+            xpath("e:nth-last-child(2n+1)"),
+            "e[(count(following-sibling::*) mod 2 = 0)]"
+        );
+        assert_eq!(
+            xpath("e:nth-last-child(2n+2)"),
+            "e[(count(following-sibling::*) >= 1 and (count(following-sibling::*) +1) mod 2 = 0)]"
+        );
+        assert_eq!(
+            xpath("e:nth-last-child(3n+1)"),
+            "e[(count(following-sibling::*) mod 3 = 0)]"
+        );
+        assert_eq!(
+            xpath("e:nth-last-child(-n+2)"),
+            "e[(count(following-sibling::*) <= 1)]"
+        );
+        assert_eq!(
+            xpath("e:nth-of-type(1)"),
+            "e[(count(preceding-sibling::e) = 0)]"
+        );
+        assert_eq!(
+            xpath("e:nth-last-of-type(1)"),
+            "e[(count(following-sibling::e) = 0)]"
+        );
+        assert_eq!(
+            xpath("div e:nth-last-of-type(1) .aclass"),
+            "div//e[(count(following-sibling::e) = 0)]//*[(@class and \
+             contains(concat(' ', normalize-space(@class), ' '), ' aclass '))]"
+        );
+        // Servo collapses :first-child & co. into nth data; the output is
+        // byte-identical to selectr's dedicated pseudo methods.
+        assert_eq!(
+            xpath("e:first-child"),
+            "e[(count(preceding-sibling::*) = 0)]"
+        );
+        assert_eq!(
+            xpath("e:last-child"),
+            "e[(count(following-sibling::*) = 0)]"
+        );
+        assert_eq!(
+            xpath("e:first-of-type"),
+            "e[(count(preceding-sibling::e) = 0)]"
+        );
+        assert_eq!(
+            xpath("e:last-of-type"),
+            "e[(count(following-sibling::e) = 0)]"
+        );
+        assert_eq!(xpath("e:only-child"), "e[(count(parent::*/child::*) = 1)]");
+        assert_eq!(
+            xpath("e:only-of-type"),
+            "e[(count(parent::*/child::e) = 1)]"
+        );
+        assert_eq!(
+            xpath("e ~ f:nth-child(3)"),
+            "e/following-sibling::f[(count(preceding-sibling::*) = 2)]"
+        );
+        // Early exits: a=1 with b<=1 matches everything; a<0 with b<1 is
+        // impossible.
+        assert_eq!(xpath("e:nth-child(n+1)"), "e");
+        assert_eq!(xpath("e:nth-child(n-5)"), "e");
+        assert_eq!(xpath("e:nth-child(-n)"), "e[(0)]");
+        assert_eq!(xpath("e:nth-child(-2n-1)"), "e[(0)]");
+        assert_eq!(xpath("e:nth-child(-n+0)"), "e[(0)]");
+        assert_eq!(
+            xpath("e:nth-child(-n+1)"),
+            "e[(count(preceding-sibling::*) <= 0)]"
+        );
+        assert_eq!(
+            xpath("e:nth-child(-2n+2)"),
+            "e[(count(preceding-sibling::*) <= 1 and (count(preceding-sibling::*) +1) mod -2 = 0)]"
+        );
+    }
+
+    /// `of S` selector lists (CSS Level 4), nth-child only.
+    #[test]
+    fn nth_child_of() {
+        assert_eq!(
+            xpath("div:nth-child(2 of .foo)"),
+            "div[(count(preceding-sibling::*[(@class and contains(concat(' ', \
+             normalize-space(@class), ' '), ' foo '))]) = 1) and ((@class and \
+             contains(concat(' ', normalize-space(@class), ' '), ' foo ')))]"
+        );
+        // a=1, b<=1: only the current-element check remains.
+        assert_eq!(
+            xpath("li:nth-child(n of .item)"),
+            "li[((@class and contains(concat(' ', normalize-space(@class), \
+             ' '), ' item ')))]"
+        );
+        // Impossible series keeps the current-element check after the 0.
+        assert_eq!(
+            xpath("li:nth-child(-n of .item)"),
+            "li[(0) and ((@class and contains(concat(' ', \
+             normalize-space(@class), ' '), ' item ')))]"
+        );
+        // An element argument folds into a name() test.
+        assert_eq!(
+            xpath("div:nth-child(2 of div.foo)"),
+            "div[(count(preceding-sibling::*[(@class and contains(concat(' ', \
+             normalize-space(@class), ' '), ' foo ')) and (name() = 'div')]) = 1) \
+             and ((@class and contains(concat(' ', normalize-space(@class), ' '), \
+             ' foo ')) and (name() = 'div'))]"
+        );
+    }
+
+    /// Expectations harvested verbatim from selectr's test-translation.R,
+    /// test-has.R, and test-where.R at sjp/selectr@7776605.
+    #[test]
+    fn structural_and_never_match_pseudos() {
+        assert_eq!(xpath("e:empty"), "e[(not(*) and not(string-length()))]");
+        assert_eq!(xpath("e:EmPTY"), "e[(not(*) and not(string-length()))]");
+        assert_eq!(xpath("e:root"), "e[(not(parent::*))]");
+        // The generic never-match set.
+        for pseudo in [
+            "any-link",
+            "link",
+            "visited",
+            "hover",
+            "active",
+            "focus",
+            "target",
+            "target-within",
+            "local-link",
+            "enabled",
+            "disabled",
+            "checked",
+        ] {
+            assert_eq!(xpath(&format!("a:{pseudo}")), "a[(0)]");
+        }
+        assert_eq!(xpath("a:dir(ltr)"), "a[(0)]");
+    }
+
+    #[test]
+    fn negation_matching_where_has() {
+        assert_eq!(
+            xpath("e:not(:nth-child(odd))"),
+            "e[(not((count(preceding-sibling::*) mod 2 = 0)))]"
+        );
+        assert_eq!(xpath("e:nOT(*)"), "e[(0)]");
+        assert_eq!(xpath("e:not(a)"), "e[(not((name() = 'a')))]");
+        assert_eq!(
+            xpath("e:not(a, b)"),
+            "e[(not((name() = 'a') or (name() = 'b')))]"
+        );
+        // :where() / :is() OR each argument's condition onto the outer
+        // expression (test-where.R at sjp/selectr@7776605).
+        assert_eq!(xpath("div:where(p)"), "div[((name() = 'p'))]");
+        assert_eq!(
+            xpath("div:where(p, span)"),
+            "div[((name() = 'p')) or ((name() = 'span'))]"
+        );
+        assert_eq!(
+            xpath("*:where(div.content)"),
+            "*[((@class and contains(concat(' ', normalize-space(@class), \
+             ' '), ' content ')) and (name() = 'div'))]"
+        );
+        assert_eq!(
+            xpath("div:where(p):where(span)"),
+            "div[((name() = 'p')) or ((name() = 'span'))]"
+        );
+        assert_eq!(xpath("div:is(p)"), "div[((name() = 'p'))]");
+        // :matches() is selectr's alias for :is().
+        assert_eq!(xpath("div:matches(p)"), "div[((name() = 'p'))]");
+        // :is(*) adds nothing.
+        assert_eq!(xpath("e:is(*)"), "e");
+        // :has() (test-has.R at sjp/selectr@7776605).
+        assert_eq!(xpath("div:has(p)"), "div[(.//*[(name() = 'p')])]");
+        assert_eq!(
+            xpath("div:has(.foo)"),
+            "div[(.//*[(@class and contains(concat(' ', \
+             normalize-space(@class), ' '), ' foo '))])]"
+        );
+        assert_eq!(
+            xpath("div:has(p, span)"),
+            "div[(.//*[(name() = 'p')] | .//*[(name() = 'span')])]"
+        );
+        assert_eq!(
+            xpath("div:has(p):has(span)"),
+            "div[(.//*[(name() = 'p')]) and (.//*[(name() = 'span')])]"
+        );
+        assert_eq!(
+            xpath("section:has(div.content)"),
+            "section[(.//*[(@class and contains(concat(' ', \
+             normalize-space(@class), ' '), ' content ')) and \
+             (name() = 'div')])]"
+        );
+        assert_eq!(xpath("div:has(*)"), "div[(.//*)]");
+        // Leading combinators in :has() (selectors-4 relative selectors,
+        // sjp/selectr@9ed9bb2).
+        assert_eq!(xpath("e:has(> img)"), "e[(child::*[(name() = 'img')])]");
+        assert_eq!(
+            xpath("e:has(~ p)"),
+            "e[(following-sibling::*[(name() = 'p')])]"
+        );
+        assert_eq!(
+            xpath("e:has(+ p)"),
+            "e[(following-sibling::*[1][(name() = 'p')])]"
+        );
+        assert_eq!(
+            xpath("e:has(> a, ~ p)"),
+            "e[(child::*[(name() = 'a')] | following-sibling::*[(name() = 'p')])]"
+        );
+        assert_eq!(
+            xpath("e:has(> .foo)"),
+            "e[(child::*[(@class and contains(concat(' ', \
+             normalize-space(@class), ' '), ' foo '))])]"
+        );
+        assert_eq!(
+            xpath("e:has(+ p.foo)"),
+            "e[(following-sibling::*[1][(@class and contains(concat(' ', \
+             normalize-space(@class), ' '), ' foo ')) and (name() = 'p')])]"
+        );
+        // Nested :not() (Selectors Level 4, sjp/selectr@2a9ebb5).
+        assert_eq!(
+            xpath(":not(:not(a))"),
+            "*[(not((not((name() = 'a')))))]"
+        );
+        assert_eq!(xpath("e:is(:not(f))"), "e[((not((name() = 'f'))))]");
+        assert_eq!(
+            xpath("e:has(:not(f))"),
+            "e[(.//*[(not((name() = 'f')))])]"
+        );
+    }
+
+    #[test]
+    fn lang_and_dir() {
+        // Generic: XPath's lang() does prefix matching natively.
+        assert_eq!(xpath("e:lang(en)"), "e[(lang('en'))]");
+        assert_eq!(xpath("e:lang(\"en\")"), "e[(lang('en'))]");
+        assert_eq!(xpath("e:lang(en-*)"), "e[(lang('en-'))]");
+        assert_eq!(xpath("e:lang(*)"), "e[(true())]");
+        assert_eq!(
+            xpath("e:lang(en, fr)"),
+            "e[((lang('en') or lang('fr')))]"
+        );
+        // Whitespace is a separator too, like selectr's token collection.
+        assert_eq!(xpath("e:lang(en fr)"), "e[((lang('en') or lang('fr')))]");
+        // HTML: nearest lang-attributed ancestor, lowercased prefix match.
+        let html = Translator::new("html").unwrap();
+        assert_eq!(
+            html.css_to_xpath("e:lang(EN)", "").unwrap(),
+            "e[(ancestor-or-self::*[@lang][1][starts-with(concat(\
+             translate(@lang, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', \
+             'abcdefghijklmnopqrstuvwxyz'), '-'), 'en-')])]"
+        );
+        assert_eq!(
+            html.css_to_xpath("e:lang(*)", "").unwrap(),
+            "e[(ancestor-or-self::*[@lang])]"
+        );
+        // xhtml shares the HTML overrides.
+        let xhtml = Translator::new("xhtml").unwrap();
+        assert_eq!(
+            xhtml.css_to_xpath("E:lang(*)", "").unwrap(),
+            "E[(ancestor-or-self::*[@lang])]"
+        );
+    }
+
+    /// HTMLTranslator pseudo-class overrides (R/xpath.R:1014-1154).
+    #[test]
+    fn html_pseudo_overrides() {
+        let html = Translator::new("html").unwrap();
+        let h = |css: &str| html.css_to_xpath(css, "").unwrap();
+        assert_eq!(
+            h("a:link"),
+            "a[(@href and (name(.) = 'a' or name(.) = 'link' or name(.) = 'area'))]"
+        );
+        assert_eq!(
+            h("input:checked"),
+            "input[((@selected and name(.) = 'option') or (@checked and \
+             (name(.) = 'input' or name(.) = 'command')and (@type = 'checkbox' \
+             or @type = 'radio')))]"
+        );
+        // Non-overridden dynamic pseudos still never match.
+        assert_eq!(h("a:hover"), "a[(0)]");
+        assert_eq!(h("a:visited"), "a[(0)]");
     }
 
     #[test]

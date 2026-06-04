@@ -1,12 +1,7 @@
-# Ported from selectr's tests/testthat/test-translation.R
-# (sjp/selectr@717e2ee, by Simon Potter). Expected XPath strings are
-# byte-identical to selectr's output. Cases exercising constructs selectrs
-# does not support ([a!=b], attribute case flags) are rewritten to assert
-# an error, per the parity invariant in MIGRATION.md.
-#
-# Phase 1 scope: simple selectors (type/`*`, `#id`, `.class`, attribute
-# operators, the four combinators, namespaces). Pseudo-classes and
-# :nth-child() land in Phase 2 alongside the rest of the suite.
+# Ported from selectr's tests/testthat/test-translation.R, test-has.R, and
+# test-where.R (sjp/selectr@9ed9bb2, by Simon Potter). Expected XPath
+# strings are byte-identical to selectr's output; constructs neither engine
+# supports assert an error, per the parity invariant in MIGRATION.md.
 
 xpath <- function(css) {
     css_to_xpath(css, prefix = "")
@@ -109,6 +104,215 @@ test_that("translation of simple selectors to XPath works", {
                  "div[(@id = 'container')]//p")
 })
 
+test_that("translation of pseudo-classes to XPath works", {
+    # Ported from the nth/pseudo portion of selectr's test-translation.R.
+    expect_equal(xpath('e:nth-child(1)'),
+                 "e[(count(preceding-sibling::*) = 0)]")
+    expect_equal(xpath('e:nth-child(3n+2)'),
+                 "e[(count(preceding-sibling::*) >= 1 and (count(preceding-sibling::*) +2) mod 3 = 0)]")
+    expect_equal(xpath('e:nth-child(3n-2)'),
+                 "e[(count(preceding-sibling::*) mod 3 = 0)]")
+    expect_equal(xpath('e:nth-child(-n+6)'),
+                 "e[(count(preceding-sibling::*) <= 5)]")
+    expect_equal(xpath('e:nth-child(n)'), "e")
+    expect_equal(xpath('e:nth-last-child(1)'),
+                 "e[(count(following-sibling::*) = 0)]")
+    expect_equal(xpath('e:nth-last-child(2n)'),
+                 "e[((count(following-sibling::*) +1) mod 2 = 0)]")
+    expect_equal(xpath('e:nth-last-child(2n+1)'),
+                 "e[(count(following-sibling::*) mod 2 = 0)]")
+    expect_equal(xpath('e:nth-last-child(2n+2)'),
+                 "e[(count(following-sibling::*) >= 1 and (count(following-sibling::*) +1) mod 2 = 0)]")
+    expect_equal(xpath('e:nth-last-child(3n+1)'),
+                 "e[(count(following-sibling::*) mod 3 = 0)]")
+    expect_equal(xpath('e:nth-last-child(-n+2)'),
+                 "e[(count(following-sibling::*) <= 1)]")
+    expect_equal(xpath('e:nth-of-type(1)'),
+                 "e[(count(preceding-sibling::e) = 0)]")
+    expect_equal(xpath('e:nth-last-of-type(1)'),
+                 "e[(count(following-sibling::e) = 0)]")
+    expect_equal(xpath('div e:nth-last-of-type(1) .aclass'),
+                 "div//e[(count(following-sibling::e) = 0)]//*[(@class and contains(concat(' ', normalize-space(@class), ' '), ' aclass '))]")
+    expect_equal(xpath('e:first-child'),
+                 "e[(count(preceding-sibling::*) = 0)]")
+    expect_equal(xpath('e:last-child'),
+                 "e[(count(following-sibling::*) = 0)]")
+    expect_equal(xpath('e:first-of-type'),
+                 "e[(count(preceding-sibling::e) = 0)]")
+    expect_equal(xpath('e:last-of-type'),
+                 "e[(count(following-sibling::e) = 0)]")
+    expect_equal(xpath('e:only-child'),
+                 "e[(count(parent::*/child::*) = 1)]")
+    expect_equal(xpath('e:only-of-type'),
+                 "e[(count(parent::*/child::e) = 1)]")
+    expect_equal(xpath('e:empty'),
+                 "e[(not(*) and not(string-length()))]")
+    expect_equal(xpath('e:EmPTY'),
+                 "e[(not(*) and not(string-length()))]")
+    expect_equal(xpath('e:root'),
+                 "e[(not(parent::*))]")
+    expect_equal(xpath('e:hover'),
+                 "e[(0)]") # never matches
+    expect_equal(xpath('e:not(:nth-child(odd))'),
+                 "e[(not((count(preceding-sibling::*) mod 2 = 0)))]")
+    expect_equal(xpath('e:nOT(*)'),
+                 "e[(0)]") # never matches
+    expect_equal(xpath('e ~ f:nth-child(3)'),
+                 "e/following-sibling::f[(count(preceding-sibling::*) = 2)]")
+    # An+B is ASCII case-insensitive per css-syntax (sjp/selectr@f8043ff)
+    expect_equal(xpath('e:nth-child(2N)'), xpath('e:nth-child(2n)'))
+    expect_equal(xpath('e:nth-child(ODD)'), xpath('e:nth-child(odd)'))
+    expect_equal(xpath('e:nth-child(EVEN)'), xpath('e:nth-child(even)'))
+    expect_equal(xpath('e:nth-child(eVen)'), xpath('e:nth-child(even)'))
+    expect_equal(xpath('e:nth-child(N+1)'), xpath('e:nth-child(n+1)'))
+    expect_equal(xpath('e:nth-child(-N+3)'), xpath('e:nth-child(-n+3)'))
+    expect_equal(xpath('e:nth-last-of-type(2N)'), xpath('e:nth-last-of-type(2n)'))
+
+    # expect that the following do nothing for the generic translator
+    expect_equal(xpath('a:any-link'), "a[(0)]")
+    expect_equal(xpath('a:link'), "a[(0)]")
+    expect_equal(xpath('a:visited'), "a[(0)]")
+    expect_equal(xpath('a:hover'), "a[(0)]")
+    expect_equal(xpath('a:active'), "a[(0)]")
+    expect_equal(xpath('a:focus'), "a[(0)]")
+    expect_equal(xpath('a:target'), "a[(0)]")
+    expect_equal(xpath('a:target-within'), "a[(0)]")
+    expect_equal(xpath('a:local-link'), "a[(0)]")
+    expect_equal(xpath('a:enabled'), "a[(0)]")
+    expect_equal(xpath('a:disabled'), "a[(0)]")
+    expect_equal(xpath('a:checked'), "a[(0)]")
+})
+
+test_that(":has() generates correct XPath", {
+    # Ported from selectr's test-has.R.
+    expect_equal(xpath("div:has(p)"),
+                 "div[(.//*[(name() = 'p')])]")
+    expect_equal(xpath("div:has(.foo)"),
+                 "div[(.//*[(@class and contains(concat(' ', normalize-space(@class), ' '), ' foo '))])]")
+    expect_equal(xpath("section:has(#main)"),
+                 "section[(.//*[(@id = 'main')])]")
+    expect_equal(xpath("form:has([required])"),
+                 "form[(.//*[(@required)])]")
+    expect_equal(xpath("div:has(p, span)"),
+                 "div[(.//*[(name() = 'p')] | .//*[(name() = 'span')])]")
+    expect_equal(xpath("div:has(p):has(span)"),
+                 "div[(.//*[(name() = 'p')]) and (.//*[(name() = 'span')])]")
+    expect_equal(xpath("*:has(img)"),
+                 "*[(.//*[(name() = 'img')])]")
+    expect_equal(xpath("section:has(div.content)"),
+                 "section[(.//*[(@class and contains(concat(' ', normalize-space(@class), ' '), ' content ')) and (name() = 'div')])]")
+
+    # Leading combinators (selectors-4 relative selectors)
+    expect_equal(xpath("e:has(> img)"),
+                 "e[(child::*[(name() = 'img')])]")
+    expect_equal(xpath("e:has(~ p)"),
+                 "e[(following-sibling::*[(name() = 'p')])]")
+    expect_equal(xpath("e:has(+ p)"),
+                 "e[(following-sibling::*[1][(name() = 'p')])]")
+    expect_equal(xpath("e:has(> a, ~ p)"),
+                 "e[(child::*[(name() = 'a')] | following-sibling::*[(name() = 'p')])]")
+    expect_equal(xpath("e:has(> .foo)"),
+                 "e[(child::*[(@class and contains(concat(' ', normalize-space(@class), ' '), ' foo '))])]")
+    expect_equal(xpath("e:has(+ p.foo)"),
+                 "e[(following-sibling::*[1][(@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')) and (name() = 'p')])]")
+})
+
+test_that("nested :not() works (Selectors Level 4)", {
+    expect_equal(xpath(':not(:not(a))'),
+                 "*[(not((not((name() = 'a')))))]")
+    expect_equal(xpath('e:is(:not(f))'),
+                 "e[((not((name() = 'f'))))]")
+    expect_equal(xpath('e:has(:not(f))'),
+                 "e[(.//*[(not((name() = 'f')))])]")
+})
+
+test_that(":where() and :is() generate correct XPath", {
+    # Ported from selectr's test-where.R; :is()/:matches() share the
+    # translation.
+    expect_equal(xpath("div:where(p)"),
+                 "div[((name() = 'p'))]")
+    expect_equal(xpath("div:where(.foo)"),
+                 "div[((@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')))]")
+    expect_equal(xpath("section:where(#main)"),
+                 "section[((@id = 'main'))]")
+    expect_equal(xpath("input:where([required])"),
+                 "input[((@required))]")
+    expect_equal(xpath("div:where(p, span)"),
+                 "div[((name() = 'p')) or ((name() = 'span'))]")
+    expect_equal(xpath("*:where(div.content)"),
+                 "*[((@class and contains(concat(' ', normalize-space(@class), ' '), ' content ')) and (name() = 'div'))]")
+    # Chained :where()s OR together (parser-combination quirk preserved)
+    expect_equal(xpath("div:where(p):where(span)"),
+                 "div[((name() = 'p')) or ((name() = 'span'))]")
+    expect_equal(xpath("*:where(.highlight)"),
+                 "*[((@class and contains(concat(' ', normalize-space(@class), ' '), ' highlight ')))]")
+    expect_equal(xpath("div:where(.foo, .bar)"),
+                 "div[((@class and contains(concat(' ', normalize-space(@class), ' '), ' foo '))) or ((@class and contains(concat(' ', normalize-space(@class), ' '), ' bar ')))]")
+    expect_equal(xpath("p:where(.highlight, #special, [data-key])"),
+                 "p[((@class and contains(concat(' ', normalize-space(@class), ' '), ' highlight '))) or ((@id = 'special')) or ((@data-key))]")
+    expect_equal(xpath("div:is(p)"), "div[((name() = 'p'))]")
+    expect_equal(xpath("div:matches(p)"), "div[((name() = 'p'))]")
+})
+
+test_that(":nth-child(an+b of S) generates correct XPath", {
+    expect_equal(xpath("div:nth-child(2 of .foo)"),
+                 paste0("div[(count(preceding-sibling::*[(@class and contains(concat(' ', normalize-space(@class), ' '), ' foo '))]) = 1)",
+                        " and ((@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')))]"))
+    expect_equal(xpath("li:nth-last-child(3 of .important)"),
+                 paste0("li[(count(following-sibling::*[(@class and contains(concat(' ', normalize-space(@class), ' '), ' important '))]) = 2)",
+                        " and ((@class and contains(concat(' ', normalize-space(@class), ' '), ' important ')))]"))
+    expect_equal(xpath("li:nth-child(n of .item)"),
+                 "li[((@class and contains(concat(' ', normalize-space(@class), ' '), ' item ')))]")
+    expect_equal(xpath("li:nth-child(-n of .item)"),
+                 "li[(0) and ((@class and contains(concat(' ', normalize-space(@class), ' '), ' item ')))]")
+    expect_equal(xpath("div:nth-child(2 of div.foo)"),
+                 paste0("div[(count(preceding-sibling::*[(@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')) and (name() = 'div')]) = 1)",
+                        " and ((@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')) and (name() = 'div'))]"))
+})
+
+test_that(":lang() and :dir() generate correct XPath", {
+    # Generic: XPath's lang() does language-range matching natively.
+    expect_equal(xpath("e:lang(en)"), "e[(lang('en'))]")
+    expect_equal(xpath("e:lang('en')"), "e[(lang('en'))]")
+    expect_equal(xpath("e:lang(en-*)"), "e[(lang('en-'))]")
+    expect_equal(xpath("e:lang(*)"), "e[(true())]")
+    expect_equal(xpath("e:lang(en, fr)"), "e[((lang('en') or lang('fr')))]")
+    # :dir() is never statically matchable.
+    expect_equal(xpath("e:dir(ltr)"), "e[(0)]")
+    # HTML/xhtml: nearest lang-attributed ancestor, lowercased prefix.
+    lang_test <- function(prefix) {
+        paste0("ancestor-or-self::*[@lang][1][starts-with(concat(",
+               "translate(@lang, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', ",
+               "'abcdefghijklmnopqrstuvwxyz'), '-'), '", prefix, "')]")
+    }
+    expect_equal(css_to_xpath("e:lang(EN)", "", "html"),
+                 paste0("e[(", lang_test("en-"), ")]"))
+    expect_equal(css_to_xpath("e:lang(en-*)", "", "xhtml"),
+                 paste0("e[(", lang_test("en-"), ")]"))
+    expect_equal(css_to_xpath("e:lang(*)", "", "html"),
+                 "e[(ancestor-or-self::*[@lang])]")
+})
+
+test_that("HTML translator overrides dynamic pseudo-classes", {
+    h <- function(css) css_to_xpath(css, prefix = "", translator = "html")
+    expect_equal(h("a:link"),
+                 "a[(@href and (name(.) = 'a' or name(.) = 'link' or name(.) = 'area'))]")
+    expect_equal(h("input:checked"),
+                 paste0("input[((@selected and name(.) = 'option') or ",
+                        "(@checked and (name(.) = 'input' or name(.) = 'command')",
+                        "and (@type = 'checkbox' or @type = 'radio')))]"))
+    # Non-overridden dynamic pseudos still never match.
+    expect_equal(h("a:hover"), "a[(0)]")
+    expect_equal(h("a:visited"), "a[(0)]")
+    expect_equal(h("a:any-link"), "a[(0)]")
+    # The xhtml translator shares the HTML overrides without lowercasing.
+    expect_equal(css_to_xpath("A:link", "", "xhtml"),
+                 "A[(@href and (name(.) = 'a' or name(.) = 'link' or name(.) = 'area'))]")
+    # :enabled/:disabled have long HTML conditions; pin their shape.
+    expect_match(h("input:disabled"), "ancestor::fieldset\\[@disabled\\]")
+    expect_match(h("input:enabled"), "not \\(@disabled or ancestor::fieldset\\[@disabled\\]\\)")
+})
+
 test_that("translation of unsafe XPath names works", {
     charsets <- localeToCharset()
     if (!anyNA(charsets) && charsets[1] == "UTF-8") {
@@ -132,15 +336,48 @@ test_that("translation of unsafe XPath names works", {
 })
 
 test_that("unsupported constructs error informatively", {
-    # selectr translates [a!=b] (non-standard); Servo's attribute parser has
-    # no hook for it. Decided (2026-06-04): permanently ignored.
+    # The non-standard [a!=b] and :contains() error in both engines
+    # (removed from selectr at sjp/selectr@3de06f7).
     expect_error(xpath('e[foo!="bar"]'), "parse")
+    expect_error(xpath('e:contains("foo")'))
     # Malformed case-sensitivity flags error in both implementations.
     expect_error(xpath('[rel i]'))
     expect_error(xpath('[rel=stylesheet k]'))
     expect_error(xpath('[rel=stylesheet i i]'))
     # Parse failures name the selector.
     expect_error(xpath('e:'), "e:")
+    # Pseudo-elements error in both implementations (message text differs).
+    expect_error(xpath('e::before'))
+    expect_error(xpath('e:first-line'))
+    # Unknown pseudo-classes error in both implementations.
+    expect_error(xpath('e:unknown-pseudo'))
+    expect_error(xpath('e:scope'))
+    # One compound per pseudo-class argument (after :has()'s optional
+    # leading combinator); leading combinators are :has()-only.
+    expect_error(xpath('e:is(a b)'))
+    expect_error(xpath('e:is(> a)'))
+    expect_error(xpath('e:where(~ a)'))
+    expect_error(xpath('e:not(+ a)'))
+    expect_error(xpath('e:has(a > b)'))
+    expect_error(xpath('e:has(> > a)'))
+    expect_error(xpath('e:has(>)'))
+    expect_error(xpath('e:has(a >)'))
+    # Nested :has() is rejected in both engines (selectors-4).
+    expect_error(xpath('e:has(a:has(b))'))
+    expect_error(xpath('e:has(> a:has(b))'))
+    # of-type pseudo-classes on '*' are not implemented, as in selectr.
+    expect_error(xpath('*:first-of-type'))
+    expect_error(xpath('*:nth-of-type(2)'))
+    # :lang()/:dir() argument validation; a lone '-' is not a valid ident.
+    expect_error(xpath('e:lang()'))
+    expect_error(xpath('e:lang(5)'))
+    expect_error(xpath('e:lang(-)'))
+    # An+B must be whitespace-exact and integer-valued (both engines since
+    # sjp/selectr@a594f15 and @209e5ed).
+    expect_error(xpath('e:nth-child(3 7)'))
+    expect_error(xpath('e:nth-child(2 n)'))
+    expect_error(xpath('e:nth-child(2.5)'))
+    expect_error(xpath('e:nth-child(2e1)'))
 })
 
 test_that("css_to_xpath vectorises arguments", {
