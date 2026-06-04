@@ -67,6 +67,35 @@ test_that("querySelectorAll handles namespaces", {
     expect_equal(p(querySelectorAllNS(doc, "svg|circle", c(svg = "http://www.w3.org/2000/svg"))), p(xml_find_all(doc, "//svg:circle", ns = c(svg = "http://www.w3.org/2000/svg"))))
 })
 
+test_that("a named list works the same as a named character vector for ns", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+    doc <- read_xml('<svg xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10"/></svg>')
+    ns_chr <- c(svg = "http://www.w3.org/2000/svg")
+    ns_list <- list(svg = "http://www.w3.org/2000/svg")
+    p <- function(x) {
+        if (is.null(x)) x else as.character(x)
+    }
+    pAll <- function(x) {
+        lapply(x, function(node) as.character(node))
+    }
+
+    expect_equal(p(querySelector(doc, "svg|circle", ns = ns_list)),
+                 p(querySelector(doc, "svg|circle", ns = ns_chr)))
+    expect_equal(pAll(querySelectorAll(doc, "svg|circle", ns = ns_list)),
+                 pAll(querySelectorAll(doc, "svg|circle", ns = ns_chr)))
+    expect_equal(p(querySelectorNS(doc, "svg|circle", ns_list)),
+                 p(querySelectorNS(doc, "svg|circle", ns_chr)))
+    expect_equal(pAll(querySelectorAllNS(doc, "svg|circle", ns_list)),
+                 pAll(querySelectorAllNS(doc, "svg|circle", ns_chr)))
+
+    # malformed namespace objects are still rejected
+    expect_error(querySelectorAll(doc, "svg|circle", ns = list(svg = 1)),
+                 "The values in the namespace object.*")
+    expect_error(querySelectorAll(doc, "svg|circle", ns = c("http://www.w3.org/2000/svg")),
+                 "The namespace object either missing some or all names.*")
+})
+
 test_that("querySelectorAll honours attribute case-sensitivity flags", {
     skip_if_not_installed("xml2")
     library(xml2)
