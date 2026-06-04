@@ -8,6 +8,8 @@ test_that("translation of simple selectors to XPath works", {
     expect_equal(xpath("*|e"), "*[(local-name() = 'e')]")
     expect_equal(xpath("|e"), "e")
     expect_equal(xpath("|*"), "*[(namespace-uri() = '')]")
+    # a name needing quoting keeps the no-namespace constraint
+    expect_equal(xpath("|é"), "*[(name() = 'é') and (namespace-uri() = '')]")
     expect_equal(xpath("*|*"), "*")
     expect_equal(xpath("e|f"), "e:f")
     expect_equal(xpath("svg|*"), "svg:*")

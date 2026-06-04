@@ -196,11 +196,14 @@ impl Translator {
                 ));
                 return xpath;
             }
-            NsConstraint::ExplicitNone if name == "*" => {
-                // '|e': 'e' in no namespace, which is exactly what an
-                // unprefixed XPath name test matches. '|*' needs an
-                // explicit namespace-uri() check.
-                let mut xpath = XPathExpr::new("*");
+            NsConstraint::ExplicitNone if name == "*" || !safe => {
+                // A safe '|e' is just an unprefixed XPath name test, which
+                // matches exactly the null namespace. '|*' and names
+                // needing quoting check namespace-uri() explicitly: a
+                // quoted name() test alone would also match the name in a
+                // default namespace.
+                let mut xpath = XPathExpr::new(&name);
+                xpath.add_name_test();
                 xpath.add_condition("namespace-uri() = ''");
                 return xpath;
             }

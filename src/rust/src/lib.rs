@@ -149,6 +149,13 @@ mod tests {
         // '*|' bypasses the safe-name fallback: quoting handles it.
         assert_eq!(xpath("*|di\\[v"), "*[(local-name() = 'di[v')]");
         assert_eq!(xpath("[*|h\\]ref]"), "*[(@*[local-name() = 'h]ref'])]");
+        // '|' with a name needing quoting keeps the no-namespace
+        // constraint alongside the name() test.
+        assert_eq!(
+            xpath("|di\\[v"),
+            "*[(name() = 'di[v') and (namespace-uri() = '')]"
+        );
+        assert_eq!(xpath("|é"), "*[(name() = 'é') and (namespace-uri() = '')]");
     }
 
     #[test]

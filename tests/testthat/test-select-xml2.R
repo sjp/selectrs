@@ -200,3 +200,22 @@ test_that("of-type pseudo-classes work on element names needing quoting", {
     expect_equal(get_ids("é:only-of-type"), character(0))
     expect_equal(get_ids("ü:only-of-type"), "u1")
 })
+
+test_that("explicit no-namespace selectors exclude default-namespace elements", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+
+    doc <- read_xml(paste0(
+        '<r>',
+        '<é id="plain"/>',
+        '<g xmlns="http://example.com/ns"><é id="defaulted"/></g>',
+        '</r>'
+    ))
+    get_ids <- function(css) xml_attr(querySelectorAll(doc, css), "id")
+
+    # no constraint written: a quoted name() test matches in any
+    # namespace whose name carries no prefix
+    expect_equal(get_ids("é"), c("plain", "defaulted"))
+    # '|é' restricts the same test to the null namespace
+    expect_equal(get_ids("|é"), "plain")
+})
