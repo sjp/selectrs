@@ -1,3 +1,11 @@
+test_that("the Rust core is reachable and its version matches the package", {
+    core <- selectrs:::selectrs_core_version()
+    # the crate carries R's fourth (development) component as a semver
+    # pre-release suffix (0.0.0.9000 <-> 0.0.0-9000)
+    expect_equal(gsub("-", ".", core, fixed = TRUE),
+                 as.character(packageVersion("selectrs")))
+})
+
 # We know that the results are correct via other tests, just check that
 # this produces the correct results with respect to its arguments
 test_that("css_to_xpath vectorises arguments", {
