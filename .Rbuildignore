@@ -2,8 +2,8 @@
 ^src/rust/target$
 ^src/Makevars$
 ^src/Makevars\.win$
-^MIGRATION\.md$
 ^\.devcontainer$
 ^\.github$
 ^src/rust/vendor$
 ^src/\.cargo$
+^BENCHMARKS\.md$
