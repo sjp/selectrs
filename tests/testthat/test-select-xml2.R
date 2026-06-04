@@ -159,3 +159,23 @@ test_that("selection works correctly on a large barrage of tests", {
     expect_equal(pcss(':disabled', html_only = TRUE), c('checkbox-disabled', 'checkbox-disabled-checked', 'fieldset', 'checkbox-fieldset-disabled'))
     expect_equal(pcss(':checked', html_only = TRUE), c('checkbox-checked', 'checkbox-disabled-checked'))
 })
+
+test_that("generic :lang() wildcard ranges match xml:lang", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+
+    doc <- read_xml(paste0(
+        '<r>',
+        '<p id="us" xml:lang="en-US">x</p>',
+        '<p id="en" xml:lang="en">y</p>',
+        '<p id="fr" xml:lang="fr">z</p>',
+        '</r>'
+    ))
+    get_ids <- function(css) xml_attr(querySelectorAll(doc, css), "id")
+
+    # en-* matches en-US and (per RFC 4647 extended filtering) plain en
+    expect_equal(get_ids(":lang(en-*)"), c("us", "en"))
+    expect_equal(get_ids(":lang(en)"), c("us", "en"))
+    expect_equal(get_ids(":lang(en-US)"), "us")
+    expect_equal(get_ids(":lang(fr-*)"), "fr")
+})

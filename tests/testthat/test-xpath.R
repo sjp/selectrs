@@ -53,16 +53,17 @@ test_that("Generic translator handles :lang() wildcards and comma lists", {
     # Wildcard * matches everything
     expect_equal(css('div:lang(*)'), "descendant-or-self::div[(true())]")
 
-    # Wildcard suffix like en-* for prefix matching
-    expect_equal(css('div:lang(en-*)'), "descendant-or-self::div[(lang('en-'))]")
-    expect_equal(css('div:lang(fr-*)'), "descendant-or-self::div[(lang('fr-'))]")
+    # Wildcard suffix like en-* for prefix matching, which XPath's lang()
+    # already does natively
+    expect_equal(css('div:lang(en-*)'), "descendant-or-self::div[(lang('en'))]")
+    expect_equal(css('div:lang(fr-*)'), "descendant-or-self::div[(lang('fr'))]")
 
     # Comma-separated lists with OR logic
     expect_equal(css('div:lang(en, fr)'), "descendant-or-self::div[((lang('en') or lang('fr')))]")
     expect_equal(css('div:lang(en, de, fr)'), "descendant-or-self::div[((lang('en') or lang('de') or lang('fr')))]")
 
     # Mixed wildcards and regular languages
-    expect_equal(css('div:lang(en-*, fr)'), "descendant-or-self::div[((lang('en-') or lang('fr')))]")
+    expect_equal(css('div:lang(en-*, fr)'), "descendant-or-self::div[((lang('en') or lang('fr')))]")
     expect_equal(css('div:lang(*, de)'), "descendant-or-self::div[((true() or lang('de')))]")
 })
 

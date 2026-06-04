@@ -503,7 +503,7 @@ mod tests {
         // Generic: XPath's lang() does prefix matching natively.
         assert_eq!(xpath("e:lang(en)"), "e[(lang('en'))]");
         assert_eq!(xpath("e:lang(\"en\")"), "e[(lang('en'))]");
-        assert_eq!(xpath("e:lang(en-*)"), "e[(lang('en-'))]");
+        assert_eq!(xpath("e:lang(en-*)"), "e[(lang('en'))]");
         assert_eq!(xpath("e:lang(*)"), "e[(true())]");
         assert_eq!(xpath("e:lang(en, fr)"), "e[((lang('en') or lang('fr')))]");
         // Whitespace is a separator too.

@@ -104,6 +104,9 @@ impl Translator {
             if value == "*" {
                 conditions.push("true()".to_owned());
             } else if let Some(prefix) = value.strip_suffix('*') {
+                // lang('en-') would never match: libxml2 expects the
+                // argument itself to end at a subtag boundary.
+                let prefix = prefix.trim_end_matches('-');
                 conditions.push(format!("lang({})", xpath_literal(prefix)));
             } else {
                 conditions.push(format!("lang({})", xpath_literal(&value)));

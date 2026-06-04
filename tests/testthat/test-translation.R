@@ -274,7 +274,7 @@ test_that(":lang() and :dir() generate correct XPath", {
     # Generic: XPath's lang() does language-range matching natively.
     expect_equal(xpath("e:lang(en)"), "e[(lang('en'))]")
     expect_equal(xpath("e:lang('en')"), "e[(lang('en'))]")
-    expect_equal(xpath("e:lang(en-*)"), "e[(lang('en-'))]")
+    expect_equal(xpath("e:lang(en-*)"), "e[(lang('en'))]")
     expect_equal(xpath("e:lang(*)"), "e[(true())]")
     expect_equal(xpath("e:lang(en, fr)"), "e[((lang('en') or lang('fr')))]")
     # :dir() is never statically matchable.
