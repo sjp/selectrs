@@ -572,6 +572,15 @@ mod tests {
             xhtml.css_to_xpath("E:lang(*)", "").unwrap(),
             "E[(ancestor-or-self::*[@lang])]"
         );
+        // :dir() takes exactly one identifier (selectors-4) — none of
+        // :lang()'s strings, wildcards, or lists.
+        let t = Translator::new("generic").unwrap();
+        assert_eq!(xpath("e:dir(rtl)"), "e[(0)]");
+        assert!(t.css_to_xpath("e:dir()", "").is_err());
+        assert!(t.css_to_xpath("e:dir(ltr rtl)", "").is_err());
+        assert!(t.css_to_xpath("e:dir(ltr, rtl)", "").is_err());
+        assert!(t.css_to_xpath("e:dir(\"ltr\")", "").is_err());
+        assert!(t.css_to_xpath("e:dir(*)", "").is_err());
     }
 
     /// The HTML translator's pseudo-class overrides.

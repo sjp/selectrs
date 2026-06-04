@@ -94,6 +94,15 @@ test_that("Generic translator handles :dir() function", {
                  'Unable to parse the CSS selector "div:dir()"', fixed = TRUE)
     expect_error(css("div:dir(1)"),
                  'Unable to parse the CSS selector "div:dir(1)"', fixed = TRUE)
+    # exactly one identifier: none of :lang()'s strings, wildcards, or lists
+    expect_error(css("div:dir(ltr rtl)"),
+                 'Unable to parse the CSS selector "div:dir(ltr rtl)"', fixed = TRUE)
+    expect_error(css("div:dir(ltr, rtl)"),
+                 'Unable to parse the CSS selector "div:dir(ltr, rtl)"', fixed = TRUE)
+    expect_error(css('div:dir("ltr")'),
+                 'Unable to parse the CSS selector "div:dir(\\"ltr\\")"', fixed = TRUE)
+    expect_error(css("div:dir(*)"),
+                 'Unable to parse the CSS selector "div:dir(*)"', fixed = TRUE)
 })
 
 test_that("HTML translator handles :dir() function", {

@@ -32,10 +32,10 @@ impl SelectorImpl for SelectrsImpl {
     type PseudoElement = NeverPseudoElement;
 }
 
-/// One argument to `:lang()` / `:dir()`: an ident or string value, or a
-/// bare `*` wildcard. These are collected as raw tokens (commas and
-/// whitespace are separators); `xx-` followed by `*` is combined into
-/// `xx-*` at translation time.
+/// One argument to `:lang()`: an ident or string value, or a bare `*`
+/// wildcard. These are collected as raw tokens (commas and whitespace are
+/// separators); `xx-` followed by `*` is combined into `xx-*` at
+/// translation time.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LangArg {
     Value(String),
@@ -63,7 +63,7 @@ pub enum PseudoClass {
     Disabled,
     Checked,
     Lang(Vec<LangArg>),
-    Dir(Vec<LangArg>),
+    Dir(String),
 }
 
 impl PseudoClass {
@@ -92,7 +92,7 @@ impl ToCss for PseudoClass {
         dest.write_char(':')?;
         dest.write_str(self.name())?;
         match self {
-            PseudoClass::Lang(args) | PseudoClass::Dir(args) => {
+            PseudoClass::Lang(args) => {
                 dest.write_char('(')?;
                 for (i, arg) in args.iter().enumerate() {
                     if i > 0 {
@@ -103,6 +103,11 @@ impl ToCss for PseudoClass {
                         LangArg::Star => dest.write_char('*')?,
                     }
                 }
+                dest.write_char(')')
+            }
+            PseudoClass::Dir(value) => {
+                dest.write_char('(')?;
+                cssparser::serialize_identifier(value, dest)?;
                 dest.write_char(')')
             }
             _ => Ok(()),
@@ -205,11 +210,12 @@ impl<'i> selectors::parser::Parser<'i> for SelectrsParser {
         Ok(pc)
     }
 
-    /// `:lang()` and `:dir()` argument grammar: idents, strings, and `*`
-    /// wildcards, separated by whitespace and/or commas (commas are pure
+    /// `:lang()` argument grammar: idents, strings, and `*` wildcards,
+    /// separated by whitespace and/or commas (commas are pure
     /// separators — leading, trailing, and repeated commas are all
     /// tolerated). At least one argument is required; NUMBER/`+`/`-`
-    /// tokens are rejected.
+    /// tokens are rejected. `:dir()` is stricter, matching its
+    /// selectors-4 grammar: exactly one identifier.
     ///
     /// The non-standard text-content pseudo `:contains()` is deliberately
     /// unsupported and falls through to the rejection arm, as does any
@@ -220,15 +226,27 @@ impl<'i> selectors::parser::Parser<'i> for SelectrsParser {
         parser: &mut CssParser<'i, 't>,
         _after_part: bool,
     ) -> Result<PseudoClass, cssparser::ParseError<'i, Self::Error>> {
-        let is_lang = if name.eq_ignore_ascii_case("lang") {
-            true
-        } else if name.eq_ignore_ascii_case("dir") {
-            false
-        } else {
+        if name.eq_ignore_ascii_case("dir") {
+            let value = match parser.next() {
+                Ok(Token::Ident(v)) => v.as_ref().to_owned(),
+                _ => {
+                    return Err(parser.new_custom_error(
+                        SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name),
+                    ));
+                }
+            };
+            if parser.next().is_ok() {
+                return Err(parser.new_custom_error(
+                    SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name),
+                ));
+            }
+            return Ok(PseudoClass::Dir(value));
+        }
+        if !name.eq_ignore_ascii_case("lang") {
             return Err(parser.new_custom_error(
                 SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name),
             ));
-        };
+        }
 
         let mut args = Vec::new();
         loop {
@@ -253,11 +271,7 @@ impl<'i> selectors::parser::Parser<'i> for SelectrsParser {
                 SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name),
             ));
         }
-        Ok(if is_lang {
-            PseudoClass::Lang(args)
-        } else {
-            PseudoClass::Dir(args)
-        })
+        Ok(PseudoClass::Lang(args))
     }
 
     /// Identity mapping: `svg|g` translates to `svg:g` — a prefix-only
