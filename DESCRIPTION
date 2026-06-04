@@ -1,0 +1,24 @@
+Package: selectrs
+Type: Package
+Title: Translate CSS Selectors to XPath Expressions (Rust Port of 'selectr')
+Version: 0.0.0.9000
+Authors@R: c(
+    person("Simon", "Potter", email = "hazexp@gmail.com",
+           role = c("aut", "cre", "cph")))
+Description: Translates a CSS3 selector into an equivalent XPath expression.
+    A standalone, API-compatible port of the 'selectr' package with the
+    parsing and translation core implemented in Rust on top of Servo's
+    'cssparser' and 'selectors' crates. This allows searching XML documents
+    using CSS selectors with the same results as 'selectr', but faster.
+License: MIT + file LICENSE
+URL: https://github.com/sjp/selectrs
+BugReports: https://github.com/sjp/selectrs/issues
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+SystemRequirements: Cargo (Rust's package manager), rustc
+Depends:
+    R (>= 4.2)
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
