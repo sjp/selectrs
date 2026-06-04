@@ -1,0 +1,108 @@
+# Ported from selectr's tests/testthat/test-querySelector-xml2.R (sjp/selectr@9ed9bb2, by
+# Simon Potter), adapted for selectrs: testthat edition-3 idioms
+# (expect_equal instead of expect_that/equals, no context()), with the xml2 suite
+# guarded by skip_if_not_installed()
+
+test_that("querySelector returns a single node or NULL", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+    doc <- read_xml('<a><b id="#test"/><c class="ex"/><c class="xmp"/></a>')
+    p <- function(x) {
+        if (is.null(x)) x else as.character(x)
+    }
+    expect_equal(p(querySelector(doc, "a")), p(xml_find_first(doc, "//a")))
+    expect_equal(p(querySelector(doc, "*", prefix = "")), p(xml_find_first(doc, "*")))
+    expect_equal(p(querySelector(doc, "d")), NULL)
+    expect_equal(p(querySelector(doc, "c")), p(xml_find_first(doc, "//c")))
+})
+
+test_that("querySelectorAll returns expected nodes", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+    doc <- read_xml('<a><b id="#test"/><c class="ex"/><c class="xmp"/></a>')
+    p <- function(x) {
+        lapply(x, function(node) as.character(node))
+    }
+    expect_equal(p(querySelectorAll(doc, "a")), p(xml_find_all(doc, "//a")))
+    expect_equal(p(querySelectorAll(doc, "*", prefix = "")), p(xml_find_all(doc, "*")))
+    expect_equal(p(querySelectorAll(doc, "c")), p(xml_find_all(doc, "//c")))
+})
+
+test_that("querySelectorAll returns empty list for no match", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+    doc <- read_xml('<a><b id="#test"/><c class="ex"/><c class="xmp"/></a>')
+    p <- function(x) {
+        lapply(x, function(node) as.character(node))
+    }
+    expect_equal(p(querySelectorAll(doc, "d")), p(xml_find_all(doc, "//d")))
+})
+
+test_that("querySelector handles namespaces", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+    doc <- read_xml('<svg xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10"/><circle cx="20" cy="20" r="20"/><circle cx="30" cy="30" r="30"/></svg>')
+    p <- function(x) {
+        if (is.null(x)) x else as.character(x)
+    }
+
+    expect_equal(querySelector(doc, "circle"), NULL)
+    expect_equal(querySelector(doc, "circle", ns = c(svg = "http://www.w3.org/2000/svg")), NULL)
+    expect_equal(p(querySelector(doc, "svg|circle", ns = c(svg = "http://www.w3.org/2000/svg"))), p(xml_find_all(doc, "//svg:circle", ns = c(svg = "http://www.w3.org/2000/svg"))[[1]]))
+
+    # now with querySelectorNS
+    expect_equal(querySelectorNS(doc, "circle", c(svg = "http://www.w3.org/2000/svg")), NULL)
+    expect_equal(p(querySelectorNS(doc, "svg|circle", c(svg = "http://www.w3.org/2000/svg"))), p(xml_find_all(doc, "//svg:circle", ns = c(svg = "http://www.w3.org/2000/svg"))[[1]]))
+})
+
+test_that("querySelectorAll handles namespaces", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+    doc <- read_xml('<svg xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10"/><circle cx="20" cy="20" r="20"/><circle cx="30" cy="30" r="30"/></svg>')
+    p <- function(x) {
+        lapply(x, function(node) as.character(node))
+    }
+
+    expect_equal(p(querySelectorAll(doc, "circle")), p(xml_find_all(doc, "//circle")))
+    expect_equal(p(querySelectorAll(doc, "circle", ns = c(svg = "http://www.w3.org/2000/svg"))), p(xml_find_all(doc, "//circle", ns = c(svg = "http://www.w3.org/2000/svg"))))
+    expect_equal(p(querySelectorAll(doc, "svg|circle", ns = c(svg = "http://www.w3.org/2000/svg"))), p(xml_find_all(doc, "//svg:circle", ns = c(svg = "http://www.w3.org/2000/svg"))))
+
+    # now with querySelectorAllNS
+    expect_equal(p(querySelectorAllNS(doc, "circle", c(svg = "http://www.w3.org/2000/svg"))), p(xml_find_all(doc, "//circle", ns = c(svg = "http://www.w3.org/2000/svg"))))
+    expect_equal(p(querySelectorAllNS(doc, "svg|circle", c(svg = "http://www.w3.org/2000/svg"))), p(xml_find_all(doc, "//svg:circle", ns = c(svg = "http://www.w3.org/2000/svg"))))
+})
+
+test_that("querySelectorAll honours attribute case-sensitivity flags", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+    doc <- read_xml('<r><a rel="NoFollow"/><a rel="nofollow"/><a rel="other"/></r>')
+    rels <- function(css) {
+        unlist(lapply(querySelectorAll(doc, css), xml_attr, "rel"))
+    }
+
+    expect_equal(rels('a[rel="nofollow"]'), "nofollow")
+    expect_equal(rels('a[rel="nofollow" i]'), c("NoFollow", "nofollow"))
+    expect_equal(rels('a[rel="NOFOLLOW" i]'), c("NoFollow", "nofollow"))
+    expect_equal(rels('a[rel="nofollow" s]'), "nofollow")
+    expect_equal(rels('a[rel^="NO" i]'), c("NoFollow", "nofollow"))
+    expect_equal(rels('a[rel$="LOW" i]'), c("NoFollow", "nofollow"))
+    expect_equal(rels('a[rel*="FOLL" i]'), c("NoFollow", "nofollow"))
+})
+
+test_that("querySelector methods handle invalid arguments", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+    doc <- read_xml('<a><b id="#test"/><c class="ex"/><c class="xmp"/></a>')
+
+    expect_error(querySelector(doc), "A valid selector (character vector) must be provided.", fixed = TRUE)
+    expect_error(querySelectorAll(doc), "A valid selector (character vector) must be provided.", fixed = TRUE)
+    expect_error(querySelectorNS(doc), "A valid selector (character vector) must be provided.", fixed = TRUE)
+    expect_error(querySelectorAllNS(doc), "A valid selector (character vector) must be provided.", fixed = TRUE)
+
+    expect_error(querySelectorNS(doc, "a"), "A namespace must be provided.", fixed = TRUE)
+    expect_error(querySelectorNS(doc, "a", NULL), "A namespace must be provided.", fixed = TRUE)
+    expect_error(querySelectorNS(doc, "a", character(0)), "A namespace must be provided.", fixed = TRUE)
+    expect_error(querySelectorAllNS(doc, "a"), "A namespace must be provided.", fixed = TRUE)
+    expect_error(querySelectorAllNS(doc, "a", NULL), "A namespace must be provided.", fixed = TRUE)
+    expect_error(querySelectorAllNS(doc, "a", character(0)), "A namespace must be provided.", fixed = TRUE)
+})
