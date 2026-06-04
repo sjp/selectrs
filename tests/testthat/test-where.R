@@ -230,11 +230,12 @@ test_that(":where() can be combined with other selectors", {
     ids <- get_ids("section *:where(div, p)")
     expect_equal("d1" %in% ids && "p1" %in% ids, TRUE)
 
-    # Class selector before :where()
-    # Elements with class content that are divs or ps
-    # (all 4 elements match: d1,p1 have .content, and :where checks div|p)
-    result <- get_ids(".content:where(div, p)")
-    expect_equal("d1" %in% result && "p1" %in% result, TRUE)
+    # Class selector before :where(): only elements with class content
+    # that are also divs or ps
+    expect_equal(get_ids(".content:where(div, p)"), c("d1", "p1"))
+
+    # The compound is a conjunction: class content AND p
+    expect_equal(get_ids(".content:where(p)"), "p1")
 
     # Child combinator
     expect_equal(get_ids("section > *:where(.content)"), c("d1", "p1"))

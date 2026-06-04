@@ -230,18 +230,18 @@ test_that(":where() and :is() generate correct XPath", {
     expect_equal(xpath("input:where([required])"),
                  "input[((@required))]")
     expect_equal(xpath("div:where(p, span)"),
-                 "div[((name() = 'p')) or ((name() = 'span'))]")
+                 "div[((name() = 'p') or (name() = 'span'))]")
     expect_equal(xpath("*:where(div.content)"),
                  "*[((@class and contains(concat(' ', normalize-space(@class), ' '), ' content ')) and (name() = 'div'))]")
-    # Chained :where()s OR together (parser-combination quirk preserved)
+    # Chained :where()s AND together, so this can never match
     expect_equal(xpath("div:where(p):where(span)"),
-                 "div[((name() = 'p')) or ((name() = 'span'))]")
+                 "div[((name() = 'p')) and ((name() = 'span'))]")
     expect_equal(xpath("*:where(.highlight)"),
                  "*[((@class and contains(concat(' ', normalize-space(@class), ' '), ' highlight ')))]")
     expect_equal(xpath("div:where(.foo, .bar)"),
-                 "div[((@class and contains(concat(' ', normalize-space(@class), ' '), ' foo '))) or ((@class and contains(concat(' ', normalize-space(@class), ' '), ' bar ')))]")
+                 "div[((@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')) or (@class and contains(concat(' ', normalize-space(@class), ' '), ' bar ')))]")
     expect_equal(xpath("p:where(.highlight, #special, [data-key])"),
-                 "p[((@class and contains(concat(' ', normalize-space(@class), ' '), ' highlight '))) or ((@id = 'special')) or ((@data-key))]")
+                 "p[((@class and contains(concat(' ', normalize-space(@class), ' '), ' highlight ')) or (@id = 'special') or (@data-key))]")
     expect_equal(xpath("div:is(p)"), "div[((name() = 'p'))]")
     expect_equal(xpath("div:matches(p)"), "div[((name() = 'p'))]")
 })

@@ -415,12 +415,12 @@ mod tests {
             xpath("e:not(a, b)"),
             "e[(not((name() = 'a') or (name() = 'b')))]"
         );
-        // :where() / :is() OR each argument's condition onto the outer
-        // expression.
+        // :where() / :is() OR their arguments together into one condition
+        // that ANDs with the rest of the compound.
         assert_eq!(xpath("div:where(p)"), "div[((name() = 'p'))]");
         assert_eq!(
             xpath("div:where(p, span)"),
-            "div[((name() = 'p')) or ((name() = 'span'))]"
+            "div[((name() = 'p') or (name() = 'span'))]"
         );
         assert_eq!(
             xpath("*:where(div.content)"),
@@ -429,7 +429,7 @@ mod tests {
         );
         assert_eq!(
             xpath("div:where(p):where(span)"),
-            "div[((name() = 'p')) or ((name() = 'span'))]"
+            "div[((name() = 'p')) and ((name() = 'span'))]"
         );
         assert_eq!(xpath("div:is(p)"), "div[((name() = 'p'))]");
         // :matches() is the legacy alias for :is().

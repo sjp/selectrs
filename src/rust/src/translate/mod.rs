@@ -257,17 +257,17 @@ impl Translator {
                 }
                 Ok(())
             }
-            // :is()/:matches() and :where() — identical translations: each
-            // argument's condition is OR-ed onto the outer expression.
-            Component::Is(list) => {
-                for condition in self.arg_conditions(list.slice(), ":is()")? {
-                    xpath.add_condition_with(&condition, "or");
-                }
-                Ok(())
-            }
-            Component::Where(list) => {
-                for condition in self.arg_conditions(list.slice(), ":where()")? {
-                    xpath.add_condition_with(&condition, "or");
+            // :is()/:matches() and :where() — identical translations: the
+            // arguments OR together into a single condition that is AND-ed
+            // onto the outer expression, keeping the compound a conjunction.
+            Component::Is(list) | Component::Where(list) => {
+                let context = match component {
+                    Component::Is(_) => ":is()",
+                    _ => ":where()",
+                };
+                let conditions = self.arg_conditions(list.slice(), context)?;
+                if !conditions.is_empty() {
+                    xpath.add_condition(&conditions.join(" or "));
                 }
                 Ok(())
             }
