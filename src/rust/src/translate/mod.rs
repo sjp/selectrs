@@ -11,7 +11,7 @@ use selectors::parser::{Combinator, Component, Selector};
 
 use crate::parser::{self, SelectrsImpl};
 use error::Error;
-use xpath_expr::{is_safe_name, XPathExpr};
+use xpath_expr::{XPathExpr, is_safe_name};
 
 /// Which translator family the pseudo-class overrides come from: generic
 /// or HTML (both `html` and `xhtml` use the HTML overrides; only `html`
@@ -134,32 +134,32 @@ impl Translator {
             match component {
                 Component::Namespace(prefix, _) if xpath.is_none() => {
                     ns = NsConstraint::Prefix(prefix.as_str());
-                },
+                }
                 // The sentinel default namespace (see SelectrsParser):
                 // plain `e` and type-less compounds — no constraint written.
                 Component::DefaultNamespace(_) if xpath.is_none() => {
                     ns = NsConstraint::None;
-                },
+                }
                 Component::ExplicitAnyNamespace if xpath.is_none() => {
                     ns = NsConstraint::Any;
-                },
+                }
                 Component::ExplicitNoNamespace if xpath.is_none() => {
                     ns = NsConstraint::ExplicitNone;
-                },
-                Component::ExplicitUniversalType if xpath.is_none() => {},
+                }
+                Component::ExplicitUniversalType if xpath.is_none() => {}
                 Component::LocalName(local_name) if xpath.is_none() => {
                     element = Some(local_name.name.as_str());
-                },
+                }
                 other => {
                     let xp = match xpath {
                         Some(ref mut xp) => xp,
                         None => {
                             xpath = Some(self.xpath_element(ns, element));
                             xpath.as_mut().expect("just set")
-                        },
+                        }
                     };
                     self.apply_simple(xp, other)?;
-                },
+                }
             }
         }
 
@@ -182,7 +182,7 @@ impl Translator {
                     e.to_owned()
                 };
                 (e, safe)
-            },
+            }
         };
         match ns {
             NsConstraint::Any if name != "*" => {
@@ -190,9 +190,12 @@ impl Translator {
                 // XPath name test only matches the null namespace, so test
                 // against local-name() instead.
                 let mut xpath = XPathExpr::new("*");
-                xpath.add_condition(&format!("local-name() = {}", xpath_expr::xpath_literal(&name)));
+                xpath.add_condition(&format!(
+                    "local-name() = {}",
+                    xpath_expr::xpath_literal(&name)
+                ));
                 return xpath;
-            },
+            }
             NsConstraint::ExplicitNone if name == "*" => {
                 // '|e': 'e' in no namespace, which is exactly what an
                 // unprefixed XPath name test matches. '|*' needs an
@@ -200,15 +203,15 @@ impl Translator {
                 let mut xpath = XPathExpr::new("*");
                 xpath.add_condition("namespace-uri() = ''");
                 return xpath;
-            },
+            }
             NsConstraint::Prefix(prefix) => {
                 // Namespace prefixes are case-sensitive.
                 // https://www.w3.org/TR/css-namespaces-3/#prefixes
                 safe = safe && is_safe_name(prefix);
                 name = format!("{prefix}:{name}");
-            },
+            }
             // '*|*' and '|e' translate to an unqualified name test.
-            _ => {},
+            _ => {}
         }
         let mut xpath = XPathExpr::new(&name);
         if !safe {
@@ -230,19 +233,19 @@ impl Translator {
             Component::Root => {
                 xpath.add_condition("not(parent::*)");
                 Ok(())
-            },
+            }
             // :empty
             Component::Empty => {
                 xpath.add_condition("not(*) and not(string-length())");
                 Ok(())
-            },
+            }
             // :first-child, :nth-child(an+b), :only-of-type, ... — Servo
             // collapses the whole family into NthSelectorData.
             Component::Nth(data) => self.apply_nth(xpath, data, None),
             // :nth-child(an+b of S) / :nth-last-child(an+b of S)
             Component::NthOf(data) => {
                 self.apply_nth(xpath, data.nth_data(), Some(data.selectors()))
-            },
+            }
             // :not(). Nesting inside other functional pseudo-classes is
             // allowed (Selectors Level 4).
             Component::Negation(list) => {
@@ -253,7 +256,7 @@ impl Translator {
                     xpath.add_condition("0");
                 }
                 Ok(())
-            },
+            }
             // :is()/:matches() and :where() — identical translations: each
             // argument's condition is OR-ed onto the outer expression.
             Component::Is(list) => {
@@ -261,13 +264,13 @@ impl Translator {
                     xpath.add_condition_with(&condition, "or");
                 }
                 Ok(())
-            },
+            }
             Component::Where(list) => {
                 for condition in self.arg_conditions(list.slice(), ":where()")? {
                     xpath.add_condition_with(&condition, "or");
                 }
                 Ok(())
-            },
+            }
             // :has(): each argument is a relative selector whose optional
             // leading combinator scopes the match (`>` child, `~`
             // subsequent sibling, `+` next sibling; omitted means
@@ -296,12 +299,12 @@ impl Translator {
                         Some(Combinator::Child) => "child::",
                         Some(Combinator::NextSibling) | Some(Combinator::LaterSibling) => {
                             "following-sibling::"
-                        },
+                        }
                         _ => {
                             return Err(Error::Unsupported(
                                 "an unexpected combinator inside `:has()`".into(),
                             ));
-                        },
+                        }
                     };
                     let mut sub = self.compound_to_xpath(&compound)?;
                     sub.add_name_test();
@@ -322,24 +325,24 @@ impl Translator {
                     xpath.add_condition(&conditions.join(" | "));
                 }
                 Ok(())
-            },
+            }
             // :hover, :checked, :lang(), ... — translator-dependent.
             Component::NonTSPseudoClass(pc) => self.apply_pseudo_class(xpath, pc),
             // e#myid
             Component::ID(id) => {
                 self.attrib_equals(xpath, "@id", id.as_str());
                 Ok(())
-            },
+            }
             // .foo is defined as [class~=foo] in the spec
             Component::Class(class_name) => {
                 self.attrib_includes(xpath, "@class", class_name.as_str());
                 Ok(())
-            },
+            }
             Component::AttributeInNoNamespaceExists { local_name, .. } => {
                 let attrib = self.attrib_expr(NsConstraint::None, local_name.as_str());
                 xpath.add_condition(&attrib);
                 Ok(())
-            },
+            }
             Component::AttributeInNoNamespace {
                 local_name,
                 operator,
@@ -347,15 +350,14 @@ impl Translator {
                 case_sensitivity,
             } => {
                 let attrib = self.attrib_expr(NsConstraint::None, local_name.as_str());
-                let (attrib, value) =
-                    apply_case_flag(attrib, value.as_str(), case_sensitivity);
+                let (attrib, value) = apply_case_flag(attrib, value.as_str(), case_sensitivity);
                 self.attrib_operator(xpath, &attrib, *operator, &value)
-            },
+            }
             Component::AttributeOther(attr) => {
                 let ns = match attr.namespace {
                     Some(NamespaceConstraint::Specific((ref prefix, _))) => {
                         NsConstraint::Prefix(prefix.as_str())
-                    },
+                    }
                     Some(NamespaceConstraint::Any) => NsConstraint::Any,
                     // '[|foo]' is equivalent to '[foo]': unprefixed
                     // attribute names have no namespace.
@@ -366,7 +368,7 @@ impl Translator {
                     ParsedAttrSelectorOperation::Exists => {
                         xpath.add_condition(&attrib);
                         Ok(())
-                    },
+                    }
                     ParsedAttrSelectorOperation::WithValue {
                         operator,
                         case_sensitivity,
@@ -375,9 +377,9 @@ impl Translator {
                         let (attrib, value) =
                             apply_case_flag(attrib, value.as_str(), &case_sensitivity);
                         self.attrib_operator(xpath, &attrib, operator, &value)
-                    },
+                    }
                 }
-            },
+            }
             unsupported => Err(Error::Unsupported(describe_component(unsupported))),
         }
     }
@@ -398,7 +400,7 @@ impl Translator {
                 // unprefixed XPath attribute test only matches attributes
                 // with no namespace, so test against local-name() instead.
                 format!("@*[local-name() = {}]", xpath_expr::xpath_literal(&name))
-            },
+            }
             NsConstraint::Prefix(prefix) => {
                 let name = format!("{prefix}:{name}");
                 if safe {
@@ -409,7 +411,7 @@ impl Translator {
                         xpath_expr::xpath_literal(&name)
                     )
                 }
-            },
+            }
             NsConstraint::None | NsConstraint::ExplicitNone => {
                 if safe {
                     format!("@{name}")
@@ -419,7 +421,7 @@ impl Translator {
                         xpath_expr::xpath_literal(&name)
                     )
                 }
-            },
+            }
         }
     }
 
@@ -447,14 +449,12 @@ impl Translator {
                     // attributes). Result: *[1][self::element][existing]
                     format!("1][self::{target_element}][{existing_condition}")
                 };
-            },
+            }
             // PseudoElement / SlotAssignment / Part combinators can never be
             // produced: the corresponding parser hooks are disabled.
             other => {
-                return Err(Error::Unsupported(format!(
-                    "the {other:?} combinator"
-                )));
-            },
+                return Err(Error::Unsupported(format!("the {other:?} combinator")));
+            }
         }
         Ok(left)
     }

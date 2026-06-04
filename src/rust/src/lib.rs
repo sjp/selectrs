@@ -483,15 +483,9 @@ mod tests {
              normalize-space(@class), ' '), ' foo ')) and (name() = 'p')])]"
         );
         // Nested :not() (Selectors Level 4).
-        assert_eq!(
-            xpath(":not(:not(a))"),
-            "*[(not((not((name() = 'a')))))]"
-        );
+        assert_eq!(xpath(":not(:not(a))"), "*[(not((not((name() = 'a')))))]");
         assert_eq!(xpath("e:is(:not(f))"), "e[((not((name() = 'f'))))]");
-        assert_eq!(
-            xpath("e:has(:not(f))"),
-            "e[(.//*[(not((name() = 'f')))])]"
-        );
+        assert_eq!(xpath("e:has(:not(f))"), "e[(.//*[(not((name() = 'f')))])]");
     }
 
     #[test]
@@ -501,10 +495,7 @@ mod tests {
         assert_eq!(xpath("e:lang(\"en\")"), "e[(lang('en'))]");
         assert_eq!(xpath("e:lang(en-*)"), "e[(lang('en-'))]");
         assert_eq!(xpath("e:lang(*)"), "e[(true())]");
-        assert_eq!(
-            xpath("e:lang(en, fr)"),
-            "e[((lang('en') or lang('fr')))]"
-        );
+        assert_eq!(xpath("e:lang(en, fr)"), "e[((lang('en') or lang('fr')))]");
         // Whitespace is a separator too.
         assert_eq!(xpath("e:lang(en fr)"), "e[((lang('en') or lang('fr')))]");
         // HTML: nearest lang-attributed ancestor, lowercased prefix match.

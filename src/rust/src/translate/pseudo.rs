@@ -9,7 +9,7 @@
 use crate::parser::{LangArg, PseudoClass};
 
 use super::error::Error;
-use super::xpath_expr::{xpath_literal, XPathExpr};
+use super::xpath_expr::{XPathExpr, xpath_literal};
 use super::{Kind, Translator};
 
 /// The HTML translators' lang attribute. (The generic translator has no
@@ -28,13 +28,13 @@ impl Translator {
                 // possible in static XPath, so it never matches — in both
                 // translators (the HTML override is an identical copy).
                 xpath.add_condition("0");
-            },
+            }
             (Kind::Generic, PseudoClass::Lang(args)) => {
                 self.lang_generic(xpath, args);
-            },
+            }
             (Kind::Html, PseudoClass::Lang(args)) => {
                 self.lang_html(xpath, args);
-            },
+            }
             // HTML overrides
             (Kind::Html, PseudoClass::Checked) => {
                 xpath.add_condition(
@@ -43,12 +43,12 @@ impl Translator {
                      and (name(.) = 'input' or name(.) = 'command')\
                      and (@type = 'checkbox' or @type = 'radio'))",
                 );
-            },
+            }
             (Kind::Html, PseudoClass::Link) => {
                 xpath.add_condition(
                     "@href and (name(.) = 'a' or name(.) = 'link' or name(.) = 'area')",
                 );
-            },
+            }
             (Kind::Html, PseudoClass::Disabled) => {
                 xpath.add_condition(
                     "( @disabled and ( \
@@ -69,7 +69,7 @@ impl Translator {
                      and ancestor::fieldset[@disabled] \
                      )",
                 );
-            },
+            }
             (Kind::Html, PseudoClass::Enabled) => {
                 xpath.add_condition(
                     "(@href and (name(.) = 'a' or name(.) = 'link' or name(.) = 'area')) \
@@ -86,11 +86,11 @@ impl Translator {
                      or (name(.) = 'option' and not(@disabled or \
                      ancestor::optgroup[@disabled]))",
                 );
-            },
+            }
             // Everything else never matches.
             _ => {
                 xpath.add_condition("0");
-            },
+            }
         }
         Ok(())
     }
@@ -155,15 +155,15 @@ fn lang_values(args: &[LangArg]) -> Vec<String> {
             {
                 values.push(format!("{v}*"));
                 i += 2; // skip the next token since we combined it
-            },
+            }
             LangArg::Value(v) => {
                 values.push(v.clone());
                 i += 1;
-            },
+            }
             LangArg::Star => {
                 values.push("*".to_owned());
                 i += 1;
-            },
+            }
         }
     }
     values
@@ -174,7 +174,7 @@ fn lang_values(args: &[LangArg]) -> Vec<String> {
 /// pair of parentheses.
 fn add_lang_conditions(xpath: &mut XPathExpr, conditions: Vec<String>) {
     match conditions.len() {
-        0 => {},
+        0 => {}
         1 => xpath.add_condition(&conditions[0]),
         _ => xpath.add_condition(&format!("({})", conditions.join(" or "))),
     }

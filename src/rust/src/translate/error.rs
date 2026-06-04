@@ -18,7 +18,7 @@ impl Error {
         match self {
             Error::Parse(detail) => {
                 format!("Unable to parse the CSS selector {selector:?}: {detail}")
-            },
+            }
             Error::Unsupported(construct) => format!(
                 "The CSS selector {selector:?} uses {construct}, which selectrs does not support"
             ),

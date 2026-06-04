@@ -124,10 +124,7 @@ mod tests {
     fn literals() {
         assert_eq!(xpath_literal("foo"), "'foo'");
         assert_eq!(xpath_literal("f'oo"), "\"f'oo\"");
-        assert_eq!(
-            xpath_literal("f'o\"o"),
-            "concat('f',\"'\",'o','\"','o')"
-        );
+        assert_eq!(xpath_literal("f'o\"o"), "concat('f',\"'\",'o','\"','o')");
     }
 
     #[test]

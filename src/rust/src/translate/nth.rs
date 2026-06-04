@@ -10,9 +10,9 @@
 
 use selectors::parser::{NthSelectorData, NthType, Selector};
 
+use super::Translator;
 use super::error::Error;
 use super::xpath_expr::XPathExpr;
-use super::Translator;
 use crate::parser::SelectrsImpl;
 
 impl Translator {
@@ -32,7 +32,7 @@ impl Translator {
             NthType::OnlyChild => {
                 xpath.add_condition("count(parent::*/child::*) = 1");
                 Ok(())
-            },
+            }
             // :only-of-type
             NthType::OnlyOfType => {
                 if xpath.element == "*" {
@@ -40,12 +40,9 @@ impl Translator {
                         "`:only-of-type` on the universal selector `*`".into(),
                     ));
                 }
-                xpath.add_condition(&format!(
-                    "count(parent::*/child::{}) = 1",
-                    xpath.element
-                ));
+                xpath.add_condition(&format!("count(parent::*/child::{}) = 1", xpath.element));
                 Ok(())
-            },
+            }
             // :first-child / :last-child / :nth-child() / :nth-last-child()
             NthType::Child | NthType::LastChild => self.xpath_nth_child(
                 xpath,
@@ -72,7 +69,7 @@ impl Translator {
                     /* add_name_test = */ false,
                     selector_list,
                 )
-            },
+            }
         }
     }
 
@@ -110,7 +107,7 @@ impl Translator {
                 } else {
                     Some(conditions.join(" or "))
                 }
-            },
+            }
             None => None,
         };
 

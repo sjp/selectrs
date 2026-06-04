@@ -2,9 +2,9 @@
 
 use selectors::attr::AttrSelectorOperator;
 
-use super::error::Error;
-use super::xpath_expr::{xpath_literal, XPathExpr};
 use super::Translator;
+use super::error::Error;
+use super::xpath_expr::{XPathExpr, xpath_literal};
 
 impl Translator {
     /// Dispatch over `[attr <op> value]`. Attribute *values* keep their

@@ -4,7 +4,7 @@
 pub mod impls;
 
 use cssparser::{
-    match_ignore_ascii_case, Parser as CssParser, ParserInput, SourceLocation, ToCss, Token,
+    Parser as CssParser, ParserInput, SourceLocation, ToCss, Token, match_ignore_ascii_case,
 };
 use selectors::parser::{
     NonTSPseudoClass, ParseRelative, PseudoElement, SelectorImpl, SelectorList,
@@ -104,7 +104,7 @@ impl ToCss for PseudoClass {
                     }
                 }
                 dest.write_char(')')
-            },
+            }
             _ => Ok(()),
         }
     }
@@ -240,12 +240,12 @@ impl<'i> selectors::parser::Parser<'i> for SelectrsParser {
                 Token::Ident(ref v) => args.push(LangArg::Value(v.as_ref().to_owned())),
                 Token::QuotedString(ref v) => args.push(LangArg::Value(v.as_ref().to_owned())),
                 Token::Delim('*') => args.push(LangArg::Star),
-                Token::Comma => {},
+                Token::Comma => {}
                 _ => {
                     return Err(parser.new_custom_error(
                         SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name),
                     ));
-                },
+                }
             }
         }
         if args.is_empty() {
