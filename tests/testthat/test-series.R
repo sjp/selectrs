@@ -1,10 +1,3 @@
-# Ported from selectr's tests/testthat/test-series.R (sjp/selectr@9ed9bb2, by
-# Simon Potter), adapted for selectrs: testthat edition-3 idioms
-# (expect_equal instead of expect_that/equals, no context()). The first
-# upstream block exercises the internal parse_series() on parsed AST
-# arguments and is dropped (selectrs has no R-level series parser; the same
-# (a, b) pairs are pinned through full translations in test-translation.R).
-
 test_that("series are parsed case-insensitively", {
     xpath <- function(css) css_to_xpath(paste0("e:nth-child(", css, ")"))
 

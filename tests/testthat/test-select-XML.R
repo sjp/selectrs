@@ -1,9 +1,3 @@
-# Ported from selectr's tests/testthat/test-select-XML.R (sjp/selectr@9ed9bb2, by
-# Simon Potter), adapted for selectrs: testthat edition-3 idioms
-# (expect_equal instead of expect_that/equals, no context()), with the XML suite
-# guarded by skip_if_not_installed()
-# and the internal R6 translators replaced by css_to_xpath(translator=).
-
 test_that("selection works correctly on a large barrage of tests", {
     HTML_IDS <- paste0(
         c("<html id=\"html\"><head>", "  <link id=\"link-href\" href=\"foo\" />",

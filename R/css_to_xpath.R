@@ -1,15 +1,11 @@
 #' Translate a CSS selector to an equivalent XPath expression
 #'
 #' This function maps a CSS selector to its XPath equivalent, which can then
-#' be used to query XML documents. A drop-in, Rust-powered port of
-#' [selectr's](https://cran.r-project.org/package=selectr) `css_to_xpath()`:
-#' for every selector it accepts, the result is byte-identical to selectr's.
-#' Selectors using constructs selectrs does not support raise an error
-#' naming the construct.
+#' be used to query XML documents. Selectors using constructs selectrs does
+#' not support raise an error naming the construct.
 #'
-#' The argument validation and recycling below are ported from selectr
-#' (R/main.R:1-50 at sjp/selectr@7327ae3, by Simon Potter); the per-element
-#' translation loop is replaced by one vectorized call into the Rust core.
+#' Argument validation and recycling happen in R; the translation itself is
+#' one vectorized call into the Rust core.
 #'
 #' @param selector A character vector of CSS selectors.
 #' @param prefix A character vector of prefixes to apply to the resulting

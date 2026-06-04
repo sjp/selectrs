@@ -33,22 +33,21 @@ impl SelectorImpl for SelectrsImpl {
 }
 
 /// One argument to `:lang()` / `:dir()`: an ident or string value, or a
-/// bare `*` wildcard. selectr collects these as raw tokens (commas and
-/// whitespace are separators) and combines `xx-` followed by `*` into
-/// `xx-*` at translation time (R/parser.R:626-668, R/xpath.R:775-831).
+/// bare `*` wildcard. These are collected as raw tokens (commas and
+/// whitespace are separators); `xx-` followed by `*` is combined into
+/// `xx-*` at translation time.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LangArg {
     Value(String),
     Star,
 }
 
-/// The non-tree-structural pseudo-classes selectr's translators know
-/// (R/xpath.R:297-345). Everything here is the "never matches" set under
-/// the generic translator; the HTML translator overrides `:checked`,
-/// `:link`, `:enabled`, `:disabled`, and `:lang()`. Any other pseudo name
-/// is rejected at parse time, matching selectr's "pseudo-class is unknown"
-/// errors (tree-structural pseudos are parsed natively by Servo and never
-/// reach this type).
+/// The non-tree-structural pseudo-classes the translators know.
+/// Everything here is the "never matches" set under the generic
+/// translator; the HTML translator overrides `:checked`, `:link`,
+/// `:enabled`, `:disabled`, and `:lang()`. Any other pseudo name is
+/// rejected at parse time (tree-structural pseudos are parsed natively by
+/// Servo and never reach this type).
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PseudoClass {
     AnyLink,
@@ -127,9 +126,7 @@ impl NonTSPseudoClass for PseudoClass {
 }
 
 /// Uninhabited: `parse_pseudo_element` is left at its erroring default, so
-/// `::before` etc. fail to parse — compatible with selectr, whose
-/// translators error on pseudo-elements too ("Pseudo-elements are not
-/// supported.", R/xpath.R:123-127).
+/// `::before` etc. fail to parse — pseudo-elements are not supported.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum NeverPseudoElement {}
 
@@ -156,20 +153,18 @@ impl<'i> selectors::parser::Parser<'i> for SelectrsParser {
         false
     }
 
-    /// `:is()` and `:where()` map to selectr's Matching/Where classes.
+    /// Enable `:is()` and `:where()`.
     fn parse_is_and_where(&self) -> bool {
         true
     }
 
-    /// selectr treats `:matches()` as an alias for `:is()`
-    /// (R/parser.R:616-618).
+    /// `:matches()` is the legacy alias for `:is()`.
     fn is_is_alias(&self, name: &str) -> bool {
         name.eq_ignore_ascii_case("matches")
     }
 
-    /// `:has()` maps to selectr's Has class. The translator restricts the
-    /// arguments to what selectr's parser accepts (compounds with the
-    /// implied descendant combinator).
+    /// Enable `:has()`. The translator restricts the arguments to
+    /// compound selectors (with an optional leading combinator).
     fn parse_has(&self) -> bool {
         true
     }
@@ -180,10 +175,9 @@ impl<'i> selectors::parser::Parser<'i> for SelectrsParser {
         true
     }
 
-    /// The non-tree-structural pseudo-classes selectr knows: its
-    /// "never matches" set (R/xpath.R:898-909) plus the HTML-translator
-    /// overrides. Anything else errors, matching selectr's
-    /// "The pseudo-class :foo is unknown".
+    /// The supported non-tree-structural pseudo-classes: the "never
+    /// matches" set plus the HTML-translator overrides. Anything else
+    /// errors.
     fn parse_non_ts_pseudo_class(
         &self,
         location: SourceLocation,
@@ -211,17 +205,15 @@ impl<'i> selectors::parser::Parser<'i> for SelectrsParser {
         Ok(pc)
     }
 
-    /// `:lang()` and `:dir()`, with selectr's argument grammar
-    /// (R/parser.R:626-668): idents, strings, and `*` wildcards, separated
-    /// by whitespace and/or commas (commas are pure separators — leading,
-    /// trailing, and repeated commas are all tolerated). At least one
-    /// argument is required. selectr additionally collects NUMBER/`+`/`-`
-    /// tokens here only to reject them during translation; rejecting them
-    /// at parse time errors on exactly the same selectors.
+    /// `:lang()` and `:dir()` argument grammar: idents, strings, and `*`
+    /// wildcards, separated by whitespace and/or commas (commas are pure
+    /// separators — leading, trailing, and repeated commas are all
+    /// tolerated). At least one argument is required; NUMBER/`+`/`-`
+    /// tokens are rejected.
     ///
-    /// `:contains()` — selectr's non-standard text-content pseudo — is
-    /// deliberately unsupported and falls through to the rejection arm,
-    /// as does any unknown functional pseudo.
+    /// The non-standard text-content pseudo `:contains()` is deliberately
+    /// unsupported and falls through to the rejection arm, as does any
+    /// unknown functional pseudo.
     fn parse_non_ts_functional_pseudo_class<'t>(
         &self,
         name: cssparser::CowRcStr<'i>,
@@ -268,15 +260,15 @@ impl<'i> selectors::parser::Parser<'i> for SelectrsParser {
         })
     }
 
-    /// Identity mapping: `svg|g` translates to `svg:g` with no URL maps,
-    /// matching selectr's prefix-only namespace model.
+    /// Identity mapping: `svg|g` translates to `svg:g` — a prefix-only
+    /// namespace model with no URL maps.
     fn namespace_for_prefix(&self, prefix: &CssString) -> Option<CssString> {
         Some(prefix.clone())
     }
 
     /// A sentinel "default namespace". Without one, Servo drops the
     /// namespace component from both `e` and `*|e` (they match identically),
-    /// but selectr translates them differently (`e` vs a `local-name()`
+    /// but they must translate differently (`e` vs a `local-name()`
     /// test). With it, plain `e` carries `DefaultNamespace("")` — mapped to
     /// "no constraint" — while `*|e` keeps `ExplicitAnyNamespace`. The empty
     /// string can never collide with a real prefix (prefixes are non-empty

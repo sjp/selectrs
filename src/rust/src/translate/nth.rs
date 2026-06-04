@@ -1,13 +1,12 @@
-//! Port of selectr's nth-child arithmetic and the structural pseudo-classes
-//! Servo folds into `NthSelectorData` (R/xpath.R:498-764, 851-886 at
-//! sjp/selectr@7776605).
+//! The nth-child arithmetic and the structural pseudo-classes Servo folds
+//! into `NthSelectorData`.
 //!
 //! Servo parses `:first-child` as `nth-child` data with `(a, b) = (0, 1)`,
 //! `:last-child` as `nth-last-child(0n+1)`, and so on. That collapse is
-//! lossless for translation: selectr's dedicated `xpath_first_child_pseudo`
-//! etc. produce byte-identical output to its `xpath_nth_child_function` on
-//! the same `(a, b)` (e.g. both give `count(preceding-sibling::*) = 0`).
-//! Only `:only-child`/`:only-of-type` need their own translation.
+//! lossless for translation: a dedicated `:first-child` translation would
+//! produce byte-identical output to the general an+b form on the same
+//! `(a, b)` (e.g. both give `count(preceding-sibling::*) = 0`). Only
+//! `:only-child`/`:only-of-type` need their own translation.
 
 use selectors::parser::{NthSelectorData, NthType, Selector};
 
@@ -18,8 +17,8 @@ use crate::parser::SelectrsImpl;
 
 impl Translator {
     /// Route one `NthSelectorData` (with Servo's pre-parsed `(a, b)`) to
-    /// the matching selectr translation. `selector_list` carries the
-    /// Level 4 `of S` arguments when present (`Component::NthOf`).
+    /// the matching translation. `selector_list` carries the Level 4
+    /// `of S` arguments when present (`Component::NthOf`).
     pub(crate) fn apply_nth(
         &self,
         xpath: &mut XPathExpr,
@@ -29,12 +28,12 @@ impl Translator {
         let a = data.an_plus_b.0;
         let b = data.an_plus_b.1;
         match data.ty {
-            // :only-child (R/xpath.R:875-878)
+            // :only-child
             NthType::OnlyChild => {
                 xpath.add_condition("count(parent::*/child::*) = 1");
                 Ok(())
             },
-            // :only-of-type (R/xpath.R:879-886)
+            // :only-of-type
             NthType::OnlyOfType => {
                 if xpath.element == "*" {
                     return Err(Error::Unsupported(
@@ -57,8 +56,8 @@ impl Translator {
                 selector_list,
             ),
             // :first-of-type / :last-of-type / :nth-of-type() /
-            // :nth-last-of-type() — selectr errors on `*` for all of them
-            // ("*:nth-of-type() is not implemented", R/xpath.R:752-764).
+            // :nth-last-of-type() — none are implemented on the universal
+            // selector `*`.
             NthType::OfType | NthType::LastOfType => {
                 if xpath.element == "*" {
                     return Err(Error::Unsupported(
@@ -77,14 +76,12 @@ impl Translator {
         }
     }
 
-    /// Branch-for-branch port of `xpath_nth_child_function`
-    /// (R/xpath.R:498-748). The comments and structure mirror the R
-    /// original; see it for the full derivation from
+    /// The general an+b translation, derived from
     /// https://www.w3.org/TR/selectors-4/#structural-pseudos.
     ///
-    /// `add_name_test` is inverted and somewhat counter-intuitive, exactly
-    /// as in selectr: nth-of-type passes `false` and counts only siblings
-    /// with the same element name.
+    /// `add_name_test` is inverted and somewhat counter-intuitive:
+    /// nth-of-type passes `false` and counts only siblings with the same
+    /// element name.
     fn xpath_nth_child(
         &self,
         xpath: &mut XPathExpr,
@@ -94,8 +91,8 @@ impl Translator {
         add_name_test: bool,
         selector_list: Option<&[Selector<SelectrsImpl>]>,
     ) -> Result<(), Error> {
-        // i64 throughout: selectr works in R doubles, and `-(b-1)` /
-        // `abs(a)` must not overflow for extreme i32 inputs.
+        // i64 throughout: `-(b-1)` / `abs(a)` must not overflow for
+        // extreme i32 inputs.
         let a = i64::from(a);
         let b = i64::from(b);
 
@@ -104,8 +101,7 @@ impl Translator {
 
         // CSS Level 4: when a selector list is provided, the current
         // element must match it too. The same OR-joined condition is
-        // appended in every branch (R repeats this block verbatim four
-        // times).
+        // appended in every branch.
         let current_element_check = match selector_list {
             Some(list) => {
                 let conditions = self.arg_conditions(list, ":nth-child(... of S)")?;
@@ -187,8 +183,8 @@ impl Translator {
             let mut left = siblings_count;
 
             // apply "modulo a" on the 2nd term, -(b-1), to simplify things
-            // like "(... +6) % -3", and also make it positive with |a| —
-            // R's floored `%%` is `rem_euclid` for a positive modulus
+            // like "(... +6) % -3", and also make it positive with |a|
+            // (`rem_euclid`)
             let b_neg = (-b_min_1).rem_euclid(a.abs());
 
             if b_neg != 0 {

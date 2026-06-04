@@ -1,10 +1,3 @@
-# Document-querying blocks ported from selectr's tests/testthat/test-has.R
-# (sjp/selectr@9ed9bb2, by Simon Potter); the translation-level blocks of the
-# same file were already absorbed into selectrs' test-translation.R during
-# Phase 2. Adapted for testthat edition 3 (expect_equal instead of
-# expect_that/equals, no context()), XML/xml2 guarded by
-# skip_if_not_installed().
-
 test_that(":has() works correctly with XML documents", {
     skip_if_not_installed("XML")
     library(XML)
@@ -171,8 +164,6 @@ test_that(":has() handles edge cases correctly", {
 
     # Nested :has() is invalid (selectors-4 excludes :has() from its
     # own argument grammar); the descendant form expresses the same match.
-    # (selectr says 'Got nested :has()'; error text is selectrs' own per
-    # the parity scope in MIGRATION.md, so only the error is asserted.)
     expect_error(querySelectorAll(doc2, "section:has(article:has(div))"),
                  'Unable to parse the CSS selector "section:has(article:has(div))"',
                  fixed = TRUE)

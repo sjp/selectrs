@@ -2,7 +2,7 @@
 //!
 //! A plain `String` newtype is used for every string-ish associated type.
 //! This deliberately avoids `string_cache` and its static atom tables — a
-//! meaningfully smaller vendored dependency tree (see MIGRATION.md).
+//! meaningfully smaller vendored dependency tree.
 
 use std::borrow::Borrow;
 use std::fmt;

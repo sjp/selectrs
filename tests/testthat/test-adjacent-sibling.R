@@ -1,10 +1,3 @@
-# Document-querying blocks ported from selectr's tests/testthat/test-adjacent-sibling.R
-# (sjp/selectr@9ed9bb2, by Simon Potter); the translation-level blocks of the
-# same file were already absorbed into selectrs' test-translation.R during
-# Phase 2. Adapted for testthat edition 3 (expect_equal instead of
-# expect_that/equals, no context()), XML/xml2 guarded by
-# skip_if_not_installed().
-
 test_that("adjacent sibling combinator works correctly with querySelector", {
     skip_if_not_installed("XML")
     skip_if_not_installed("XML")

@@ -1,9 +1,3 @@
-# Ported from selectr's tests/testthat/test-xmllang-XML.R (sjp/selectr@9ed9bb2, by
-# Simon Potter), adapted for selectrs: testthat edition-3 idioms
-# (expect_equal instead of expect_that/equals, no context()), with the XML suite
-# guarded by skip_if_not_installed()
-# and the internal R6 translator replaced by css_to_xpath().
-
 test_that("xml lang function matches correct elements", {
     xmlLangText <- paste0('<test>',
                           '<a id="first" xml:lang="en">a</a>',

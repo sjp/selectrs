@@ -1,9 +1,3 @@
-# Ported from selectr's tests/testthat/test-main.R (sjp/selectr@9ed9bb2, by
-# Simon Potter), adapted for selectrs: testthat edition-3 idioms
-# (expect_equal instead of expect_that/equals, no context()), and
-# guarded by skip_if_not_installed()
-# internal-translator notes removed (selectrs has no R6 classes).
-
 # We know that the results are correct via other tests, just check that
 # this produces the correct results with respect to its arguments
 test_that("css_to_xpath vectorises arguments", {

@@ -1,11 +1,10 @@
-//! Port of the non-tree-structural pseudo-class translations: selectr's
-//! "never matches" set (R/xpath.R:892-909), the `HTMLTranslator` overrides
-//! (R/xpath.R:1002-1156), and `:lang()`/`:dir()` (R/xpath.R:775-846).
+//! The non-tree-structural pseudo-class translations: the "never matches"
+//! set, the HTML overrides, and `:lang()`/`:dir()`.
 //!
-//! Both `html` and `xhtml` use the HTML overrides (`HTMLTranslator$new`
-//! only varies the lowercasing flags); the generic translator answers `0`
-//! (never matches) for everything except `:lang()`, which it maps to
-//! XPath's `lang()` function.
+//! Both `html` and `xhtml` use the HTML overrides (they differ only in the
+//! lowercasing flags); the generic translator answers `0` (never matches)
+//! for everything except `:lang()`, which it maps to XPath's `lang()`
+//! function.
 
 use crate::parser::{LangArg, PseudoClass};
 
@@ -13,9 +12,8 @@ use super::error::Error;
 use super::xpath_expr::{xpath_literal, XPathExpr};
 use super::{Kind, Translator};
 
-/// The HTML translators' lang attribute (`self$lang_attribute <- "lang"`,
-/// R/xpath.R:1012). The generic translator's `"xml:lang"` is never used in
-/// translation — its `:lang()` goes through XPath's `lang()` function.
+/// The HTML translators' lang attribute. (The generic translator has no
+/// use for one — its `:lang()` goes through XPath's `lang()` function.)
 const LANG_ATTRIBUTE: &str = "lang";
 
 impl Translator {
@@ -37,7 +35,7 @@ impl Translator {
             (Kind::Html, PseudoClass::Lang(args)) => {
                 self.lang_html(xpath, args);
             },
-            // HTMLTranslator overrides (R/xpath.R:1014-1154)
+            // HTML overrides
             (Kind::Html, PseudoClass::Checked) => {
                 xpath.add_condition(
                     "(@selected and name(.) = 'option') or \
@@ -89,7 +87,7 @@ impl Translator {
                      ancestor::optgroup[@disabled]))",
                 );
             },
-            // Everything else never matches (R/xpath.R:897-909).
+            // Everything else never matches.
             _ => {
                 xpath.add_condition("0");
             },
@@ -97,10 +95,9 @@ impl Translator {
         Ok(())
     }
 
-    /// Port of the generic `xpath_lang_function` (R/xpath.R:775-831):
-    /// XPath's `lang()` does language-range prefix matching natively, so
-    /// `en` and `en-*` both become `lang('en')`-style tests and a bare `*`
-    /// is `true()`.
+    /// Generic `:lang()`: XPath's `lang()` does language-range prefix
+    /// matching natively, so `en` and `en-*` both become `lang('en')`-style
+    /// tests and a bare `*` is `true()`.
     fn lang_generic(&self, xpath: &mut XPathExpr, args: &[LangArg]) {
         let mut conditions: Vec<String> = Vec::new();
         for value in lang_values(args) {
@@ -115,9 +112,8 @@ impl Translator {
         add_lang_conditions(xpath, conditions);
     }
 
-    /// Port of the HTML `xpath_lang_function` override (R/xpath.R:1022-1095):
-    /// the nearest `lang`-attributed ancestor-or-self is tested with a
-    /// lowercased, dash-terminated prefix match.
+    /// HTML `:lang()`: the nearest `lang`-attributed ancestor-or-self is
+    /// tested with a lowercased, dash-terminated prefix match.
     fn lang_html(&self, xpath: &mut XPathExpr, args: &[LangArg]) {
         let mut conditions: Vec<String> = Vec::new();
         for value in lang_values(args) {
@@ -146,9 +142,9 @@ impl Translator {
 
 /// Combine the raw `:lang()`/`:dir()` arguments into language values,
 /// merging an ident/string ending in `-` with an immediately following `*`
-/// (`"en-" + "*"` becomes `"en-*"`, R/xpath.R:786-803). Whitespace between
-/// them doesn't matter: selectr drops whitespace tokens while collecting
-/// arguments, so adjacency is in the argument list, not the source.
+/// (`"en-" + "*"` becomes `"en-*"`). Whitespace between them doesn't
+/// matter: whitespace tokens are dropped while collecting arguments, so
+/// adjacency is in the argument list, not the source.
 fn lang_values(args: &[LangArg]) -> Vec<String> {
     let mut values = Vec::new();
     let mut i = 0;
@@ -173,9 +169,9 @@ fn lang_values(args: &[LangArg]) -> Vec<String> {
     values
 }
 
-/// The shared condition-combining tail of both `xpath_lang_function`s
-/// (R/xpath.R:822-830, 1086-1094): a single condition is added as-is,
-/// multiple are OR-joined inside an extra pair of parentheses.
+/// The shared condition-combining tail of both `:lang()` translations: a
+/// single condition is added as-is, multiple are OR-joined inside an extra
+/// pair of parentheses.
 fn add_lang_conditions(xpath: &mut XPathExpr, conditions: Vec<String>) {
     match conditions.len() {
         0 => {},
@@ -184,7 +180,7 @@ fn add_lang_conditions(xpath: &mut XPathExpr, conditions: Vec<String>) {
     }
 }
 
-/// The HTML nearest-ancestor language test (R/xpath.R:1064-1082).
+/// The HTML nearest-ancestor language test.
 fn lang_ancestor_condition(search_prefix: &str) -> String {
     format!(
         "ancestor-or-self::*[@{LANG_ATTRIBUTE}][1][starts-with(concat(\

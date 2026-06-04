@@ -1,5 +1,4 @@
-# Hand-maintained (roxygen2 is not part of this devcontainer); mirrors
-# selectr's NAMESPACE for the exported API.
+# Hand-maintained (roxygen2 is not part of this devcontainer).
 useDynLib(selectrs, .registration = TRUE)
 
 export(css_to_xpath)

@@ -1,6 +1,4 @@
-//! Translation from Servo's parsed selector representation to XPath,
-//! a branch-for-branch port of selectr's translators (R/xpath.R at
-//! sjp/selectr@7327ae3).
+//! Translation from Servo's parsed selector representation to XPath.
 
 pub mod error;
 mod generic;
@@ -15,27 +13,26 @@ use crate::parser::{self, SelectrsImpl};
 use error::Error;
 use xpath_expr::{is_safe_name, XPathExpr};
 
-/// Which translator family the pseudo-class overrides come from: selectr's
-/// `GenericTranslator` or `HTMLTranslator` (both `html` and `xhtml` use the
-/// HTML overrides; only `html` lowercases names, R/xpath.R:1002-1013).
+/// Which translator family the pseudo-class overrides come from: generic
+/// or HTML (both `html` and `xhtml` use the HTML overrides; only `html`
+/// lowercases names).
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Kind {
     Generic,
     Html,
 }
 
-/// One struct with a kind tag and lowercasing flags instead of R6
-/// inheritance. Casing is applied here in the translator, never via Servo's
-/// parser settings, so generic-vs-html behavior matches selectr exactly.
+/// One struct with a kind tag and lowercasing flags. Casing is applied
+/// here in the translator, never via Servo's parser settings, so the
+/// translator families differ only in these fields.
 pub struct Translator {
     pub(crate) kind: Kind,
     pub(crate) lower_case_element_names: bool,
     pub(crate) lower_case_attribute_names: bool,
 }
 
-/// The namespace constraint on a type or attribute selector, mirroring
-/// selectr's `namespace` field values at sjp/selectr@717e2ee:
-/// `NULL` (none written), `"*"` (any), `""` (explicitly none), or a prefix.
+/// The namespace constraint on a type or attribute selector: none
+/// written, any, explicitly none, or a specific prefix.
 #[derive(Clone, Copy)]
 enum NsConstraint<'a> {
     /// No namespace separator written (`e`, `[foo]`).
@@ -70,8 +67,8 @@ impl Translator {
         }
     }
 
-    /// Port of `GenericTranslator$css_to_xpath` (R/xpath.R:112-131):
-    /// comma-separated selector groups, each prefixed, joined with " | ".
+    /// Translate comma-separated selector groups, each prefixed, joined
+    /// with " | ".
     pub fn css_to_xpath(&self, css: &str, prefix: &str) -> Result<String, Error> {
         let list = parser::parse(css)?;
         let mut parts: Vec<String> = Vec::new();
@@ -82,9 +79,9 @@ impl Translator {
     }
 
     /// Iteration bridge: Servo iterates compound selectors right-to-left
-    /// (match order); selectr's translator folds left-to-right over its
-    /// `CombinedSelector` tree. Collect Servo's sequences + combinators,
-    /// then fold from the leftmost compound.
+    /// (match order), but the XPath is built left-to-right. Collect
+    /// Servo's sequences + combinators, then fold from the leftmost
+    /// compound.
     fn selector_to_xpath(
         &self,
         selector: &Selector<SelectrsImpl>,
@@ -124,7 +121,7 @@ impl Translator {
     /// Translate one compound selector (a sequence of simple selectors).
     /// Element-ish components (namespace, type) always precede condition
     /// components in a valid compound; conditions are applied in source
-    /// order, matching selectr's innermost-first AST recursion.
+    /// order.
     fn compound_to_xpath(
         &self,
         components: &[&Component<SelectrsImpl>],
@@ -172,7 +169,8 @@ impl Translator {
         })
     }
 
-    /// Port of `xpath_element` (R/xpath.R:412-452 at sjp/selectr@717e2ee).
+    /// Build the element part of the expression from the namespace
+    /// constraint and element name.
     fn xpath_element(&self, ns: NsConstraint, element: Option<&str>) -> XPathExpr {
         let (mut name, mut safe) = match element {
             None => ("*".to_owned(), true),
@@ -220,20 +218,20 @@ impl Translator {
     }
 
     /// Dispatch over the non-element components of a compound — the
-    /// allow-list over `Component` variants. Anything outside selectr's
-    /// construct set errors, never approximates.
+    /// allow-list over `Component` variants. Anything outside the
+    /// supported construct set errors, never approximates.
     fn apply_simple(
         &self,
         xpath: &mut XPathExpr,
         component: &Component<SelectrsImpl>,
     ) -> Result<(), Error> {
         match component {
-            // :root (R/xpath.R:847-850)
+            // :root
             Component::Root => {
                 xpath.add_condition("not(parent::*)");
                 Ok(())
             },
-            // :empty (R/xpath.R:887-890)
+            // :empty
             Component::Empty => {
                 xpath.add_condition("not(*) and not(string-length())");
                 Ok(())
@@ -245,9 +243,8 @@ impl Translator {
             Component::NthOf(data) => {
                 self.apply_nth(xpath, data.nth_data(), Some(data.selectors()))
             },
-            // :not() — port of xpath_negation (R/xpath.R:196-217). Nesting
-            // inside other functional pseudo-classes is allowed (Selectors
-            // Level 4, sjp/selectr@2a9ebb5).
+            // :not(). Nesting inside other functional pseudo-classes is
+            // allowed (Selectors Level 4).
             Component::Negation(list) => {
                 let conditions = self.arg_conditions(list.slice(), ":not()")?;
                 if !conditions.is_empty() {
@@ -257,8 +254,7 @@ impl Translator {
                 }
                 Ok(())
             },
-            // :is()/:matches() and :where() — ports of xpath_matching and
-            // xpath_where (R/xpath.R:218-245), which are identical: each
+            // :is()/:matches() and :where() — identical translations: each
             // argument's condition is OR-ed onto the outer expression.
             Component::Is(list) => {
                 for condition in self.arg_conditions(list.slice(), ":is()")? {
@@ -272,11 +268,10 @@ impl Translator {
                 }
                 Ok(())
             },
-            // :has() — port of xpath_has (R/xpath.R at sjp/selectr@9ed9bb2):
-            // each argument is a relative selector whose optional leading
-            // combinator scopes the match (`>` child, `~` subsequent
-            // sibling, `+` next sibling; omitted means descendant).
-            // selectr's parser still only accepts one compound after the
+            // :has(): each argument is a relative selector whose optional
+            // leading combinator scopes the match (`>` child, `~`
+            // subsequent sibling, `+` next sibling; omitted means
+            // descendant). Only one compound is accepted after the
             // combinator, so Servo's full complex-selector forms must error.
             Component::Has(relatives) => {
                 let mut conditions: Vec<String> = Vec::new();
@@ -330,12 +325,12 @@ impl Translator {
             },
             // :hover, :checked, :lang(), ... — translator-dependent.
             Component::NonTSPseudoClass(pc) => self.apply_pseudo_class(xpath, pc),
-            // e#myid (R/xpath.R:394-398)
+            // e#myid
             Component::ID(id) => {
                 self.attrib_equals(xpath, "@id", id.as_str());
                 Ok(())
             },
-            // .foo is defined as [class~=foo] in the spec (R/xpath.R:387-393)
+            // .foo is defined as [class~=foo] in the spec
             Component::Class(class_name) => {
                 self.attrib_includes(xpath, "@class", class_name.as_str());
                 Ok(())
@@ -387,10 +382,9 @@ impl Translator {
         }
     }
 
-    /// Port of the attribute-name handling in `xpath_attrib`
-    /// (R/xpath.R:347-376 at sjp/selectr@717e2ee): lowercase (html), safety
-    /// check, namespace qualification (note: a specific namespace prefix is
-    /// not part of the safety check, mirroring selectr exactly).
+    /// Attribute-name handling: lowercase (html), safety check, namespace
+    /// qualification (note: a specific namespace prefix is not part of the
+    /// safety check).
     fn attrib_expr(&self, ns: NsConstraint, local_name: &str) -> String {
         let name = if self.lower_case_attribute_names {
             local_name.to_lowercase()
@@ -429,7 +423,7 @@ impl Translator {
         }
     }
 
-    /// Port of the four `xpath_*_combinator` methods (R/xpath.R:420-445).
+    /// Join two compound translations with a combinator.
     fn apply_combinator(
         &self,
         combinator: Combinator,
@@ -466,17 +460,13 @@ impl Translator {
     }
 
     /// Harvest the conditions of a pseudo-class argument list, the shared
-    /// pattern of xpath_negation/xpath_matching/xpath_where and the nth
-    /// `of S` handling (R/xpath.R:199-207, 222-227, 628-634): translate
-    /// each argument, fold its element into a `name()` condition via
-    /// `add_name_test`, and keep the non-empty conditions (each still
-    /// carrying its outer parentheses, exactly as selectr's `$condition`
-    /// field does).
+    /// pattern of :not()/:is()/:where() and the nth `of S` handling:
+    /// translate each argument, fold its element into a `name()` condition
+    /// via `add_name_test`, and keep the non-empty conditions (each still
+    /// carrying its outer parentheses).
     ///
-    /// selectr's argument grammar only admits compound selectors — a
-    /// combinator inside `:is(a b)` is a parse error there
-    /// ("Expected an argument", R/parser.R:686-726) — so complex selectors
-    /// error here.
+    /// The argument grammar only admits compound selectors, so a complex
+    /// selector like `:is(a b)` errors here.
     fn arg_conditions(
         &self,
         selectors: &[Selector<SelectrsImpl>],
@@ -504,8 +494,7 @@ impl Translator {
     }
 }
 
-/// Port of the Level 4 case-sensitivity flag handling in `xpath_attrib`
-/// (R/xpath.R:383-398 at sjp/selectr@7776605).
+/// The Level 4 case-sensitivity flag handling.
 ///
 /// `[attr="value" i]`: compare the ASCII-lowercased attribute (via XPath
 /// `translate()`) against the ASCII-lowercased value. An empty value needs
@@ -530,8 +519,6 @@ fn apply_case_flag(
 }
 
 /// Human-readable construct names for unsupported-error messages.
-/// selectr treats these as unknown pseudo-classes too
-/// ("The pseudo-class :scope is unknown", R/xpath.R:344-345).
 fn describe_component(component: &Component<SelectrsImpl>) -> String {
     match component {
         Component::Scope | Component::ImplicitScope => "the `:scope` pseudo-class".into(),

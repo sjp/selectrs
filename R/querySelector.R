@@ -1,8 +1,7 @@
-# Ported near-verbatim from selectr's R/main.R:72-237 (sjp/selectr@9ed9bb2,
-# by Simon Potter): the four querySelector* generics, their default, XML
+# The four querySelector* generics, their default, XML
 # (XMLInternalNode/XMLInternalDocument), and xml2 (xml_node) methods, plus
-# the formatNS/formatNSPrefix/validateNS helpers. The only difference is
-# that css_to_xpath() dispatches into the Rust core.
+# the formatNS/formatNSPrefix/validateNS helpers. css_to_xpath() dispatches
+# into the Rust core.
 
 #' Find nodes that match a group of CSS selectors in an XML tree
 #'

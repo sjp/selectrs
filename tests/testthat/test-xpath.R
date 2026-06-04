@@ -1,12 +1,3 @@
-# Ported from selectr's tests/testthat/test-xpath.R (sjp/selectr@9ed9bb2, by
-# Simon Potter), adapted for selectrs: testthat edition-3 idioms
-# (expect_equal instead of expect_that/equals, no context()), the internal
-# R6 translators replaced by css_to_xpath(translator =), and the
-# XPathExpr print/repr block dropped (selectrs has no XPathExpr R6 class).
-# selectr's exact error texts are relaxed to selectrs' own wording (per the
-# parity scope in MIGRATION.md); the wording is pinned by the snapshot test
-# in test-parse-errors.R.
-
 test_that("Generic translator validates language arguments", {
     css <- function(x) css_to_xpath(x, translator = "generic")
     expect_equal(css("xml:lang(en)"), "descendant-or-self::xml[(lang('en'))]")

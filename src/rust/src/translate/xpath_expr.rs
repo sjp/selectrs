@@ -1,11 +1,11 @@
-//! Port of selectr's `XPathExpr` R6 class and string helpers
-//! (R/xpath.R:1-90 at sjp/selectr@7327ae3).
+//! The `XPathExpr` builder and string helpers.
 //!
 //! The condition-parenthesization convention (output like `e[(@foo = 'bar')]`)
-//! and the `*/`-collapse guard in `join` are ported verbatim — the parens are
-//! load-bearing in test-translation.R.
+//! and the `*/`-collapse guard in `join` are load-bearing in
+//! test-translation.R.
 
-/// Port of `is_safe_name` (R/xpath.R:52-54).
+/// Whether a name can be used directly in an XPath name test (no quoting
+/// needed).
 pub fn is_safe_name(name: &str) -> bool {
     let mut chars = name.chars();
     let Some(first) = chars.next() else {
@@ -17,10 +17,10 @@ pub fn is_safe_name(name: &str) -> bool {
     chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '-'))
 }
 
-/// Port of `xpath_literal` (R/xpath.R:67-90).
+/// Quote a string as an XPath literal.
 ///
-/// Note the R original quotes each character individually in the
-/// `concat(...)` branch; that quirk is reproduced exactly.
+/// Note: each character is quoted individually in the `concat(...)`
+/// branch — a quirk preserved because the exact output is pinned by tests.
 pub fn xpath_literal(literal: &str) -> String {
     if !literal.contains('\'') {
         format!("'{literal}'")
@@ -41,10 +41,10 @@ pub fn xpath_literal(literal: &str) -> String {
     }
 }
 
-/// Port of the `XPathExpr` R6 class (R/xpath.R:1-50).
+/// A partially built XPath expression: path, element, and condition.
 ///
-/// `condition` is stored *with* its wrapping parentheses, exactly as the R
-/// implementation does via `add_condition`.
+/// `condition` is stored *with* its wrapping parentheses (see
+/// `add_condition`).
 #[derive(Clone, Debug)]
 pub struct XPathExpr {
     pub path: String,
@@ -92,8 +92,8 @@ impl XPathExpr {
         self.element = "*".to_owned();
     }
 
-    /// Port of `XPathExpr$join` (R/xpath.R:38-46), including the
-    /// `*/`-collapse guard.
+    /// Append `combiner` and `other` to this expression, collapsing a
+    /// leading `*/` in `other`'s path.
     pub fn join(&mut self, combiner: &str, other: &XPathExpr) {
         let mut p = format!("{}{}", self.str(), combiner);
         if other.path != "*/" {

@@ -1,9 +1,3 @@
-# Ported from selectr's tests/testthat/test-shakespeare-xml2.R (sjp/selectr@9ed9bb2, by
-# Simon Potter), adapted for selectrs: testthat edition-3 idioms
-# (expect_equal instead of expect_that/equals, no context()), with the xml2 suite
-# guarded by skip_if_not_installed()
-# and the internal R6 translator replaced by css_to_xpath().
-
 test_that("selection works correctly on a shakespearean document", {
     HTML_SHAKESPEARE <- paste(
           "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" ",

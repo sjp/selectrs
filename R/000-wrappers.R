@@ -42,8 +42,7 @@ NULL
 #' The vectorized core of `css_to_xpath()`. R has already validated and
 #' recycled the arguments to equal length. The first element that fails —
 #' invalid syntax or an unsupported construct — aborts the call with an
-#' error naming the selector and the construct, matching selectr's
-#' mid-iteration throw.
+#' error naming the selector and the construct.
 #'
 #' @param selectors A character vector of CSS selectors.
 #' @param prefixes A character vector of XPath prefixes.

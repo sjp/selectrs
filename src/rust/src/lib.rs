@@ -25,8 +25,7 @@ fn selectrs_core_version() -> savvy::Result<savvy::Sexp> {
 /// The vectorized core of `css_to_xpath()`. R has already validated and
 /// recycled the arguments to equal length. The first element that fails —
 /// invalid syntax or an unsupported construct — aborts the call with an
-/// error naming the selector and the construct, matching selectr's
-/// mid-iteration throw.
+/// error naming the selector and the construct.
 ///
 /// @param selectors A character vector of CSS selectors.
 /// @param prefixes A character vector of XPath prefixes.
@@ -72,9 +71,7 @@ mod tests {
             .unwrap()
     }
 
-    /// Expectations harvested verbatim from selectr's test-translation.R
-    /// (simple-selector portion) and spot-checks against selectr at
-    /// sjp/selectr@717e2ee.
+    /// Type, namespace, and attribute selector forms.
     #[test]
     fn simple_selectors() {
         assert_eq!(xpath("*"), "*");
@@ -143,7 +140,7 @@ mod tests {
         assert_eq!(xpath("[h\\]ref]"), "*[(attribute::*[name() = 'h]ref'])]");
         assert_eq!(xpath("di\u{a0}v"), "*[(name() = 'di\u{a0}v')]");
         // Unicode escapes are decoded to the characters they represent,
-        // in idents, hashes, and strings alike (sjp/selectr@717e2ee).
+        // in idents, hashes, and strings alike.
         assert_eq!(xpath("#\\31 23"), "*[(@id = '123')]");
         assert_eq!(xpath("\\31 23"), "*[(name() = '123')]");
         assert_eq!(xpath("[\\31 23]"), "*[(attribute::*[name() = '123'])]");
@@ -201,8 +198,7 @@ mod tests {
     #[test]
     fn unsupported_errors() {
         let t = Translator::new("generic").unwrap();
-        // The non-standard [a!=b] and :contains() error in both engines
-        // (removed from selectr at sjp/selectr@3de06f7).
+        // The non-standard [a!=b] and :contains() are not supported.
         assert!(t.css_to_xpath("e[foo!=\"bar\"]", "").is_err());
         assert!(t.css_to_xpath("e:contains(\"foo\")", "").is_err());
         assert!(t.css_to_xpath("e::before", "").is_err());
@@ -212,40 +208,36 @@ mod tests {
         assert!(t.css_to_xpath("[rel i]", "").is_err());
         assert!(t.css_to_xpath("[rel=stylesheet k]", "").is_err());
         assert!(t.css_to_xpath("[rel=stylesheet i i]", "").is_err());
-        // Unknown pseudo-classes error, like selectr's
-        // "The pseudo-class :foo is unknown".
+        // Unknown pseudo-classes error.
         assert!(t.css_to_xpath("e:scope", "").is_err());
         assert!(t.css_to_xpath("e:first-line", "").is_err()); // pseudo-element
-        // selectr's pseudo-class argument grammar: one compound per
-        // argument (after :has()'s optional leading combinator).
+        // The pseudo-class argument grammar: one compound per argument
+        // (after :has()'s optional leading combinator).
         assert!(t.css_to_xpath("e:is(a b)", "").is_err());
         assert!(t.css_to_xpath("e:is(> a)", "").is_err()); // :has()-only
         assert!(t.css_to_xpath("e:has(a > b)", "").is_err());
         assert!(t.css_to_xpath("e:has(> > a)", "").is_err());
         assert!(t.css_to_xpath("e:has(>)", "").is_err());
         assert!(t.css_to_xpath("e:has(a >)", "").is_err());
-        // Nested :has() is rejected in both engines (selectors-4;
-        // sjp/selectr@8d79636).
+        // Nested :has() is rejected (selectors-4).
         assert!(t.css_to_xpath("e:has(a:has(b))", "").is_err());
         assert!(t.css_to_xpath("e:has(> a:has(b))", "").is_err());
-        // of-type pseudos on `*` are not implemented, as in selectr.
+        // of-type pseudos on `*` are not implemented.
         assert!(t.css_to_xpath("*:first-of-type", "").is_err());
         assert!(t.css_to_xpath("*:nth-last-of-type(2)", "").is_err());
         // :lang()/:dir() argument validation; a lone '-' is not a valid
-        // ident (both engines since sjp/selectr@04e450f).
+        // ident.
         assert!(t.css_to_xpath(":lang()", "").is_err());
         assert!(t.css_to_xpath(":lang(5)", "").is_err());
         assert!(t.css_to_xpath(":lang(-)", "").is_err());
-        // An+B must be whitespace-exact and integer-valued (both engines
-        // since sjp/selectr@a594f15 and @209e5ed).
+        // An+B must be whitespace-exact and integer-valued.
         assert!(t.css_to_xpath("e:nth-child(3 7)", "").is_err());
         assert!(t.css_to_xpath("e:nth-child(2 n)", "").is_err());
         assert!(t.css_to_xpath("e:nth-child(2.5)", "").is_err());
         assert!(t.css_to_xpath("e:nth-child(2e1)", "").is_err());
     }
 
-    /// Expectations harvested verbatim from selectr's test-translation.R
-    /// (nth/pseudo portion) at sjp/selectr@7776605.
+    /// The nth-* family and its an+b arithmetic.
     #[test]
     fn nth_family() {
         assert_eq!(
@@ -268,7 +260,7 @@ mod tests {
         assert_eq!(xpath("e:nth-child(odd)"), xpath("e:nth-child(2n+1)"));
         assert_eq!(xpath("e:nth-child(even)"), xpath("e:nth-child(2n)"));
         // An+B is ASCII case-insensitive per css-syntax; Servo handles it
-        // natively and selectr follows since sjp/selectr@f8043ff.
+        // natively.
         assert_eq!(xpath("e:nth-child(2N)"), xpath("e:nth-child(2n)"));
         assert_eq!(xpath("e:nth-child(ODD)"), xpath("e:nth-child(odd)"));
         assert_eq!(xpath("e:nth-child(EVEN)"), xpath("e:nth-child(even)"));
@@ -310,8 +302,8 @@ mod tests {
             "div//e[(count(following-sibling::e) = 0)]//*[(@class and \
              contains(concat(' ', normalize-space(@class), ' '), ' aclass '))]"
         );
-        // Servo collapses :first-child & co. into nth data; the output is
-        // byte-identical to selectr's dedicated pseudo methods.
+        // Servo collapses :first-child & co. into nth data; the general
+        // an+b form covers them (see translate::nth).
         assert_eq!(
             xpath("e:first-child"),
             "e[(count(preceding-sibling::*) = 0)]"
@@ -385,8 +377,7 @@ mod tests {
         );
     }
 
-    /// Expectations harvested verbatim from selectr's test-translation.R,
-    /// test-has.R, and test-where.R at sjp/selectr@7776605.
+    /// Structural pseudos and the generic never-match set.
     #[test]
     fn structural_and_never_match_pseudos() {
         assert_eq!(xpath("e:empty"), "e[(not(*) and not(string-length()))]");
@@ -425,7 +416,7 @@ mod tests {
             "e[(not((name() = 'a') or (name() = 'b')))]"
         );
         // :where() / :is() OR each argument's condition onto the outer
-        // expression (test-where.R at sjp/selectr@7776605).
+        // expression.
         assert_eq!(xpath("div:where(p)"), "div[((name() = 'p'))]");
         assert_eq!(
             xpath("div:where(p, span)"),
@@ -441,11 +432,11 @@ mod tests {
             "div[((name() = 'p')) or ((name() = 'span'))]"
         );
         assert_eq!(xpath("div:is(p)"), "div[((name() = 'p'))]");
-        // :matches() is selectr's alias for :is().
+        // :matches() is the legacy alias for :is().
         assert_eq!(xpath("div:matches(p)"), "div[((name() = 'p'))]");
         // :is(*) adds nothing.
         assert_eq!(xpath("e:is(*)"), "e");
-        // :has() (test-has.R at sjp/selectr@7776605).
+        // :has().
         assert_eq!(xpath("div:has(p)"), "div[(.//*[(name() = 'p')])]");
         assert_eq!(
             xpath("div:has(.foo)"),
@@ -467,8 +458,7 @@ mod tests {
              (name() = 'div')])]"
         );
         assert_eq!(xpath("div:has(*)"), "div[(.//*)]");
-        // Leading combinators in :has() (selectors-4 relative selectors,
-        // sjp/selectr@9ed9bb2).
+        // Leading combinators in :has() (selectors-4 relative selectors).
         assert_eq!(xpath("e:has(> img)"), "e[(child::*[(name() = 'img')])]");
         assert_eq!(
             xpath("e:has(~ p)"),
@@ -492,7 +482,7 @@ mod tests {
             "e[(following-sibling::*[1][(@class and contains(concat(' ', \
              normalize-space(@class), ' '), ' foo ')) and (name() = 'p')])]"
         );
-        // Nested :not() (Selectors Level 4, sjp/selectr@2a9ebb5).
+        // Nested :not() (Selectors Level 4).
         assert_eq!(
             xpath(":not(:not(a))"),
             "*[(not((not((name() = 'a')))))]"
@@ -515,7 +505,7 @@ mod tests {
             xpath("e:lang(en, fr)"),
             "e[((lang('en') or lang('fr')))]"
         );
-        // Whitespace is a separator too, like selectr's token collection.
+        // Whitespace is a separator too.
         assert_eq!(xpath("e:lang(en fr)"), "e[((lang('en') or lang('fr')))]");
         // HTML: nearest lang-attributed ancestor, lowercased prefix match.
         let html = Translator::new("html").unwrap();
@@ -537,7 +527,7 @@ mod tests {
         );
     }
 
-    /// HTMLTranslator pseudo-class overrides (R/xpath.R:1014-1154).
+    /// The HTML translator's pseudo-class overrides.
     #[test]
     fn html_pseudo_overrides() {
         let html = Translator::new("html").unwrap();
@@ -562,7 +552,7 @@ mod tests {
         let html = Translator::new("html").unwrap();
         assert_eq!(html.css_to_xpath("DIV", "").unwrap(), "div");
         assert_eq!(html.css_to_xpath("[FOO]", "").unwrap(), "*[(@foo)]");
-        // Names lowercase, values keep their case (sjp/selectr@930cb87).
+        // Names lowercase, values keep their case.
         assert_eq!(
             html.css_to_xpath("DIV[Value=\"Mixed Case\"]", "").unwrap(),
             "div[(@value = 'Mixed Case')]"

@@ -1,8 +1,3 @@
-# Ported from selectr's tests/testthat/test-querySelector-XML.R (sjp/selectr@9ed9bb2, by
-# Simon Potter), adapted for selectrs: testthat edition-3 idioms
-# (expect_equal instead of expect_that/equals, no context()), with the XML suite
-# guarded by skip_if_not_installed()
-
 test_that("querySelector returns a single node or NULL", {
     skip_if_not_installed("XML")
     library(XML)

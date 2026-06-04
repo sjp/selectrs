@@ -12,8 +12,8 @@ crate-type = ["staticlib", "lib"]
 
 [dependencies]
 # Exact pins: `selectors` is a 0.x crate tied to Servo's needs, and CRAN
-# vendoring freezes the dependency tree anyway. Upgrades are deliberate,
-# parity-gated events (see MIGRATION.md).
+# vendoring freezes the dependency tree anyway. Upgrades are deliberate
+# events, gated on the full test suite.
 savvy = "=0.10.2"
 selectors = "=0.38.0"
 cssparser = "=0.37.0"

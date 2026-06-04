@@ -1,18 +1,13 @@
-# Ported from selectr's tests/testthat/test-parse-errors.R
-# (sjp/selectr@9ed9bb2, by Simon Potter), adapted for selectrs per the
-# parity scope in MIGRATION.md: selectr pins its hand-rolled tokenizer's
-# exact messages (token and position); selectrs raises its own errors, so
-# these assertions relax to "errors, with a message naming the selector",
-# and selectrs' exact wording is pinned by the snapshot test at the bottom
-# of this file.
+# Invalid selectors are asserted as "errors, with a message naming the
+# selector"; selectrs' exact wording is pinned by the snapshot test at the
+# bottom of this file.
 #
-# Three upstream literals are constructs left unclosed at end of input
-# ("[rel=stylesheet", "[rel=stylesheet i", ":lang(fr"): selectr's tokenizer
-# rejects them, while css-syntax-3 auto-closes open blocks/functions/strings
-# at EOF (flagging a parse error but returning the construct), which is also
-# what browsers' querySelector does. selectrs follows the spec: these parse
-# and translate exactly as their closed forms (asserted below; selectr's
-# rejection is tracked in the superset section of inst/UNSUPPORTED).
+# Constructs left unclosed at end of input ("[rel=stylesheet",
+# "[rel=stylesheet i", ":lang(fr") are not errors: css-syntax-3 auto-closes
+# open blocks/functions/strings at EOF (flagging a parse error but
+# returning the construct), which is also what browsers' querySelector
+# does. These parse and translate exactly as their closed forms (asserted
+# below).
 
 test_that("invalid selectors error, naming the selector", {
     err <- function(css) {
@@ -48,8 +43,8 @@ test_that("invalid selectors error, naming the selector", {
     expect_no_error(css_to_xpath(":lang(fr)"))
     # :contains() is auto-closed at EOF (see header) but remains an
     # unsupported pseudo-class, so these still error. (Asserted by pattern:
-    # selectrs' message escapes the embedded quote when echoing the
-    # selector, so the verbatim form used by err() would not match.)
+    # the message escapes the embedded quote when echoing the selector, so
+    # the verbatim form used by err() would not match.)
     expect_error(css_to_xpath(':contains("foo'), "contains")
     expect_error(css_to_xpath(':contains("foo\\"'), "contains")
     err("foo!")
@@ -70,7 +65,7 @@ test_that("invalid selectors error, naming the selector", {
 })
 
 test_that("constructs unclosed at EOF translate as their closed forms", {
-    # css-syntax-3 conformance (see header); selectr errors on all of these.
+    # css-syntax-3 conformance (see header).
     eof <- function(unclosed, closed) {
         for (translator in c("generic", "html", "xhtml")) {
             expect_equal(css_to_xpath(unclosed, translator = translator),
@@ -84,8 +79,8 @@ test_that("constructs unclosed at EOF translate as their closed forms", {
 })
 
 test_that("selectrs' parse-error wording is stable", {
-    # One representative per error family; the exact text is selectrs' own
-    # (never selectr's) and is pinned here so it only changes deliberately.
+    # One representative per error family; the exact text is pinned here
+    # so it only changes deliberately.
     expect_snapshot(error = TRUE, css_to_xpath(" "))                  # empty selector
     expect_snapshot(error = TRUE, css_to_xpath("div > "))             # dangling combinator
     expect_snapshot(error = TRUE, css_to_xpath("foo!"))               # unexpected token

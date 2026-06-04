@@ -1,8 +1,3 @@
-# Ported from selectr's tests/testthat/test-translation.R, test-has.R, and
-# test-where.R (sjp/selectr@9ed9bb2, by Simon Potter). Expected XPath
-# strings are byte-identical to selectr's output; constructs neither engine
-# supports assert an error, per the parity invariant in MIGRATION.md.
-
 xpath <- function(css) {
     css_to_xpath(css, prefix = "")
 }
@@ -105,7 +100,6 @@ test_that("translation of simple selectors to XPath works", {
 })
 
 test_that("translation of pseudo-classes to XPath works", {
-    # Ported from the nth/pseudo portion of selectr's test-translation.R.
     expect_equal(xpath('e:nth-child(1)'),
                  "e[(count(preceding-sibling::*) = 0)]")
     expect_equal(xpath('e:nth-child(3n+2)'),
@@ -159,7 +153,7 @@ test_that("translation of pseudo-classes to XPath works", {
                  "e[(0)]") # never matches
     expect_equal(xpath('e ~ f:nth-child(3)'),
                  "e/following-sibling::f[(count(preceding-sibling::*) = 2)]")
-    # An+B is ASCII case-insensitive per css-syntax (sjp/selectr@f8043ff)
+    # An+B is ASCII case-insensitive per css-syntax
     expect_equal(xpath('e:nth-child(2N)'), xpath('e:nth-child(2n)'))
     expect_equal(xpath('e:nth-child(ODD)'), xpath('e:nth-child(odd)'))
     expect_equal(xpath('e:nth-child(EVEN)'), xpath('e:nth-child(even)'))
@@ -184,7 +178,6 @@ test_that("translation of pseudo-classes to XPath works", {
 })
 
 test_that(":has() generates correct XPath", {
-    # Ported from selectr's test-has.R.
     expect_equal(xpath("div:has(p)"),
                  "div[(.//*[(name() = 'p')])]")
     expect_equal(xpath("div:has(.foo)"),
@@ -227,8 +220,7 @@ test_that("nested :not() works (Selectors Level 4)", {
 })
 
 test_that(":where() and :is() generate correct XPath", {
-    # Ported from selectr's test-where.R; :is()/:matches() share the
-    # translation.
+    # :is()/:matches() share the translation.
     expect_equal(xpath("div:where(p)"),
                  "div[((name() = 'p'))]")
     expect_equal(xpath("div:where(.foo)"),
@@ -336,20 +328,19 @@ test_that("translation of unsafe XPath names works", {
 })
 
 test_that("unsupported constructs error informatively", {
-    # The non-standard [a!=b] and :contains() error in both engines
-    # (removed from selectr at sjp/selectr@3de06f7).
+    # The non-standard [a!=b] and :contains() are not supported.
     expect_error(xpath('e[foo!="bar"]'), "parse")
     expect_error(xpath('e:contains("foo")'))
-    # Malformed case-sensitivity flags error in both implementations.
+    # Malformed case-sensitivity flags error.
     expect_error(xpath('[rel i]'))
     expect_error(xpath('[rel=stylesheet k]'))
     expect_error(xpath('[rel=stylesheet i i]'))
     # Parse failures name the selector.
     expect_error(xpath('e:'), "e:")
-    # Pseudo-elements error in both implementations (message text differs).
+    # Pseudo-elements error.
     expect_error(xpath('e::before'))
     expect_error(xpath('e:first-line'))
-    # Unknown pseudo-classes error in both implementations.
+    # Unknown pseudo-classes error.
     expect_error(xpath('e:unknown-pseudo'))
     expect_error(xpath('e:scope'))
     # One compound per pseudo-class argument (after :has()'s optional
@@ -362,18 +353,17 @@ test_that("unsupported constructs error informatively", {
     expect_error(xpath('e:has(> > a)'))
     expect_error(xpath('e:has(>)'))
     expect_error(xpath('e:has(a >)'))
-    # Nested :has() is rejected in both engines (selectors-4).
+    # Nested :has() is rejected (selectors-4).
     expect_error(xpath('e:has(a:has(b))'))
     expect_error(xpath('e:has(> a:has(b))'))
-    # of-type pseudo-classes on '*' are not implemented, as in selectr.
+    # of-type pseudo-classes on '*' are not implemented.
     expect_error(xpath('*:first-of-type'))
     expect_error(xpath('*:nth-of-type(2)'))
     # :lang()/:dir() argument validation; a lone '-' is not a valid ident.
     expect_error(xpath('e:lang()'))
     expect_error(xpath('e:lang(5)'))
     expect_error(xpath('e:lang(-)'))
-    # An+B must be whitespace-exact and integer-valued (both engines since
-    # sjp/selectr@a594f15 and @209e5ed).
+    # An+B must be whitespace-exact and integer-valued.
     expect_error(xpath('e:nth-child(3 7)'))
     expect_error(xpath('e:nth-child(2 n)'))
     expect_error(xpath('e:nth-child(2.5)'))
@@ -381,8 +371,6 @@ test_that("unsupported constructs error informatively", {
 })
 
 test_that("css_to_xpath vectorises arguments", {
-    # Ported from selectr's test-main.R (css_to_xpath portion); the
-    # html/xhtml translator case moves here in Phase 2 with :checked.
     expect_equal(css_to_xpath("a b"), "descendant-or-self::a//b")
     expect_equal(css_to_xpath("a b", prefix = ""), "a//b")
     expect_equal(css_to_xpath("a b", prefix = c("descendant-or-self::", "")),
