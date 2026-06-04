@@ -6,6 +6,17 @@ test_that("the Rust core is reachable and its version matches the package", {
                  as.character(packageVersion("selectrs")))
 })
 
+test_that("the Rust boundary itself rejects NA values", {
+    # css_to_xpath() validates first; calling the internal function
+    # directly must not translate NA as the literal element 'NA'
+    expect_error(selectrs:::css_to_xpath_rust(NA_character_, "", "generic"),
+                 "`selectors` must not contain NA values")
+    expect_error(selectrs:::css_to_xpath_rust("a", NA_character_, "generic"),
+                 "`prefixes` must not contain NA values")
+    expect_error(selectrs:::css_to_xpath_rust("a", "", NA_character_),
+                 "`translators` must not contain NA values")
+})
+
 # We know that the results are correct via other tests, just check that
 # this produces the correct results with respect to its arguments
 test_that("css_to_xpath vectorises arguments", {

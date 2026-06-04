@@ -2,7 +2,7 @@ mod parser;
 mod translate;
 
 use savvy::savvy;
-use savvy::{OwnedStringSexp, StringSexp};
+use savvy::{NotAvailableValue, OwnedStringSexp, StringSexp};
 
 use translate::Translator;
 
@@ -50,6 +50,17 @@ fn css_to_xpath_rust(
 
     let mut out = OwnedStringSexp::new(n)?;
     for (i, selector) in selectors.iter().enumerate() {
+        // R validates too, but anything reaching this boundary directly
+        // would otherwise translate NA as the literal element `NA`.
+        if selector.is_na() {
+            return Err(savvy::Error::new("`selectors` must not contain NA values"));
+        }
+        if prefixes[i].is_na() {
+            return Err(savvy::Error::new("`prefixes` must not contain NA values"));
+        }
+        if translators[i].is_na() {
+            return Err(savvy::Error::new("`translators` must not contain NA values"));
+        }
         let translator = Translator::new(translators[i])
             .ok_or_else(|| savvy::Error::new(format!("Unknown translator '{}'", translators[i])))?;
         match translator.css_to_xpath(selector, prefixes[i]) {
