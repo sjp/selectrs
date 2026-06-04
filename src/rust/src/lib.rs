@@ -45,25 +45,31 @@ fn css_to_xpath_rust(
         ));
     }
 
+    // R validates too, but anything reaching this boundary directly
+    // would otherwise translate NA as the literal element `NA`.
     let prefixes: Vec<&str> = prefixes.iter().collect();
-    let translators: Vec<&str> = translators.iter().collect();
+    if prefixes.iter().any(|p| p.is_na()) {
+        return Err(savvy::Error::new("`prefixes` must not contain NA values"));
+    }
+    let translators: Vec<Translator> = translators
+        .iter()
+        .map(|name| {
+            if name.is_na() {
+                return Err(savvy::Error::new(
+                    "`translators` must not contain NA values",
+                ));
+            }
+            Translator::new(name)
+                .ok_or_else(|| savvy::Error::new(format!("Unknown translator '{name}'")))
+        })
+        .collect::<Result<_, _>>()?;
 
     let mut out = OwnedStringSexp::new(n)?;
     for (i, selector) in selectors.iter().enumerate() {
-        // R validates too, but anything reaching this boundary directly
-        // would otherwise translate NA as the literal element `NA`.
         if selector.is_na() {
             return Err(savvy::Error::new("`selectors` must not contain NA values"));
         }
-        if prefixes[i].is_na() {
-            return Err(savvy::Error::new("`prefixes` must not contain NA values"));
-        }
-        if translators[i].is_na() {
-            return Err(savvy::Error::new("`translators` must not contain NA values"));
-        }
-        let translator = Translator::new(translators[i])
-            .ok_or_else(|| savvy::Error::new(format!("Unknown translator '{}'", translators[i])))?;
-        match translator.css_to_xpath(selector, prefixes[i]) {
+        match translators[i].css_to_xpath(selector, prefixes[i]) {
             Ok(xpath) => out.set_elt(i, &xpath)?,
             Err(e) => return Err(savvy::Error::new(e.into_message(selector))),
         }

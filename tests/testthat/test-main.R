@@ -76,11 +76,11 @@ test_that("namespace handling works correctly", {
     expect_error(formatNS(1), "A namespace object must be.*")
     expect_error(formatNS(TRUE), "A namespace object must be.*")
 
-    expect_error(formatNS("a"), "The namespace object either missing some or all names.*")
-    expect_error(formatNS(c(a = "a", "b")), "The namespace object either missing some or all names.*")
+    expect_error(formatNS("a"), "The namespace object is missing some or all names.*")
+    expect_error(formatNS(c(a = "a", "b")), "The namespace object is missing some or all names.*")
     tmp <- letters
     names(tmp) <- letters[1:5]
-    expect_error(formatNS(tmp), "The namespace object either missing some or all names.*")
+    expect_error(formatNS(tmp), "The namespace object is missing some or all names.*")
     expect_error(formatNS(list(a = 1, b = 2)), "The values in the namespace object.*")
 
     # formatNSPrefix must return a pipe separated string of namespace prefixes

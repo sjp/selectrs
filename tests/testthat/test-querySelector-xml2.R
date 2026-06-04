@@ -93,7 +93,7 @@ test_that("a named list works the same as a named character vector for ns", {
     expect_error(querySelectorAll(doc, "svg|circle", ns = list(svg = 1)),
                  "The values in the namespace object.*")
     expect_error(querySelectorAll(doc, "svg|circle", ns = c("http://www.w3.org/2000/svg")),
-                 "The namespace object either missing some or all names.*")
+                 "The namespace object is missing some or all names.*")
 })
 
 test_that("querySelectorAll honours attribute case-sensitivity flags", {
