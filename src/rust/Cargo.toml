@@ -10,6 +10,11 @@ rust-version = "1.88"
 [lib]
 crate-type = ["staticlib", "lib"]
 
+# An empty table stops cargo walking parent directories for a workspace
+# root, which would otherwise absorb this build when the package source
+# sits under an unrelated Rust workspace.
+[workspace]
+
 [dependencies]
 # Exact pins: `selectors` is a 0.x crate tied to Servo's needs, and CRAN
 # vendoring freezes the dependency tree anyway. Upgrades are deliberate
