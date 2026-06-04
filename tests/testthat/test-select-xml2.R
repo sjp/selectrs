@@ -219,3 +219,26 @@ test_that("explicit no-namespace selectors exclude default-namespace elements", 
     # '|é' restricts the same test to the null namespace
     expect_equal(get_ids("|é"), "plain")
 })
+
+test_that("prefixed names in pseudo-class arguments resolve by namespace URI", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+
+    # the document binds the URI to prefix 's'; the query registers 'svg'
+    doc <- read_xml(paste0(
+        '<r xmlns:s="http://www.w3.org/2000/svg">',
+        '<d id="hit"><s:g/></d>',
+        '<d id="miss"><s:other/></d>',
+        '</r>'
+    ))
+    ns <- c(svg = "http://www.w3.org/2000/svg")
+    get_ids <- function(css) xml_attr(querySelectorAll(doc, css, ns = ns), "id")
+
+    # top level and pseudo-class arguments agree on what 'svg|g' means
+    expect_equal(length(querySelectorAll(doc, "svg|g", ns = ns)), 1L)
+    expect_equal(length(querySelectorAll(doc, ":is(svg|g)", ns = ns)), 1L)
+    expect_equal(get_ids("d:has(svg|g)"), "hit")
+    expect_equal(get_ids("d:has(> svg|g)"), "hit")
+    expect_equal(get_ids("d:not(:has(svg|g))"), "miss")
+    expect_equal(get_ids("d:has(svg|*)"), c("hit", "miss"))
+})

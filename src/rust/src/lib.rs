@@ -521,6 +521,27 @@ mod tests {
         assert_eq!(xpath(":not(:not(a))"), "*[(not((not((name() = 'a')))))]");
         assert_eq!(xpath("e:is(:not(f))"), "e[((not((name() = 'f'))))]");
         assert_eq!(xpath("e:has(:not(f))"), "e[(.//*[(not((name() = 'f')))])]");
+        // Prefixed names inside arguments stay node tests, resolved
+        // through the namespace map like a top-level `svg|g` — not a
+        // string comparison against the document's prefix.
+        assert_eq!(xpath("e:is(svg|g)"), "e[((self::svg:g))]");
+        assert_eq!(xpath("e:not(svg|g)"), "e[(not((self::svg:g)))]");
+        assert_eq!(xpath("e:is(svg|*)"), "e[((self::svg:*))]");
+        assert_eq!(xpath("e:has(svg|g)"), "e[(.//svg:g)]");
+        assert_eq!(xpath("e:has(> svg|g)"), "e[(child::svg:g)]");
+        assert_eq!(
+            xpath("e:has(~ svg|g)"),
+            "e[(following-sibling::svg:g)]"
+        );
+        assert_eq!(
+            xpath("e:has(+ svg|g)"),
+            "e[(following-sibling::*[1][(self::svg:g)])]"
+        );
+        assert_eq!(
+            xpath("e:has(svg|g.foo)"),
+            "e[(.//svg:g[(@class and contains(concat(' ', \
+             normalize-space(@class), ' '), ' foo '))])]"
+        );
     }
 
     #[test]

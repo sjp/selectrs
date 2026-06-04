@@ -220,6 +220,15 @@ test_that(":has() generates correct XPath", {
                  "e[(child::*[(@class and contains(concat(' ', normalize-space(@class), ' '), ' foo '))])]")
     expect_equal(xpath("e:has(+ p.foo)"),
                  "e[(following-sibling::*[1][(@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')) and (name() = 'p')])]")
+
+    # prefixed names stay node tests, resolved through the namespace map
+    # like a top-level 'svg|g' rather than by comparing prefixes as strings
+    expect_equal(xpath("e:has(svg|g)"),
+                 "e[(.//svg:g)]")
+    expect_equal(xpath("e:has(> svg|g)"),
+                 "e[(child::svg:g)]")
+    expect_equal(xpath("e:has(+ svg|g)"),
+                 "e[(following-sibling::*[1][(self::svg:g)])]")
 })
 
 test_that("nested :not() works (Selectors Level 4)", {
@@ -248,6 +257,10 @@ test_that(":where() and :is() generate correct XPath", {
     # Chained :where()s AND together, so this can never match
     expect_equal(xpath("div:where(p):where(span)"),
                  "div[((name() = 'p')) and ((name() = 'span'))]")
+    # prefixed names stay node tests (see the :has() pins)
+    expect_equal(xpath("e:is(svg|g)"), "e[((self::svg:g))]")
+    expect_equal(xpath("e:not(svg|g)"), "e[(not((self::svg:g)))]")
+    expect_equal(xpath("e:is(svg|*)"), "e[((self::svg:*))]")
     expect_equal(xpath("*:where(.highlight)"),
                  "*[((@class and contains(concat(' ', normalize-space(@class), ' '), ' highlight ')))]")
     expect_equal(xpath("div:where(.foo, .bar)"),

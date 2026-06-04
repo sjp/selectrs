@@ -314,7 +314,16 @@ impl Translator {
                         }
                     };
                     let mut sub = self.compound_to_xpath(&compound)?;
-                    sub.add_name_test();
+                    // A prefixed name stays in the node test (`.//svg:g`)
+                    // so it resolves through the namespace map, except
+                    // under `+` where the [1] position predicate needs the
+                    // node test to stay `*`.
+                    if !sub.element.contains(':') {
+                        sub.add_name_test();
+                    } else if matches!(combinator, Some(Combinator::NextSibling)) {
+                        let element = std::mem::replace(&mut sub.element, "*".to_owned());
+                        sub.add_condition(&format!("self::{element}"));
+                    }
                     let mut rel_test = format!("{axis}{}", sub.element);
                     if matches!(combinator, Some(Combinator::NextSibling)) {
                         // Only the immediately following sibling: constrain
@@ -468,9 +477,11 @@ impl Translator {
 
     /// Harvest the conditions of a pseudo-class argument list, the shared
     /// pattern of :not()/:is()/:where() and the nth `of S` handling:
-    /// translate each argument, fold its element into a `name()` condition
-    /// via `add_name_test`, and keep the conditions (each still carrying
-    /// its outer parentheses).
+    /// translate each argument, turn its element into a condition — a
+    /// `self::` node test for prefixed names (so the prefix resolves
+    /// through the namespace map, like a top-level `svg|g`), a `name()`
+    /// comparison otherwise — and keep the conditions (each still
+    /// carrying its outer parentheses).
     ///
     /// Returns `None` when any argument matches everything (e.g. `*`): the
     /// OR of the list is then trivially true, so callers must not constrain
@@ -497,7 +508,12 @@ impl Translator {
                 )));
             }
             let mut sub = self.compound_to_xpath(&compound)?;
-            sub.add_name_test();
+            if sub.element.contains(':') {
+                let element = std::mem::replace(&mut sub.element, "*".to_owned());
+                sub.add_condition(&format!("self::{element}"));
+            } else {
+                sub.add_name_test();
+            }
             if sub.condition.is_empty() {
                 trivially_true = true;
             } else {
