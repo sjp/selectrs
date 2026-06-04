@@ -13,6 +13,7 @@ crate-type = ["staticlib", "lib"]
 savvy = "=0.10.2"
 selectors = "=0.38.0"
 cssparser = "=0.37.0"
+precomputed-hash = "=0.1.1"
 
 [profile.release]
 # By default, on release build, savvy terminates the R session when a panic

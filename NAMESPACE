@@ -1,5 +1,6 @@
 # Hand-maintained for the Phase 0 scaffold; switches to roxygen2-generated
 # once the real API lands in Phase 1.
 useDynLib(selectrs, .registration = TRUE)
+export(css_to_xpath)
 S3method("$<-", savvy_selectrs__sealed)
 S3method("[[<-", savvy_selectrs__sealed)

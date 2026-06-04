@@ -39,6 +39,11 @@ SEXP handle_result(SEXP res_) {
     return (SEXP)res;
 }
 
+SEXP savvy_css_to_xpath_rust__impl(SEXP c_arg__selectors, SEXP c_arg__prefixes, SEXP c_arg__translators) {
+    SEXP res = savvy_css_to_xpath_rust__ffi(c_arg__selectors, c_arg__prefixes, c_arg__translators);
+    return handle_result(res);
+}
+
 SEXP savvy_selectrs_core_version__impl(void) {
     SEXP res = savvy_selectrs_core_version__ffi();
     return handle_result(res);
@@ -46,6 +51,7 @@ SEXP savvy_selectrs_core_version__impl(void) {
 
 
 static const R_CallMethodDef CallEntries[] = {
+    {"savvy_css_to_xpath_rust__impl", (DL_FUNC) &savvy_css_to_xpath_rust__impl, 3},
     {"savvy_selectrs_core_version__impl", (DL_FUNC) &savvy_selectrs_core_version__impl, 0},
     {NULL, NULL, 0}
 };
