@@ -18,21 +18,21 @@ test_that("css_to_xpath handles bad arguments", {
     expect_error(css_to_xpath("a", prefix = 1), "The 'prefix' argument.*")
     expect_error(css_to_xpath("a", translator = 1), "The 'translator' argument.*")
 
-    # should strip the NA values out (with a warning)
-    expect_warning(res <- css_to_xpath(c("a", NA)),
-                   "NA values were found in the 'selector' argument")
-    expect_equal(length(res), 1)
-    expect_warning(res <- css_to_xpath("a", prefix = c("", NA)),
-                   "NA values were found in the 'prefix' argument")
-    expect_equal(length(res), 1)
-    expect_warning(res <- css_to_xpath("a", translator = c("generic", NA)),
-                   "NA values were found in the 'translator' argument")
-    expect_equal(length(res), 1)
-
-    # expect NAs to be stripped out resulting in zero length args (unusable)
-    expect_error(suppressWarnings(css_to_xpath(NA_character_)), "Zero length character vector.*")
-    expect_error(suppressWarnings(css_to_xpath("a", prefix = NA_character_)), "Zero length character vector.*")
-    expect_error(suppressWarnings(css_to_xpath("a", translator = NA_character_)), "Zero length character vector.*")
+    # NAs error rather than silently shifting how arguments pair up
+    expect_error(css_to_xpath(c("a", NA)),
+                 "NA values are not allowed in the 'selector' argument")
+    expect_error(css_to_xpath("a", prefix = c("", NA)),
+                 "NA values are not allowed in the 'prefix' argument")
+    expect_error(css_to_xpath("a", translator = c("generic", NA)),
+                 "NA values are not allowed in the 'translator' argument")
+    expect_error(css_to_xpath(NA_character_),
+                 "NA values are not allowed in the 'selector' argument")
+    expect_error(css_to_xpath("a", prefix = NA_character_),
+                 "NA values are not allowed in the 'prefix' argument")
+    expect_error(css_to_xpath("a", translator = NA_character_),
+                 "NA values are not allowed in the 'translator' argument")
+    expect_error(css_to_xpath(c("a", "b", "c"), prefix = c("p1//", NA, "p3//")),
+                 "NA values are not allowed in the 'prefix' argument")
 
     # performs partial matching
     expect_equal(css_to_xpath("a", translator = "g"), "descendant-or-self::a")
