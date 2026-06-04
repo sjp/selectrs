@@ -50,6 +50,10 @@ pub struct XPathExpr {
     pub path: String,
     pub element: String,
     pub condition: String,
+    /// The element name `add_name_test` folded into a `name() = ...`
+    /// condition, kept so the of-type pseudo-classes can still count
+    /// same-type siblings.
+    folded_name: Option<String>,
 }
 
 impl XPathExpr {
@@ -58,6 +62,7 @@ impl XPathExpr {
             path: String::new(),
             element: element.to_owned(),
             condition: String::new(),
+            folded_name: None,
         }
     }
 
@@ -89,7 +94,19 @@ impl XPathExpr {
         }
         let cond = format!("name() = {}", xpath_literal(&self.element));
         self.add_condition(&cond);
-        self.element = "*".to_owned();
+        self.folded_name = Some(std::mem::replace(&mut self.element, "*".to_owned()));
+    }
+
+    /// The node test selecting siblings of the same type, for the of-type
+    /// pseudo-classes. `None` when the element is a genuine universal.
+    pub fn same_type_nodetest(&self) -> Option<String> {
+        if self.element != "*" {
+            Some(self.element.clone())
+        } else {
+            self.folded_name
+                .as_ref()
+                .map(|name| format!("*[name() = {}]", xpath_literal(name)))
+        }
     }
 
     /// Append `combiner` and `other` to this expression, collapsing a
@@ -102,6 +119,7 @@ impl XPathExpr {
         self.path = p;
         self.element = other.element.clone();
         self.condition = other.condition.clone();
+        self.folded_name = other.folded_name.clone();
     }
 }
 

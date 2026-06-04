@@ -325,6 +325,24 @@ mod tests {
             xpath("e:only-of-type"),
             "e[(count(parent::*/child::e) = 1)]"
         );
+        // Element names needing quoting fold into a name() condition; the
+        // of-type pseudos count same-type siblings through the same test.
+        assert_eq!(
+            xpath("é:first-of-type"),
+            "*[(name() = 'é') and (count(preceding-sibling::*[name() = 'é']) = 0)]"
+        );
+        assert_eq!(
+            xpath("é:nth-of-type(2)"),
+            "*[(name() = 'é') and (count(preceding-sibling::*[name() = 'é']) = 1)]"
+        );
+        assert_eq!(
+            xpath("é:nth-last-of-type(1)"),
+            "*[(name() = 'é') and (count(following-sibling::*[name() = 'é']) = 0)]"
+        );
+        assert_eq!(
+            xpath("é:only-of-type"),
+            "*[(name() = 'é') and (count(parent::*/child::*[name() = 'é']) = 1)]"
+        );
         assert_eq!(
             xpath("e ~ f:nth-child(3)"),
             "e/following-sibling::f[(count(preceding-sibling::*) = 2)]"

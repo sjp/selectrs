@@ -35,12 +35,10 @@ impl Translator {
             }
             // :only-of-type
             NthType::OnlyOfType => {
-                if xpath.element == "*" {
-                    return Err(Error::Unsupported(
-                        "`:only-of-type` on the universal selector `*`".into(),
-                    ));
-                }
-                xpath.add_condition(&format!("count(parent::*/child::{}) = 1", xpath.element));
+                let nodetest = xpath.same_type_nodetest().ok_or_else(|| {
+                    Error::Unsupported("`:only-of-type` on the universal selector `*`".into())
+                })?;
+                xpath.add_condition(&format!("count(parent::*/child::{nodetest}) = 1"));
                 Ok(())
             }
             // :first-child / :last-child / :nth-child() / :nth-last-child()
@@ -49,24 +47,24 @@ impl Translator {
                 a,
                 b,
                 /* last = */ data.ty == NthType::LastChild,
-                /* add_name_test = */ true,
+                /* nodetest = */ "*",
                 selector_list,
             ),
             // :first-of-type / :last-of-type / :nth-of-type() /
             // :nth-last-of-type() — none are implemented on the universal
             // selector `*`.
             NthType::OfType | NthType::LastOfType => {
-                if xpath.element == "*" {
-                    return Err(Error::Unsupported(
+                let nodetest = xpath.same_type_nodetest().ok_or_else(|| {
+                    Error::Unsupported(
                         "an of-type pseudo-class on the universal selector `*`".into(),
-                    ));
-                }
+                    )
+                })?;
                 self.xpath_nth_child(
                     xpath,
                     a,
                     b,
                     /* last = */ data.ty == NthType::LastOfType,
-                    /* add_name_test = */ false,
+                    &nodetest,
                     selector_list,
                 )
             }
@@ -76,16 +74,15 @@ impl Translator {
     /// The general an+b translation, derived from
     /// https://www.w3.org/TR/selectors-4/#structural-pseudos.
     ///
-    /// `add_name_test` is inverted and somewhat counter-intuitive:
-    /// nth-of-type passes `false` and counts only siblings with the same
-    /// element name.
+    /// `nodetest` selects which siblings are counted: `*` for the child
+    /// pseudos, the same-type node test for the of-type pseudos.
     fn xpath_nth_child(
         &self,
         xpath: &mut XPathExpr,
         a: i32,
         b: i32,
         last: bool,
-        add_name_test: bool,
+        nodetest: &str,
         selector_list: Option<&[Selector<SelectrsImpl>]>,
     ) -> Result<(), Error> {
         // i64 throughout: `-(b-1)` / `abs(a)` must not overflow for
@@ -129,12 +126,6 @@ impl Translator {
             }
             return Ok(());
         }
-
-        let nodetest = if add_name_test {
-            "*".to_owned()
-        } else {
-            xpath.element.clone()
-        };
 
         // The predicate filtering counted siblings (CSS Level 4 `of S`) —
         // the same OR-joined conditions as the current-element check.

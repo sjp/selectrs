@@ -179,3 +179,24 @@ test_that("generic :lang() wildcard ranges match xml:lang", {
     expect_equal(get_ids(":lang(en-US)"), "us")
     expect_equal(get_ids(":lang(fr-*)"), "fr")
 })
+
+test_that("of-type pseudo-classes work on element names needing quoting", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+
+    doc <- read_xml(paste0(
+        '<r>',
+        '<é id="e1"/>',
+        '<b id="b1"/>',
+        '<é id="e2"/>',
+        '<ü id="u1"/>',
+        '</r>'
+    ))
+    get_ids <- function(css) xml_attr(querySelectorAll(doc, css), "id")
+
+    expect_equal(get_ids("é:first-of-type"), "e1")
+    expect_equal(get_ids("é:last-of-type"), "e2")
+    expect_equal(get_ids("é:nth-of-type(2)"), "e2")
+    expect_equal(get_ids("é:only-of-type"), character(0))
+    expect_equal(get_ids("ü:only-of-type"), "u1")
+})
