@@ -1,0 +1,10 @@
+# Template for the cargo config that points the build at the vendored
+# crates. src/Makevars substitutes @VENDOR_DIR@ and installs the result as
+# config.toml in the throwaway CARGO_HOME under the build directory when
+# the vendored archive (src/rust/vendor.tar.xz) is present, so the build
+# runs fully offline and writes nothing outside the build directory.
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "@VENDOR_DIR@"

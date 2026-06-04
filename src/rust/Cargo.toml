@@ -2,6 +2,10 @@
 name = "selectrs"
 version = "0.1.0"
 edition = "2024"
+# The floor is set by savvy 0.10.2 (rust-version 1.88), the newest
+# requirement in the pinned dependency tree; configure enforces the same
+# minimum with an actionable error message.
+rust-version = "1.88"
 
 [lib]
 crate-type = ["staticlib", "lib"]

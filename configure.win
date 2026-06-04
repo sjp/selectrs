@@ -21,6 +21,40 @@ RUSTC_VERSION="$(rustc --version || true)"
 echo "using Rust package manager: '${CARGO_VERSION}'"
 echo "using Rust compiler: '${RUSTC_VERSION}'"
 
+# Enforce the minimum supported Rust version (set by savvy 0.10.2, the
+# newest rust-version requirement in the pinned dependency tree; declared
+# as rust-version in src/rust/Cargo.toml). When rustc's version cannot be
+# determined the check is skipped — cargo resolves rustc on its own and
+# will fail with its own message if the toolchain is too old.
+MIN_RUST_VERSION="1.88.0"
+RUSTC_VERSION_NUMBER="$(echo "${RUSTC_VERSION}" | sed -n 's/^rustc \([0-9][0-9.]*\).*/\1/p')"
+if [ -n "${RUSTC_VERSION_NUMBER}" ]; then
+  if ! awk -v have="${RUSTC_VERSION_NUMBER}" -v need="${MIN_RUST_VERSION}" 'BEGIN {
+      n = split(have, h, "."); m = split(need, w, ".");
+      for (i = 1; i <= 3; i++) {
+        hv = (i <= n) ? h[i] + 0 : 0; wv = (i <= m) ? w[i] + 0 : 0;
+        if (hv > wv) exit 0;
+        if (hv < wv) exit 1;
+      }
+      exit 0
+    }'; then
+    echo "-------------- ERROR: CONFIGURATION FAILED --------------------"
+    echo ""
+    echo "selectrs requires rustc >= ${MIN_RUST_VERSION} (found ${RUSTC_VERSION_NUMBER})."
+    echo "Please update your Rust toolchain, e.g. with:"
+    echo ""
+    echo "    rustup update"
+    echo ""
+    echo "and make sure the Windows GNU target is installed:"
+    echo ""
+    echo "    rustup target add x86_64-pc-windows-gnu"
+    echo ""
+    echo "---------------------------------------------------------------"
+
+    exit 1
+  fi
+fi
+
 # allow overriding profile externally (e.g. on CI)
 if [ -n "${SAVVY_PROFILE}" ]; then
   PROFILE="${SAVVY_PROFILE}"

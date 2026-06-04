@@ -1,0 +1,216 @@
+Authors and copyright holders of code bundled with or ported into selectrs
+===========================================================================
+
+R code and tests
+----------------
+
+The R sources (R/) and the test suites (tests/testthat/) are ports of the
+'selectr' package by Simon Potter (https://github.com/sjp/selectr,
+BSD 3-clause; pinned at commit 9ed9bb2 as the port oracle). selectr is
+itself a translation of the Python package 'cssselect'
+(https://github.com/scrapy/cssselect, BSD 3-clause) by Ian Bicking,
+Simon Sapin, and contributors, originally part of lxml.cssselect.
+Copyright holders of the ported code: Simon Potter, Simon Sapin,
+Ian Bicking.
+
+Vendored Rust crates
+--------------------
+
+The Rust core statically links the following crates, vendored in the
+source tarball as src/rust/vendor.tar.xz (versions exactly as pinned in
+src/rust/Cargo.lock). Their licenses and authors, from `cargo metadata`:
+
+bitflags 2.12.1
+  License: MIT OR Apache-2.0
+  Authors: The Rust Project Developers
+  Repository: https://github.com/bitflags/bitflags
+
+cc 1.2.63
+  License: MIT OR Apache-2.0
+  Authors: Alex Crichton <alex@alexcrichton.com>
+  Repository: https://github.com/rust-lang/cc-rs
+
+cssparser 0.37.0
+  License: MPL-2.0
+  Authors: Simon Sapin <simon.sapin@exyr.org>
+  Repository: https://github.com/servo/rust-cssparser
+
+cssparser-macros 0.7.0
+  License: MPL-2.0
+  Authors: Simon Sapin <simon.sapin@exyr.org>
+  Repository: https://github.com/servo/rust-cssparser
+
+derive_more 2.1.1
+  License: MIT
+  Authors: Jelte Fennema <github-tech@jeltef.nl>
+  Repository: https://github.com/JelteF/derive_more
+
+derive_more-impl 2.1.1
+  License: MIT
+  Authors: Jelte Fennema <github-tech@jeltef.nl>
+  Repository: https://github.com/JelteF/derive_more
+
+dtoa 1.0.11
+  License: MIT OR Apache-2.0
+  Authors: David Tolnay <dtolnay@gmail.com>
+  Repository: https://github.com/dtolnay/dtoa
+
+dtoa-short 0.3.5
+  License: MPL-2.0
+  Authors: Xidorn Quan <me@upsuper.org>
+  Repository: https://github.com/upsuper/dtoa-short
+
+fastrand 2.4.1
+  License: Apache-2.0 OR MIT
+  Authors: Stjepan Glavina <stjepang@gmail.com>
+  Repository: https://github.com/smol-rs/fastrand
+
+find-msvc-tools 0.1.9
+  License: MIT OR Apache-2.0
+  Authors: (not stated; see repository)
+  Repository: https://github.com/rust-lang/cc-rs
+
+itoa 1.0.18
+  License: MIT OR Apache-2.0
+  Authors: David Tolnay <dtolnay@gmail.com>
+  Repository: https://github.com/dtolnay/itoa
+
+log 0.4.31
+  License: MIT OR Apache-2.0
+  Authors: The Rust Project Developers
+  Repository: https://github.com/rust-lang/log
+
+new_debug_unreachable 1.0.6
+  License: MIT
+  Authors: Matt Brubeck <mbrubeck@limpet.net>, Jonathan Reem <jonathan.reem@gmail.com>
+  Repository: https://github.com/mbrubeck/rust-debug-unreachable
+
+phf 0.13.1
+  License: MIT
+  Authors: Steven Fackler <sfackler@gmail.com>
+  Repository: https://github.com/rust-phf/rust-phf
+
+phf_codegen 0.13.1
+  License: MIT
+  Authors: Steven Fackler <sfackler@gmail.com>
+  Repository: https://github.com/rust-phf/rust-phf
+
+phf_generator 0.13.1
+  License: MIT
+  Authors: Steven Fackler <sfackler@gmail.com>
+  Repository: https://github.com/rust-phf/rust-phf
+
+phf_macros 0.13.1
+  License: MIT
+  Authors: Steven Fackler <sfackler@gmail.com>
+  Repository: https://github.com/rust-phf/rust-phf
+
+phf_shared 0.13.1
+  License: MIT
+  Authors: Steven Fackler <sfackler@gmail.com>
+  Repository: https://github.com/rust-phf/rust-phf
+
+precomputed-hash 0.1.1
+  License: MIT
+  Authors: Emilio Cobos Álvarez <emilio@crisal.io>
+  Repository: https://github.com/emilio/precomputed-hash
+
+proc-macro2 1.0.106
+  License: MIT OR Apache-2.0
+  Authors: David Tolnay <dtolnay@gmail.com>, Alex Crichton <alex@alexcrichton.com>
+  Repository: https://github.com/dtolnay/proc-macro2
+
+quote 1.0.45
+  License: MIT OR Apache-2.0
+  Authors: David Tolnay <dtolnay@gmail.com>
+  Repository: https://github.com/dtolnay/quote
+
+rustc_version 0.4.1
+  License: MIT OR Apache-2.0
+  Authors: (not stated; see repository)
+  Repository: https://github.com/djc/rustc-version-rs
+
+rustc-hash 2.1.2
+  License: Apache-2.0 OR MIT
+  Authors: The Rust Project Developers
+  Repository: https://github.com/rust-lang/rustc-hash
+
+savvy 0.10.2
+  License: MIT
+  Authors: Hiroaki Yutani
+  Repository: https://github.com/yutannihilation/savvy/
+
+savvy-bindgen 0.10.2
+  License: MIT
+  Authors: Hiroaki Yutani
+  Repository: https://github.com/yutannihilation/savvy/
+
+savvy-ffi 0.10.2
+  License: MIT
+  Authors: Hiroaki Yutani
+  Repository: https://github.com/yutannihilation/savvy/
+
+savvy-macro 0.10.2
+  License: MIT
+  Authors: Hiroaki Yutani
+  Repository: https://github.com/yutannihilation/savvy/
+
+selectors 0.38.0
+  License: MPL-2.0
+  Authors: The Servo Project Developers
+  Repository: https://github.com/servo/stylo
+
+semver 1.0.28
+  License: MIT OR Apache-2.0
+  Authors: David Tolnay <dtolnay@gmail.com>
+  Repository: https://github.com/dtolnay/semver
+
+serde 1.0.228
+  License: MIT OR Apache-2.0
+  Authors: Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>
+  Repository: https://github.com/serde-rs/serde
+
+serde_core 1.0.228
+  License: MIT OR Apache-2.0
+  Authors: Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>
+  Repository: https://github.com/serde-rs/serde
+
+serde_derive 1.0.228
+  License: MIT OR Apache-2.0
+  Authors: Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>
+  Repository: https://github.com/serde-rs/serde
+
+servo_arc 0.4.3
+  License: MIT OR Apache-2.0
+  Authors: The Servo Project Developers
+  Repository: https://github.com/servo/stylo
+
+shlex 2.0.1
+  License: MIT OR Apache-2.0
+  Authors: comex <comexk@gmail.com>, Fenhl <fenhl@fenhl.net>, Adrian Taylor <adetaylor@chromium.org>, Alex Touchet <alextouchet@outlook.com>, Daniel Parks <dp+git@oxidized.org>, Garrett Berg <googberg@gmail.com>
+  Repository: https://github.com/comex/rust-shlex
+
+siphasher 1.0.3
+  License: MIT/Apache-2.0
+  Authors: Frank Denis <github@pureftpd.org>
+  Repository: https://github.com/jedisct1/rust-siphash
+
+smallvec 1.15.1
+  License: MIT OR Apache-2.0
+  Authors: The Servo Project Developers
+  Repository: https://github.com/servo/rust-smallvec
+
+stable_deref_trait 1.2.1
+  License: MIT OR Apache-2.0
+  Authors: Robert Grosse <n210241048576@gmail.com>
+  Repository: https://github.com/storyyeller/stable_deref_trait
+
+syn 2.0.117
+  License: MIT OR Apache-2.0
+  Authors: David Tolnay <dtolnay@gmail.com>
+  Repository: https://github.com/dtolnay/syn
+
+unicode-ident 1.0.24
+  License: (MIT OR Apache-2.0) AND Unicode-3.0
+  Authors: David Tolnay <dtolnay@gmail.com>
+  Repository: https://github.com/dtolnay/unicode-ident

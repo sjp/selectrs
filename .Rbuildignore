@@ -4,3 +4,5 @@
 ^src/Makevars\.win$
 ^MIGRATION\.md$
 ^\.devcontainer$
+^src/rust/vendor$
+^src/\.cargo$
