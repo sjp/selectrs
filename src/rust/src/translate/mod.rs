@@ -268,10 +268,9 @@ impl Translator {
                 };
                 // None means an argument matched everything, so the whole
                 // pseudo-class is a no-op constraint.
-                if let Some(conditions) = self.arg_conditions(list.slice(), context)? {
-                    if !conditions.is_empty() {
-                        xpath.add_condition(&conditions.join(" or "));
-                    }
+                if let Some(conditions) = self.arg_conditions(list.slice(), context)?
+                    && !conditions.is_empty() {
+                    xpath.add_condition(&conditions.join(" or "));
                 }
                 Ok(())
             }
