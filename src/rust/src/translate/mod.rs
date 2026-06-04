@@ -249,11 +249,12 @@ impl Translator {
             // :not(). Nesting inside other functional pseudo-classes is
             // allowed (Selectors Level 4).
             Component::Negation(list) => {
-                let conditions = self.arg_conditions(list.slice(), ":not()")?;
-                if !conditions.is_empty() {
-                    xpath.add_condition(&format!("not({})", conditions.join(" or ")));
-                } else {
-                    xpath.add_condition("0");
+                match self.arg_conditions(list.slice(), ":not()")? {
+                    Some(conditions) if !conditions.is_empty() => {
+                        xpath.add_condition(&format!("not({})", conditions.join(" or ")));
+                    }
+                    // A universal argument makes the negation unmatchable.
+                    _ => xpath.add_condition("0"),
                 }
                 Ok(())
             }
@@ -265,9 +266,12 @@ impl Translator {
                     Component::Is(_) => ":is()",
                     _ => ":where()",
                 };
-                let conditions = self.arg_conditions(list.slice(), context)?;
-                if !conditions.is_empty() {
-                    xpath.add_condition(&conditions.join(" or "));
+                // None means an argument matched everything, so the whole
+                // pseudo-class is a no-op constraint.
+                if let Some(conditions) = self.arg_conditions(list.slice(), context)? {
+                    if !conditions.is_empty() {
+                        xpath.add_condition(&conditions.join(" or "));
+                    }
                 }
                 Ok(())
             }
@@ -462,8 +466,12 @@ impl Translator {
     /// Harvest the conditions of a pseudo-class argument list, the shared
     /// pattern of :not()/:is()/:where() and the nth `of S` handling:
     /// translate each argument, fold its element into a `name()` condition
-    /// via `add_name_test`, and keep the non-empty conditions (each still
-    /// carrying its outer parentheses).
+    /// via `add_name_test`, and keep the conditions (each still carrying
+    /// its outer parentheses).
+    ///
+    /// Returns `None` when any argument matches everything (e.g. `*`): the
+    /// OR of the list is then trivially true, so callers must not constrain
+    /// on the remaining arguments.
     ///
     /// The argument grammar only admits compound selectors, so a complex
     /// selector like `:is(a b)` errors here.
@@ -471,8 +479,9 @@ impl Translator {
         &self,
         selectors: &[Selector<SelectrsImpl>],
         context: &str,
-    ) -> Result<Vec<String>, Error> {
+    ) -> Result<Option<Vec<String>>, Error> {
         let mut conditions = Vec::new();
+        let mut trivially_true = false;
         for selector in selectors {
             let mut iter = selector.iter();
             let mut compound: Vec<&Component<SelectrsImpl>> = Vec::new();
@@ -486,11 +495,17 @@ impl Translator {
             }
             let mut sub = self.compound_to_xpath(&compound)?;
             sub.add_name_test();
-            if !sub.condition.is_empty() {
+            if sub.condition.is_empty() {
+                trivially_true = true;
+            } else {
                 conditions.push(sub.condition);
             }
         }
-        Ok(conditions)
+        Ok(if trivially_true {
+            None
+        } else {
+            Some(conditions)
+        })
     }
 }
 

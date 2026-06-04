@@ -375,6 +375,12 @@ mod tests {
              and ((@class and contains(concat(' ', normalize-space(@class), ' '), \
              ' foo ')) and (name() = 'div'))]"
         );
+        // A universal argument makes the list match everything, like a
+        // plain :nth-child.
+        assert_eq!(
+            xpath("li:nth-child(2 of .foo, *)"),
+            "li[(count(preceding-sibling::*) = 1)]"
+        );
     }
 
     /// Structural pseudos and the generic never-match set.
@@ -415,6 +421,8 @@ mod tests {
             xpath("e:not(a, b)"),
             "e[(not((name() = 'a') or (name() = 'b')))]"
         );
+        // A universal argument makes :not() unmatchable...
+        assert_eq!(xpath("div:not(a, *)"), "div[(0)]");
         // :where() / :is() OR their arguments together into one condition
         // that ANDs with the rest of the compound.
         assert_eq!(xpath("div:where(p)"), "div[((name() = 'p'))]");
@@ -434,8 +442,10 @@ mod tests {
         assert_eq!(xpath("div:is(p)"), "div[((name() = 'p'))]");
         // :matches() is the legacy alias for :is().
         assert_eq!(xpath("div:matches(p)"), "div[((name() = 'p'))]");
-        // :is(*) adds nothing.
+        // ...and :is()/:where() a no-op constraint.
         assert_eq!(xpath("e:is(*)"), "e");
+        assert_eq!(xpath("div:is(a, *)"), "div");
+        assert_eq!(xpath("div:where(a, *)"), "div");
         // :has().
         assert_eq!(xpath("div:has(p)"), "div[(.//*[(name() = 'p')])]");
         assert_eq!(

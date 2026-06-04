@@ -151,6 +151,8 @@ test_that("translation of pseudo-classes to XPath works", {
                  "e[(not((count(preceding-sibling::*) mod 2 = 0)))]")
     expect_equal(xpath('e:nOT(*)'),
                  "e[(0)]") # never matches
+    expect_equal(xpath('div:not(a, *)'),
+                 "div[(0)]") # universal argument: never matches
     expect_equal(xpath('e ~ f:nth-child(3)'),
                  "e/following-sibling::f[(count(preceding-sibling::*) = 2)]")
     # An+B is ASCII case-insensitive per css-syntax
@@ -244,6 +246,9 @@ test_that(":where() and :is() generate correct XPath", {
                  "p[((@class and contains(concat(' ', normalize-space(@class), ' '), ' highlight ')) or (@id = 'special') or (@data-key))]")
     expect_equal(xpath("div:is(p)"), "div[((name() = 'p'))]")
     expect_equal(xpath("div:matches(p)"), "div[((name() = 'p'))]")
+    # A universal argument makes the list a no-op constraint
+    expect_equal(xpath("div:is(a, *)"), "div")
+    expect_equal(xpath("div:where(a, *)"), "div")
 })
 
 test_that(":nth-child(an+b of S) generates correct XPath", {
@@ -260,6 +265,9 @@ test_that(":nth-child(an+b of S) generates correct XPath", {
     expect_equal(xpath("div:nth-child(2 of div.foo)"),
                  paste0("div[(count(preceding-sibling::*[(@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')) and (name() = 'div')]) = 1)",
                         " and ((@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')) and (name() = 'div'))]"))
+    # A universal argument makes the list match everything, like a plain :nth-child
+    expect_equal(xpath("li:nth-child(2 of .foo, *)"),
+                 "li[(count(preceding-sibling::*) = 1)]")
 })
 
 test_that(":lang() and :dir() generate correct XPath", {

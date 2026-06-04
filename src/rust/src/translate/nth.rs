@@ -98,16 +98,13 @@ impl Translator {
 
         // CSS Level 4: when a selector list is provided, the current
         // element must match it too. The same OR-joined condition is
-        // appended in every branch.
+        // appended in every branch. A trivially-true list (it contains a
+        // universal argument) constrains nothing, like a plain :nth-child.
         let current_element_check = match selector_list {
-            Some(list) => {
-                let conditions = self.arg_conditions(list, ":nth-child(... of S)")?;
-                if conditions.is_empty() {
-                    None
-                } else {
-                    Some(conditions.join(" or "))
-                }
-            }
+            Some(list) => self
+                .arg_conditions(list, ":nth-child(... of S)")?
+                .filter(|conditions| !conditions.is_empty())
+                .map(|conditions| conditions.join(" or ")),
             None => None,
         };
 
