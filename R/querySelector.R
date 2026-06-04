@@ -102,8 +102,7 @@ querySelectorAllNS.default <- function(doc, selector, ns,
 
 #' @export
 querySelector.XMLInternalDocument <- function(doc, selector, ns = NULL, ...) {
-    if (missing(selector))
-        stop("A valid selector (character vector) must be provided.")
+    validateSelector(selector)
     results <- querySelectorAll(doc, selector, ns, ...)
     if (length(results))
         results[[1]]
@@ -116,8 +115,7 @@ querySelector.XMLInternalNode <- querySelector.XMLInternalDocument
 
 #' @export
 querySelectorAll.XMLInternalNode <- function(doc, selector, ns = NULL, ...) {
-    if (missing(selector))
-        stop("A valid selector (character vector) must be provided.")
+    validateSelector(selector)
     xpath <- css_to_xpath(selector, ...)
     if (!is.null(ns)) {
         ns <- formatNS(ns)
@@ -129,8 +127,7 @@ querySelectorAll.XMLInternalNode <- function(doc, selector, ns = NULL, ...) {
 
 #' @export
 querySelectorAll.XMLInternalDocument <- function(doc, selector, ns = NULL, ...) {
-    if (missing(selector))
-        stop("A valid selector (character vector) must be provided.")
+    validateSelector(selector)
     doc <- XML::xmlRoot(doc)
     querySelectorAll(doc, selector, ns, ...)
 }
@@ -138,8 +135,7 @@ querySelectorAll.XMLInternalDocument <- function(doc, selector, ns = NULL, ...) 
 #' @export
 querySelectorNS.XMLInternalDocument <- function(doc, selector, ns,
                                                 prefix = "descendant-or-self::", ...) {
-    if (missing(selector))
-        stop("A valid selector (character vector) must be provided.")
+    validateSelector(selector)
     if (missing(ns) || !length(ns))
         stop("A namespace must be provided.")
     ns <- formatNS(ns)
@@ -153,8 +149,7 @@ querySelectorNS.XMLInternalNode <- querySelectorNS.XMLInternalDocument
 #' @export
 querySelectorAllNS.XMLInternalDocument <- function(doc, selector, ns,
                                                    prefix = "descendant-or-self::", ...) {
-    if (missing(selector))
-        stop("A valid selector (character vector) must be provided.")
+    validateSelector(selector)
     if (missing(ns) || !length(ns))
         stop("A namespace must be provided.")
     ns <- formatNS(ns)
@@ -167,8 +162,7 @@ querySelectorAllNS.XMLInternalNode <- querySelectorAllNS.XMLInternalDocument
 
 #' @export
 querySelector.xml_node <- function(doc, selector, ns = NULL, ...) {
-    if (missing(selector))
-        stop("A valid selector (character vector) must be provided.")
+    validateSelector(selector)
     if (is.null(ns))
         ns <- xml2::xml_ns(doc)
     validateNS(ns)
@@ -182,8 +176,7 @@ querySelector.xml_node <- function(doc, selector, ns = NULL, ...) {
 
 #' @export
 querySelectorAll.xml_node <- function(doc, selector, ns = NULL, ...) {
-    if (missing(selector))
-        stop("A valid selector (character vector) must be provided.")
+    validateSelector(selector)
     if (is.null(ns))
         ns <- xml2::xml_ns(doc)
     validateNS(ns)
@@ -194,8 +187,7 @@ querySelectorAll.xml_node <- function(doc, selector, ns = NULL, ...) {
 #' @export
 querySelectorNS.xml_node <- function(doc, selector, ns,
                                      prefix = "descendant-or-self::", ...) {
-    if (missing(selector))
-        stop("A valid selector (character vector) must be provided.")
+    validateSelector(selector)
     if (missing(ns) || is.null(ns) || !length(ns))
         stop("A namespace must be provided.")
     ns <- formatNS(ns)
@@ -206,13 +198,17 @@ querySelectorNS.xml_node <- function(doc, selector, ns,
 #' @export
 querySelectorAllNS.xml_node <- function(doc, selector, ns,
                                         prefix = "descendant-or-self::", ...) {
-    if (missing(selector))
-        stop("A valid selector (character vector) must be provided.")
+    validateSelector(selector)
     if (missing(ns) || is.null(ns) || !length(ns))
         stop("A namespace must be provided.")
     ns <- formatNS(ns)
     prefix <- formatNSPrefix(ns, prefix)
     querySelectorAll(doc, selector, ns, prefix = prefix, ...)
+}
+
+validateSelector <- function(selector) {
+    if (missing(selector) || !is.character(selector) || length(selector) != 1L)
+        stop("A valid selector (single character string) must be provided.")
 }
 
 # Takes a named vector or list and gives a named vector back

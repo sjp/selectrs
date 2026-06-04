@@ -89,10 +89,20 @@ test_that("querySelector methods handle invalid arguments", {
     library(xml2)
     doc <- read_xml('<a><b id="#test"/><c class="ex"/><c class="xmp"/></a>')
 
-    expect_error(querySelector(doc), "A valid selector (character vector) must be provided.", fixed = TRUE)
-    expect_error(querySelectorAll(doc), "A valid selector (character vector) must be provided.", fixed = TRUE)
-    expect_error(querySelectorNS(doc), "A valid selector (character vector) must be provided.", fixed = TRUE)
-    expect_error(querySelectorAllNS(doc), "A valid selector (character vector) must be provided.", fixed = TRUE)
+    selector_error <- "A valid selector (single character string) must be provided."
+    expect_error(querySelector(doc), selector_error, fixed = TRUE)
+    expect_error(querySelectorAll(doc), selector_error, fixed = TRUE)
+    expect_error(querySelectorNS(doc), selector_error, fixed = TRUE)
+    expect_error(querySelectorAllNS(doc), selector_error, fixed = TRUE)
+
+    # selectors must be a single string, not a vector
+    expect_error(querySelector(doc, c("b", "c")), selector_error, fixed = TRUE)
+    expect_error(querySelectorAll(doc, c("b", "c")), selector_error, fixed = TRUE)
+    expect_error(querySelectorNS(doc, c("b", "c"), c(svg = "http://www.w3.org/2000/svg")), selector_error, fixed = TRUE)
+    expect_error(querySelectorAllNS(doc, c("b", "c"), c(svg = "http://www.w3.org/2000/svg")), selector_error, fixed = TRUE)
+    expect_error(querySelectorAll(doc, character(0)), selector_error, fixed = TRUE)
+    expect_error(querySelectorAll(doc, 1), selector_error, fixed = TRUE)
+    expect_error(querySelectorAll(doc, NULL), selector_error, fixed = TRUE)
 
     expect_error(querySelectorNS(doc, "a"), "A namespace must be provided.", fixed = TRUE)
     expect_error(querySelectorNS(doc, "a", NULL), "A namespace must be provided.", fixed = TRUE)
