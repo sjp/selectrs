@@ -462,9 +462,12 @@ test_that("unsupported constructs error informatively", {
     # Nested :has() is rejected (selectors-4).
     expect_error(xpath('e:has(a:has(b))'))
     expect_error(xpath('e:has(> a:has(b))'))
-    # of-type pseudo-classes on '*' are not implemented.
+    # of-type pseudo-classes on '*' are not implemented, including
+    # compounds that leave the type implicit ('.foo' is '*.foo').
     expect_error(xpath('*:first-of-type'))
     expect_error(xpath('*:nth-of-type(2)'))
+    expect_error(xpath('.foo:first-of-type'))
+    expect_error(xpath('[bar]:only-of-type'))
     # :lang()/:dir() argument validation; a lone '-' is not a valid ident.
     expect_error(xpath('e:lang()'))
     expect_error(xpath('e:lang(5)'))

@@ -31,6 +31,17 @@ the context node's \code{a} children) and the \code{prefix} is not applied to it
 \verb{:scope} is only supported in a selector's leftmost compound; anywhere
 else the context node cannot be expressed in XPath 1.0, so an error is
 raised.
+
+The of-type pseudo-classes (\verb{:first-of-type}, \verb{:last-of-type},
+\verb{:nth-of-type()}, \verb{:nth-last-of-type()}, and \verb{:only-of-type}) need an
+element type in the same compound to count siblings with:
+\code{"p:first-of-type"} translates, but \code{"*:first-of-type"} raises an
+error, as do selectors that leave the type implicit, like
+\code{".foo:first-of-type"}. XPath 1.0 cannot compare a sibling's name with
+the matched element's own name, so these have no translation. (selectr
+has the same limitation.) Note also that an any-namespace type like
+\code{"*|p:first-of-type"} counts same-typed siblings by \code{local-name()},
+which groups same-named types from different namespaces together.
 }
 \examples{
 css_to_xpath("#testid > .testclass")

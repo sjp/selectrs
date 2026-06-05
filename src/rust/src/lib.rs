@@ -262,9 +262,17 @@ mod tests {
         // Nested :has() is rejected (selectors-4).
         assert!(t.css_to_xpath("e:has(a:has(b))", "").is_err());
         assert!(t.css_to_xpath("e:has(> a:has(b))", "").is_err());
-        // of-type pseudos on `*` are not implemented.
+        // of-type pseudos are not implemented on `*` — including compounds
+        // that leave the type implicit (`.foo` is `*.foo`) or carry it
+        // only inside a pseudo-class argument. XPath 1.0 cannot compare a
+        // sibling's name with the matched element's own name, so only a
+        // type named in the compound itself gives a sibling node test.
         assert!(t.css_to_xpath("*:first-of-type", "").is_err());
         assert!(t.css_to_xpath("*:nth-last-of-type(2)", "").is_err());
+        assert!(t.css_to_xpath("*:only-of-type", "").is_err());
+        assert!(t.css_to_xpath(".foo:first-of-type", "").is_err());
+        assert!(t.css_to_xpath("[bar]:nth-of-type(2)", "").is_err());
+        assert!(t.css_to_xpath(":is(e):first-of-type", "").is_err());
         // :lang()/:dir() argument validation; a lone '-' is not a valid
         // ident.
         assert!(t.css_to_xpath(":lang()", "").is_err());

@@ -12,6 +12,17 @@
 #' else the context node cannot be expressed in XPath 1.0, so an error is
 #' raised.
 #'
+#' The of-type pseudo-classes (`:first-of-type`, `:last-of-type`,
+#' `:nth-of-type()`, `:nth-last-of-type()`, and `:only-of-type`) need an
+#' element type in the same compound to count siblings with:
+#' `"p:first-of-type"` translates, but `"*:first-of-type"` raises an
+#' error, as do selectors that leave the type implicit, like
+#' `".foo:first-of-type"`. XPath 1.0 cannot compare a sibling's name with
+#' the matched element's own name, so these have no translation. (selectr
+#' has the same limitation.) Note also that an any-namespace type like
+#' `"*|p:first-of-type"` counts same-typed siblings by `local-name()`,
+#' which groups same-named types from different namespaces together.
+#'
 #' @param selector A character vector of CSS selectors.
 #' @param prefix A character vector of prefixes to apply to the resulting
 #'   XPath expressions. Not applied to selectors anchored by `:scope`.
