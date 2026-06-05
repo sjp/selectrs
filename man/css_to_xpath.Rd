@@ -39,6 +39,14 @@ loosens \verb{:empty} to also match white-space-only elements, but no
 browser engine has shipped that change, and selectrs (like selectr)
 deliberately keeps the implemented-everywhere behaviour.
 
+The \verb{:dir()} pseudo-class never matches, in every translator: it
+selects by \emph{resolved} directionality, which requires runtime bidi
+resolution (\code{dir="auto"} first-strong-character detection, \code{bdi}
+defaults, and inheritance with invalid values skipped) that a static
+XPath expression cannot perform. An approximation walking to the
+nearest \code{dir} attribute is deliberately not attempted; selectr behaves
+the same way.
+
 The CSS Selectors Level 4 column combinator (\code{"col || td"}) and the
 grid-structural pseudo-classes \verb{:nth-col()} and \verb{:nth-last-col()} are
 not supported and raise an error: table column membership depends on

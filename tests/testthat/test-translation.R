@@ -370,8 +370,12 @@ test_that(":lang() and :dir() generate correct XPath", {
     expect_equal(xpath("e:lang(en-*)"), "e[lang('en')]")
     expect_equal(xpath("e:lang(*)"), "e[true()]")
     expect_equal(xpath("e:lang(en, fr)"), "e[lang('en') or lang('fr')]")
-    # :dir() is never statically matchable.
+    # :dir() is never statically matchable, in any translator: resolved
+    # directionality needs runtime bidi resolution, and a nearest-@dir
+    # approximation is deliberately not attempted.
     expect_equal(xpath("e:dir(ltr)"), "e[0]")
+    expect_equal(css_to_xpath("e:dir(rtl)", "", "html"), "e[0]")
+    expect_equal(css_to_xpath("e:dir(ltr)", "", "xhtml"), "e[0]")
     # HTML/xhtml: nearest lang-attributed ancestor, lowercased prefix.
     lang_test <- function(prefix) {
         paste0("ancestor-or-self::*[@lang][1][starts-with(concat(",

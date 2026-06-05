@@ -844,9 +844,14 @@ mod tests {
             "E[ancestor-or-self::*[@lang]]"
         );
         // :dir() takes exactly one identifier (selectors-4) — none of
-        // :lang()'s strings, wildcards, or lists.
+        // :lang()'s strings, wildcards, or lists. It never matches in any
+        // translator: resolved directionality needs runtime bidi
+        // resolution, and a nearest-@dir approximation is deliberately
+        // not attempted (see apply_pseudo_class).
         let t = Translator::new("generic").unwrap();
         assert_eq!(xpath("e:dir(rtl)"), "e[0]");
+        assert_eq!(html.css_to_xpath("e:dir(rtl)", "").unwrap(), "e[0]");
+        assert_eq!(xhtml.css_to_xpath("e:dir(ltr)", "").unwrap(), "e[0]");
         assert!(t.css_to_xpath("e:dir()", "").is_err());
         assert!(t.css_to_xpath("e:dir(ltr rtl)", "").is_err());
         assert!(t.css_to_xpath("e:dir(ltr, rtl)", "").is_err());

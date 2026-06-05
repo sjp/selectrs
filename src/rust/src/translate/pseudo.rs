@@ -39,9 +39,14 @@ impl Translator {
     ) -> Result<(), Error> {
         match (self.kind, pc) {
             (_, PseudoClass::Dir(_)) => {
-                // :dir() requires runtime directionality detection, not
-                // possible in static XPath, so it never matches — in both
-                // translators (the HTML override is an identical copy).
+                // :dir() matches by *resolved* directionality, which needs
+                // runtime bidi resolution, so it never matches — in both
+                // translators. A nearest-@dir-ancestor walk (like the HTML
+                // :lang() translation) was considered and rejected: it
+                // gets dir="auto" (first-strong-character detection),
+                // bdi/form-control defaults, and HTML's invalid-value-
+                // means-inherit rule wrong, all of which occur in real
+                // markup.
                 xpath.add_condition("0");
             }
             (Kind::Generic, PseudoClass::Lang(args)) => {

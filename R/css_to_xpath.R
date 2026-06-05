@@ -19,6 +19,14 @@
 #' browser engine has shipped that change, and selectrs (like selectr)
 #' deliberately keeps the implemented-everywhere behaviour.
 #'
+#' The `:dir()` pseudo-class never matches, in every translator: it
+#' selects by *resolved* directionality, which requires runtime bidi
+#' resolution (`dir="auto"` first-strong-character detection, `bdi`
+#' defaults, and inheritance with invalid values skipped) that a static
+#' XPath expression cannot perform. An approximation walking to the
+#' nearest `dir` attribute is deliberately not attempted; selectr behaves
+#' the same way.
+#'
 #' The CSS Selectors Level 4 column combinator (`"col || td"`) and the
 #' grid-structural pseudo-classes `:nth-col()` and `:nth-last-col()` are
 #' not supported and raise an error: table column membership depends on
