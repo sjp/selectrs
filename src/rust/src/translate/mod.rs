@@ -11,7 +11,7 @@ use selectors::parser::{Combinator, Component, Selector};
 
 use crate::parser::{self, SelectrsImpl};
 use error::Error;
-use xpath_expr::{XPathExpr, is_safe_name};
+use xpath_expr::{Condition, XPathExpr, is_safe_name};
 
 /// Which translator family the pseudo-class overrides come from: generic
 /// or HTML (both `html` and `xhtml` use the HTML overrides; only `html`
@@ -254,7 +254,10 @@ impl Translator {
             Component::Negation(list) => {
                 match self.arg_conditions(list.slice(), ":not()")? {
                     Some(conditions) if !conditions.is_empty() => {
-                        xpath.add_condition(&format!("not({})", conditions.join(" or ")));
+                        // not(...) supplies its own grouping, so the
+                        // or-join needs no parentheses.
+                        let joined = Condition::join_or(&conditions);
+                        xpath.add_condition(&format!("not({})", joined.expr));
                     }
                     // A universal argument makes the negation unmatchable.
                     _ => xpath.add_condition("0"),
@@ -274,7 +277,7 @@ impl Translator {
                 if let Some(conditions) = self.arg_conditions(list.slice(), context)?
                     && !conditions.is_empty()
                 {
-                    xpath.add_condition(&conditions.join(" or "));
+                    xpath.push_condition(Condition::join_or(&conditions));
                 }
                 Ok(())
             }
@@ -469,8 +472,8 @@ impl Translator {
     /// translate each argument, turn its element into a condition — a
     /// `self::` node test for prefixed names (so the prefix resolves
     /// through the namespace map, like a top-level `svg|g`), a `name()`
-    /// comparison otherwise — and keep the conditions (each still
-    /// carrying its outer parentheses).
+    /// comparison otherwise — and keep each argument's combined
+    /// condition.
     ///
     /// Returns `None` when any argument matches everything (e.g. `*`): the
     /// OR of the list is then trivially true, so callers must not constrain
@@ -482,7 +485,7 @@ impl Translator {
         &self,
         selectors: &[Selector<SelectrsImpl>],
         context: &str,
-    ) -> Result<Option<Vec<String>>, Error> {
+    ) -> Result<Option<Vec<Condition>>, Error> {
         let mut conditions = Vec::new();
         let mut trivially_true = false;
         for selector in selectors {
@@ -503,10 +506,9 @@ impl Translator {
             } else {
                 sub.add_name_test();
             }
-            if sub.condition.is_empty() {
-                trivially_true = true;
-            } else {
-                conditions.push(sub.condition);
+            match sub.condition() {
+                None => trivially_true = true,
+                Some(condition) => conditions.push(condition),
             }
         }
         Ok(if trivially_true {

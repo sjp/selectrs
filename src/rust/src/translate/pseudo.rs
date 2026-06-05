@@ -37,7 +37,7 @@ impl Translator {
             }
             // HTML overrides
             (Kind::Html, PseudoClass::Checked) => {
-                xpath.add_condition(
+                xpath.add_or_condition(
                     "(@selected and name(.) = 'option') or \
                      (@checked \
                      and (name(.) = 'input' or name(.) = 'command')\
@@ -50,7 +50,7 @@ impl Translator {
                 );
             }
             (Kind::Html, PseudoClass::Disabled) => {
-                xpath.add_condition(
+                xpath.add_or_condition(
                     "( @disabled and ( \
                      (name(.) = 'input' and not(@type = 'hidden')) or \
                      name(.) = 'button' or \
@@ -71,7 +71,7 @@ impl Translator {
                 );
             }
             (Kind::Html, PseudoClass::Enabled) => {
-                xpath.add_condition(
+                xpath.add_or_condition(
                     "(@href and (name(.) = 'a' or name(.) = 'link' or name(.) = 'area')) \
                      or \
                      ((name(.) = 'command' or name(.) = 'fieldset' or name(.) = 'optgroup') \
@@ -173,13 +173,12 @@ fn lang_values(args: &[LangArg]) -> Vec<String> {
 }
 
 /// The shared condition-combining tail of both `:lang()` translations: a
-/// single condition is added as-is, multiple are OR-joined inside an extra
-/// pair of parentheses.
+/// single condition is added as-is, multiple are OR-joined.
 fn add_lang_conditions(xpath: &mut XPathExpr, conditions: Vec<String>) {
     match conditions.len() {
         0 => {}
         1 => xpath.add_condition(&conditions[0]),
-        _ => xpath.add_condition(&format!("({})", conditions.join(" or "))),
+        _ => xpath.add_or_condition(&conditions.join(" or ")),
     }
 }
 

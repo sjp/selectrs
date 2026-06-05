@@ -23,7 +23,7 @@ test_that("css_to_xpath vectorises arguments", {
     expect_equal(css_to_xpath("a b"), "descendant-or-self::a//b")
     expect_equal(css_to_xpath("a b", prefix = ""), "a//b")
     expect_equal(css_to_xpath("a b", prefix = c("descendant-or-self::", "")), c("descendant-or-self::a//b", "a//b"))
-    expect_equal(css_to_xpath("a:checked", prefix = "", translator = c("generic", "html", "xhtml")), c("a[(0)]", "a[((@selected and name(.) = 'option') or (@checked and (name(.) = 'input' or name(.) = 'command')and (@type = 'checkbox' or @type = 'radio')))]", "a[((@selected and name(.) = 'option') or (@checked and (name(.) = 'input' or name(.) = 'command')and (@type = 'checkbox' or @type = 'radio')))]"))
+    expect_equal(css_to_xpath("a:checked", prefix = "", translator = c("generic", "html", "xhtml")), c("a[0]", "a[(@selected and name(.) = 'option') or (@checked and (name(.) = 'input' or name(.) = 'command')and (@type = 'checkbox' or @type = 'radio'))]", "a[(@selected and name(.) = 'option') or (@checked and (name(.) = 'input' or name(.) = 'command')and (@type = 'checkbox' or @type = 'radio'))]"))
     expect_equal(css_to_xpath(c("a b", "b c"), prefix = ""), c("a//b", "b//c"))
 
     # repeated selectors translate once and reuse the result; a repeat is
@@ -31,7 +31,7 @@ test_that("css_to_xpath vectorises arguments", {
     expect_equal(css_to_xpath(c("#a", "#b", "#a")),
                  c(css_to_xpath("#a"), css_to_xpath("#b"), css_to_xpath("#a")))
     expect_equal(css_to_xpath("#a", prefix = c("//", "", "//")),
-                 c("//*[(@id = 'a')]", "*[(@id = 'a')]", "//*[(@id = 'a')]"))
+                 c("//*[@id = 'a']", "*[@id = 'a']", "//*[@id = 'a']"))
     expect_equal(css_to_xpath("A", prefix = "", translator = c("html", "generic", "html")),
                  c("a", "A", "a"))
 })

@@ -91,8 +91,8 @@ test_that("adjacent sibling with pseudo-classes", {
     }
 
     # Adjacent sibling with pseudo-class on right
-    expect_equal(xpath('h1 + p:first-child'), "h1/following-sibling::*[1][self::p][(count(preceding-sibling::*) = 0)]")
+    expect_equal(xpath('h1 + p:first-child'), "h1/following-sibling::*[1][self::p][count(preceding-sibling::*) = 0]")
 
     # Adjacent sibling with nth-child
-    expect_equal(xpath('h1 + p:nth-child(2)'), "h1/following-sibling::*[1][self::p][(count(preceding-sibling::*) = 1)]")
+    expect_equal(xpath('h1 + p:nth-child(2)'), "h1/following-sibling::*[1][self::p][count(preceding-sibling::*) = 1]")
 })

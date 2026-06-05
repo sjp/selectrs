@@ -12,7 +12,7 @@ use selectors::parser::{NthSelectorData, NthType, Selector};
 
 use super::Translator;
 use super::error::Error;
-use super::xpath_expr::XPathExpr;
+use super::xpath_expr::{Condition, XPathExpr};
 use crate::parser::SelectrsImpl;
 
 impl Translator {
@@ -109,7 +109,7 @@ impl Translator {
             Some(list) => self
                 .arg_conditions(list, ":nth-child(... of S)")?
                 .filter(|conditions| !conditions.is_empty())
-                .map(|conditions| conditions.join(" or ")),
+                .map(|conditions| Condition::join_or(&conditions)),
             None => None,
         };
 
@@ -119,8 +119,8 @@ impl Translator {
         // since n is a non-negative integer, if b-1<=0 there is always an
         // "n" matching any number of siblings (maybe none)
         if a == 1 && b_min_1 <= 0 {
-            if let Some(ref check) = current_element_check {
-                xpath.add_condition(check);
+            if let Some(check) = current_element_check {
+                xpath.push_condition(check);
             }
             return Ok(());
         }
@@ -129,8 +129,8 @@ impl Translator {
         // an+b-1 siblings with a<0 and (b-1)<0 is not possible
         if a < 0 && b_min_1 < 0 {
             xpath.add_condition("0");
-            if let Some(ref check) = current_element_check {
-                xpath.add_condition(check);
+            if let Some(check) = current_element_check {
+                xpath.push_condition(check);
             }
             return Ok(());
         }
@@ -138,7 +138,7 @@ impl Translator {
         // The predicate filtering counted siblings (CSS Level 4 `of S`) —
         // the same OR-joined conditions as the current-element check.
         let selector_predicate = match current_element_check {
-            Some(ref check) => format!("[{check}]"),
+            Some(ref check) => format!("[{}]", check.expr),
             None => String::new(),
         };
 
@@ -149,8 +149,8 @@ impl Translator {
         // special case of fixed position: nth-*(0n+b)
         if a == 0 {
             xpath.add_condition(&format!("{siblings_count} = {b_min_1}"));
-            if let Some(ref check) = current_element_check {
-                xpath.add_condition(check);
+            if let Some(check) = current_element_check {
+                xpath.push_condition(check);
             }
             return Ok(());
         }
@@ -191,8 +191,8 @@ impl Translator {
             xpath.add_condition(&expr.join(" and "));
         }
 
-        if let Some(ref check) = current_element_check {
-            xpath.add_condition(check);
+        if let Some(check) = current_element_check {
+            xpath.push_condition(check);
         }
 
         Ok(())

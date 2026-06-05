@@ -1,8 +1,11 @@
 //! The `XPathExpr` builder and string helpers.
 //!
-//! The condition-parenthesization convention (output like `e[(@foo = 'bar')]`)
-//! and the `*/`-collapse guard in `join` are load-bearing in
-//! test-translation.R.
+//! Conditions are stored unparenthesized and parenthesized only at render
+//! time, and only where XPath precedence requires it: an expression with a
+//! top-level `or` (a `Condition` with `or_group` set) is wrapped when it
+//! is conjoined with other conditions, since `and` binds tighter than
+//! `or`. The exact output (like `e[@foo = 'bar']`) and the `*/`-collapse
+//! guard in `join` are load-bearing in test-translation.R.
 
 /// Whether a name can be used directly in an XPath name test (no quoting
 /// needed).
@@ -41,16 +44,35 @@ pub fn xpath_literal(literal: &str) -> String {
     }
 }
 
+/// One condition of a conjunction. `or_group` marks an expression with a
+/// top-level `or`, which needs parentheses whenever it is joined to other
+/// conditions with `and`.
+#[derive(Clone, Debug)]
+pub struct Condition {
+    pub expr: String,
+    pub or_group: bool,
+}
+
+impl Condition {
+    /// OR together a list of conditions, as the `:is()`/`:not()`/`of S`
+    /// argument handling needs. The result is an or-group when anything
+    /// was actually joined (or the single member already was one).
+    pub fn join_or(conditions: &[Condition]) -> Condition {
+        let exprs: Vec<&str> = conditions.iter().map(|c| c.expr.as_str()).collect();
+        Condition {
+            expr: exprs.join(" or "),
+            or_group: conditions.len() > 1 || conditions[0].or_group,
+        }
+    }
+}
+
 /// A partially built XPath expression: path, element, predicates, and
-/// condition.
-///
-/// `condition` is stored *with* its wrapping parentheses (see
-/// `add_condition`).
+/// conditions.
 #[derive(Clone, Debug)]
 pub struct XPathExpr {
     pub path: String,
     pub element: String,
-    pub condition: String,
+    conditions: Vec<Condition>,
     /// Standalone predicates rendered each in its own bracket pair before
     /// the combined condition: `element[p1][p2][condition]`. Used where
     /// brackets must stay separate — e.g. the `+` combinator's `[1]`
@@ -67,7 +89,7 @@ impl XPathExpr {
         XPathExpr {
             path: String::new(),
             element: element.to_owned(),
-            condition: String::new(),
+            conditions: Vec::new(),
             predicates: Vec::new(),
             folded_name: None,
         }
@@ -80,28 +102,66 @@ impl XPathExpr {
             p.push_str(predicate);
             p.push(']');
         }
-        if !self.condition.is_empty() {
+        if let Some(condition) = self.condition() {
             p.push('[');
-            p.push_str(&self.condition);
+            p.push_str(&condition.expr);
             p.push(']');
         }
         p
+    }
+
+    /// The conjunction of every added condition: one passes through
+    /// untouched (brackets and `not(...)` need no parentheses around a
+    /// lone or-group), several join with `and`, parenthesizing the
+    /// or-groups among them.
+    pub fn condition(&self) -> Option<Condition> {
+        match self.conditions.len() {
+            0 => None,
+            1 => Some(self.conditions[0].clone()),
+            _ => {
+                let parts: Vec<String> = self
+                    .conditions
+                    .iter()
+                    .map(|c| {
+                        if c.or_group {
+                            format!("({})", c.expr)
+                        } else {
+                            c.expr.clone()
+                        }
+                    })
+                    .collect();
+                Some(Condition {
+                    expr: parts.join(" and "),
+                    or_group: false,
+                })
+            }
+        }
     }
 
     pub fn add_predicate(&mut self, predicate: &str) {
         self.predicates.push(predicate.to_owned());
     }
 
+    /// Add one condition to the conjunction. The expression must not
+    /// contain a top-level `or` — those go through `add_or_condition` so
+    /// rendering knows to parenthesize them.
     pub fn add_condition(&mut self, condition: &str) {
-        self.add_condition_with(condition, "and");
+        self.push_condition(Condition {
+            expr: condition.to_owned(),
+            or_group: false,
+        });
     }
 
-    pub fn add_condition_with(&mut self, condition: &str, conjunction: &str) {
-        self.condition = if self.condition.is_empty() {
-            format!("({condition})")
-        } else {
-            format!("{} {conjunction} ({condition})", self.condition)
-        };
+    /// Add a condition whose expression contains a top-level `or`.
+    pub fn add_or_condition(&mut self, condition: &str) {
+        self.push_condition(Condition {
+            expr: condition.to_owned(),
+            or_group: true,
+        });
+    }
+
+    pub fn push_condition(&mut self, condition: Condition) {
+        self.conditions.push(condition);
     }
 
     pub fn add_name_test(&mut self) {
@@ -134,7 +194,7 @@ impl XPathExpr {
         }
         self.path = p;
         self.element = other.element.clone();
-        self.condition = other.condition.clone();
+        self.conditions = other.conditions.clone();
         self.predicates = other.predicates.clone();
         self.folded_name = other.folded_name.clone();
     }
@@ -166,9 +226,17 @@ mod tests {
     fn condition_parens() {
         let mut xp = XPathExpr::new("e");
         xp.add_condition("@foo = 'bar'");
-        assert_eq!(xp.str(), "e[(@foo = 'bar')]");
+        assert_eq!(xp.str(), "e[@foo = 'bar']");
         xp.add_condition("@baz");
-        assert_eq!(xp.str(), "e[(@foo = 'bar') and (@baz)]");
+        assert_eq!(xp.str(), "e[@foo = 'bar' and @baz]");
+
+        // a lone or-group needs no parentheses inside the brackets, a
+        // conjoined one does
+        let mut xp = XPathExpr::new("e");
+        xp.add_or_condition("@a or @b");
+        assert_eq!(xp.str(), "e[@a or @b]");
+        xp.add_condition("@c");
+        assert_eq!(xp.str(), "e[(@a or @b) and @c]");
     }
 
     #[test]
@@ -178,14 +246,14 @@ mod tests {
         xp.add_predicate("self::f");
         assert_eq!(xp.str(), "*[1][self::f]");
         xp.add_condition("@bar");
-        assert_eq!(xp.str(), "*[1][self::f][(@bar)]");
+        assert_eq!(xp.str(), "*[1][self::f][@bar]");
 
         // join bakes the left side's predicates into the path and takes
         // over the right side's.
         let other = XPathExpr::new("g");
         xp.join("/following-sibling::", &other);
-        assert_eq!(xp.str(), "*[1][self::f][(@bar)]/following-sibling::g");
+        assert_eq!(xp.str(), "*[1][self::f][@bar]/following-sibling::g");
         xp.add_predicate("1");
-        assert_eq!(xp.str(), "*[1][self::f][(@bar)]/following-sibling::g[1]");
+        assert_eq!(xp.str(), "*[1][self::f][@bar]/following-sibling::g[1]");
     }
 }
