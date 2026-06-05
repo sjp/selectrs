@@ -9,21 +9,27 @@ CSS-to-XPath translation — in both packages.
 | Component | Version |
 |---|---|
 | R | 4.6.0 (2026-04-24) |
-| selectr | 0.6.0 (GitHub `master` @ `918f3b1`, 2026-06-04) |
-| selectrs | 0.0.0.9000 (working tree @ `df7c88e`) |
+| selectr | 0.6.0 (GitHub `master` @ `c270f00`, 2026-06-05) |
+| selectrs | 0.0.0.9000 (working tree @ `350ef2b`) |
 | bench | 1.1.4 |
 | Hardware | aarch64, 8 cores (Linux VM on Apple Silicon) |
 
 ## Methodology
 
 - Timings collected with `bench::mark()` (≥200 iterations per expression for
-  per-selector runs, ≥20 for the 1,000-selector run).
+  per-selector runs, ≥20 for the 1,000-selector runs).
 - Before any timing, every benchmark selector is translated by both packages
   and the outputs checked with `identical()` — the benchmark aborts on any
   mismatch. `bench::mark(check = TRUE)` additionally verifies equality on
   every timed expression pair.
+- Both packages now cache translations for the duration of a vectorized
+  call, so repeated selectors in one vector are translated once. The
+  1,000-selector workload therefore comes in two variants: one repeating the
+  14 benchmark selectors (exercises the cache) and one with 1,000 unique
+  selectors (defeats it, measuring raw translation throughput).
 - Times reported are medians. `selectr` triggers garbage collection in every
-  iteration on most of these workloads, which is reflected in its timings.
+  iteration on the heaviest workload (1,000 unique selectors), which is
+  reflected in its timing.
 - The full benchmark script is in the appendix.
 
 ## Per-selector results
@@ -32,22 +38,22 @@ One `css_to_xpath()` call per selector, default `"generic"` translator.
 
 | Case | Selector | selectr (µs) | selectrs (µs) | Speedup |
 |---|---|---:|---:|---:|
-| type | `div` | 164.1 | 10.2 | 16.1x |
-| class | `.note` | 551.5 | 10.6 | 52.1x |
-| id | `#main` | 210.1 | 10.6 | 19.8x |
-| attribute (presence) | `a[rel]` | 786.7 | 10.7 | 73.5x |
-| attribute (prefix) | `a[href^='https://']` | 1045.2 | 11.2 | 93.3x |
-| descendant | `div p` | 688.1 | 10.6 | 64.8x |
-| child + class | `div > p.note` | 1084.8 | 11.1 | 97.5x |
-| compound chain | `ul li a.external` | 1203.8 | 11.5 | 105.1x |
-| sibling | `h2 ~ p + span` | 1257.8 | 11.4 | 110.2x |
-| pseudo-class | `p:first-child` | 688.6 | 10.9 | 63.3x |
-| nth-child (an+b) | `tr:nth-child(2n+1)` | 1305.0 | 11.0 | 118.2x |
-| negation | `input:not([type='hidden'])` | 1587.9 | 11.2 | 141.2x |
-| union (3 selectors) | `h1, h2, h3` | 1117.7 | 10.9 | 102.4x |
-| kitchen sink | `div#content > ul.menu li:nth-of-type(2) a[href$='.html']:not(.active)` | 3820.2 | 14.1 | 270.5x |
+| type | `div` | 174.5 | 10.1 | 17.2x |
+| class | `.note` | 248.4 | 10.8 | 23.1x |
+| id | `#main` | 228.3 | 10.5 | 21.7x |
+| attribute (presence) | `a[rel]` | 520.8 | 10.8 | 48.3x |
+| attribute (prefix) | `a[href^='https://']` | 635.1 | 10.8 | 58.6x |
+| descendant | `div p` | 510.3 | 10.8 | 47.1x |
+| child + class | `div > p.note` | 699.0 | 11.3 | 62.1x |
+| compound chain | `ul li a.external` | 822.9 | 11.5 | 71.3x |
+| sibling | `h2 ~ p + span` | 815.1 | 11.2 | 72.5x |
+| pseudo-class | `p:first-child` | 460.8 | 10.8 | 42.5x |
+| nth-child (an+b) | `tr:nth-child(2n+1)` | 701.1 | 10.8 | 65.2x |
+| negation | `input:not([type='hidden'])` | 906.1 | 11.2 | 81.1x |
+| union (3 selectors) | `h1, h2, h3` | 726.0 | 10.9 | 66.5x |
+| kitchen sink | `div#content > ul.menu li:nth-of-type(2) a[href$='.html']:not(.active)` | 2098.3 | 13.7 | 153.1x |
 
-**Geometric mean speedup: 76.7x.**
+**Geometric mean speedup: 51.2x.**
 
 Two patterns stand out:
 
@@ -56,7 +62,13 @@ Two patterns stand out:
   call, with the translation itself contributing very little.
 - `selectr` scales with selector complexity (parsing and translation happen
   in R), so the speedup grows with complexity: simple type selectors are
-  ~16x faster, while the kitchen-sink selector is ~270x faster.
+  ~17x faster, while the kitchen-sink selector is ~153x faster.
+
+Compared with the previous round of this benchmark (selectr @ `918f3b1`,
+selectrs @ `df7c88e`), `selectr` itself got **~1.5–2.2x faster** on all but
+the simplest selectors (tokenizer rewrite, dropped stringr dependency,
+regex and dispatch improvements), which is why the speedup factors shrank
+even though `selectrs` timings are unchanged.
 
 ## Vectorized calls
 
@@ -65,19 +77,28 @@ call into Rust for the whole vector, so the fixed call overhead is amortized:
 
 | Workload | selectr (µs) | selectrs (µs) | Speedup | selectr alloc | selectrs alloc |
 |---|---:|---:|---:|---:|---:|
-| 14 selectors, one call | 15,545.0 | 26.7 | 582.9x | 789KB | 0B |
-| 1,000 selectors, one call | 1,161,133.6 | 1,164.9 | 996.8x | 54.4MB | 39.3KB |
-| `input:checked` (`html` translator) | 765.0 | 10.5 | 72.9x | 40.1KB | 0B |
+| 14 selectors, one call | 9,392.1 | 27.8 | 337.4x | 346KB | 0B |
+| 1,000 selectors (14 unique), one call | 11,704.3 | 202.4 | 57.8x | 378KB | 39.3KB |
+| 1,000 unique selectors, one call | 1,965,715.4 | 3,069.9 | 640.3x | 84.8MB | 39.3KB |
+| `input:checked` (`html` translator) | 512.5 | 10.6 | 48.2x | 40.1KB | 0B |
 
-On the 1,000-selector workload `selectrs` finishes in **~1.2 ms vs ~1.16 s**
-(~1,000x) and allocates ~39KB of R memory vs ~54MB — `selectr`'s per-call R
-allocations are what force a GC in nearly every iteration.
+The repeated-selector workload is dominated by both packages' per-call
+translation caches: only the 14 unique selectors are actually translated, so
+it mostly measures cache lookup (and both finish in milliseconds —
+`selectr` took ~1.16 s on this workload before it cached). The
+unique-selector workload measures raw translation throughput: `selectrs`
+finishes in **~3.1 ms vs ~1.97 s** (~640x) and allocates ~39KB of R memory
+vs ~85MB — `selectr`'s per-selector R allocations are what force a GC in
+every iteration there.
 
 ## Takeaways
 
-- For single translations, expect **roughly 15–270x** depending on selector
-  complexity; ~77x as a geometric mean over a representative mix.
-- For vectorized translation of many selectors, expect **~500–1,000x**.
+- For single translations, expect **roughly 17–150x** depending on selector
+  complexity; ~51x as a geometric mean over a representative mix.
+- For vectorized translation of many distinct selectors, expect
+  **~340–640x**. When a vector repeats the same selectors, both packages'
+  per-call caches close most of the gap (~58x, with both in the
+  milliseconds).
 - Both packages produce byte-identical XPath for every selector benchmarked.
 
 ## Reproducing
@@ -140,11 +161,22 @@ print(bench::mark(
     selectrs = selectrs::css_to_xpath(unname(selectors)),
     min_iterations = 200, check = TRUE))
 
-# Throughput: 1,000-element selector vector
+# Throughput: 1,000-element selector vector with 14 unique selectors —
+# exercises both packages' per-call translation caches
 big <- rep(unname(selectors), length.out = 1000)
 print(bench::mark(
     selectr  = selectr::css_to_xpath(big),
     selectrs = selectrs::css_to_xpath(big),
+    min_iterations = 20, check = TRUE))
+
+# Throughput: 1,000 unique selectors — defeats the caches, measuring raw
+# translation throughput
+uniq <- sprintf("div#id%d > ul.menu%d li:nth-child(%dn+%d) a[href^='/p%d']",
+                1:1000, 1:1000, 1:1000 %% 7 + 2, 1:1000 %% 5, 1:1000)
+stopifnot(identical(selectr::css_to_xpath(uniq), selectrs::css_to_xpath(uniq)))
+print(bench::mark(
+    selectr  = selectr::css_to_xpath(uniq),
+    selectrs = selectrs::css_to_xpath(uniq),
     min_iterations = 20, check = TRUE))
 
 # html translator
