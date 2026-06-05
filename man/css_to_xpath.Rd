@@ -23,10 +23,6 @@ This function maps a CSS selector to its XPath equivalent, which can then
 be used to query XML documents. Selectors using constructs selectrs does
 not support raise an error naming the construct.
 }
-\details{
-Argument validation and recycling happen in R; the translation itself is
-one vectorized call into the Rust core.
-}
 \examples{
 css_to_xpath("#testid > .testclass")
 }
