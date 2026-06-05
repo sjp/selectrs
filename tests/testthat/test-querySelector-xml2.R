@@ -173,3 +173,38 @@ test_that(":scope queries are anchored at the queried node", {
     expect_equal(ids(querySelectorAll(doc, ":scope > section")),
                  c("s1", "s2"))
 })
+
+test_that(":required/:optional match per the HTML semantics", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+    # Ground truth from browser document.querySelectorAll() on the same
+    # markup: required/optional only apply to select, textarea, and the
+    # input types that support the required attribute.
+    doc <- read_xml(paste0(
+        '<form>',
+        '<input id="text-req" required="required"/>',
+        '<input id="text-opt"/>',
+        '<input id="check-req" type="checkbox" required="required"/>',
+        '<input id="hidden-req" type="hidden" required="required"/>',
+        '<input id="hidden-opt" type="hidden"/>',
+        '<input id="range-req" type="range" required="required"/>',
+        '<input id="submit-req" type="submit" required="required"/>',
+        '<select id="select-req" required="required"/>',
+        '<select id="select-opt"/>',
+        '<textarea id="textarea-req" required="required"/>',
+        '<button id="button"/>',
+        '<option id="option"/>',
+        '</form>'
+    ))
+    ids <- function(css) {
+        xml_attr(querySelectorAll(doc, css, translator = "html"), "id")
+    }
+
+    expect_equal(ids(":required"),
+                 c("text-req", "check-req", "select-req", "textarea-req"))
+    expect_equal(ids(":optional"),
+                 c("text-opt", "select-opt"))
+    expect_equal(ids("input:optional"), "text-opt")
+    # The generic translator treats both as unmatchable runtime state.
+    expect_equal(length(querySelectorAll(doc, ":required")), 0L)
+})

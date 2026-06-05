@@ -204,6 +204,8 @@ test_that("translation of pseudo-classes to XPath works", {
     expect_equal(xpath('a:enabled'), "a[0]")
     expect_equal(xpath('a:disabled'), "a[0]")
     expect_equal(xpath('a:checked'), "a[0]")
+    expect_equal(xpath('a:required'), "a[0]")
+    expect_equal(xpath('a:optional'), "a[0]")
 })
 
 test_that(":has() generates correct XPath", {
@@ -451,7 +453,8 @@ test_that("unsupported constructs error informatively", {
     # validity and state could be at least partially translated some day,
     # and erroring keeps typos loud).
     expect_error(xpath('e:valid'))
-    expect_error(xpath('e:required'))
+    expect_error(xpath('e:read-only'))
+    expect_error(xpath('e:placeholder-shown'))
     # :scope is supported in the leftmost compound only, and never inside
     # functional pseudo-class arguments.
     expect_error(xpath('a :scope'))

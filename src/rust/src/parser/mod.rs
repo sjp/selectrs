@@ -54,8 +54,8 @@ pub enum LangArg {
 /// (the user-action, link, and target families) parse and never match.
 /// Names that are unknown, or whose semantics a static translation could
 /// at least partially answer but selectrs has not implemented (e.g. the
-/// form pseudo-classes `:required` or `:read-only`), error instead, so
-/// typos and genuinely missing features stay loud.
+/// form pseudo-classes `:read-only` or `:placeholder-shown`), error
+/// instead, so typos and genuinely missing features stay loud.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PseudoClass {
     AnyLink,
@@ -72,6 +72,8 @@ pub enum PseudoClass {
     Enabled,
     Disabled,
     Checked,
+    Required,
+    Optional,
     Lang(Vec<LangArg>),
     Dir(String),
 }
@@ -93,6 +95,8 @@ impl PseudoClass {
             PseudoClass::Enabled => "enabled",
             PseudoClass::Disabled => "disabled",
             PseudoClass::Checked => "checked",
+            PseudoClass::Required => "required",
+            PseudoClass::Optional => "optional",
             PseudoClass::Lang(_) => "lang",
             PseudoClass::Dir(_) => "dir",
         }
@@ -219,6 +223,8 @@ impl<'i> selectors::parser::Parser<'i> for SelectrsParser {
             "enabled" => PseudoClass::Enabled,
             "disabled" => PseudoClass::Disabled,
             "checked" => PseudoClass::Checked,
+            "required" => PseudoClass::Required,
+            "optional" => PseudoClass::Optional,
             _ => {
                 return Err(location.new_custom_error(
                     SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name),

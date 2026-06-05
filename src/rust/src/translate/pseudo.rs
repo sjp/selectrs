@@ -16,6 +16,21 @@ use super::{Kind, Translator};
 /// use for one — its `:lang()` goes through XPath's `lang()` function.)
 const LANG_ATTRIBUTE: &str = "lang";
 
+/// The elements the `required` attribute applies to, for `:required` and
+/// `:optional` (HTML spec): `select`, `textarea`, and `input` except the
+/// types on which `required` has no effect — those match neither
+/// pseudo-class, whatever attributes they carry.
+const REQUIRED_APPLIES: &str = "((name(.) = 'input' and not(\
+                                @type = 'hidden' or \
+                                @type = 'range' or \
+                                @type = 'color' or \
+                                @type = 'submit' or \
+                                @type = 'image' or \
+                                @type = 'reset' or \
+                                @type = 'button')) or \
+                                name(.) = 'select' or \
+                                name(.) = 'textarea')";
+
 impl Translator {
     pub(crate) fn apply_pseudo_class(
         &self,
@@ -48,6 +63,12 @@ impl Translator {
                 xpath.add_condition(
                     "@href and (name(.) = 'a' or name(.) = 'link' or name(.) = 'area')",
                 );
+            }
+            (Kind::Html, PseudoClass::Required) => {
+                xpath.add_condition(&format!("@required and {REQUIRED_APPLIES}"));
+            }
+            (Kind::Html, PseudoClass::Optional) => {
+                xpath.add_condition(&format!("not(@required) and {REQUIRED_APPLIES}"));
             }
             (Kind::Html, PseudoClass::Disabled) => {
                 xpath.add_or_condition(

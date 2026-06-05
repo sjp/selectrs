@@ -249,7 +249,8 @@ mod tests {
         // erroring keeps typos loud.
         assert!(t.css_to_xpath("e:valid", "").is_err());
         assert!(t.css_to_xpath("e:user-invalid", "").is_err());
-        assert!(t.css_to_xpath("e:required", "").is_err());
+        assert!(t.css_to_xpath("e:read-only", "").is_err());
+        assert!(t.css_to_xpath("e:placeholder-shown", "").is_err());
         assert!(t.css_to_xpath("e:defined", "").is_err());
         // :scope is supported in the leftmost compound only, and never
         // inside functional pseudo-class arguments (the context node is
@@ -468,6 +469,8 @@ mod tests {
             "enabled",
             "disabled",
             "checked",
+            "required",
+            "optional",
         ] {
             assert_eq!(xpath(&format!("a:{pseudo}")), "a[0]");
         }
@@ -851,6 +854,23 @@ mod tests {
         assert_eq!(
             h("input:checked"),
             "input[(@selected and name(.) = 'option') or (@checked and (name(.) = 'input' or name(.) = 'command')and (@type = 'checkbox' or @type = 'radio'))]"
+        );
+        // :required/:optional test the @required attribute over the
+        // elements it applies to; input types where it has no effect
+        // match neither.
+        assert_eq!(
+            h("input:required"),
+            "input[@required and ((name(.) = 'input' and not(\
+             @type = 'hidden' or @type = 'range' or @type = 'color' or \
+             @type = 'submit' or @type = 'image' or @type = 'reset' or \
+             @type = 'button')) or name(.) = 'select' or name(.) = 'textarea')]"
+        );
+        assert_eq!(
+            h("select:optional"),
+            "select[not(@required) and ((name(.) = 'input' and not(\
+             @type = 'hidden' or @type = 'range' or @type = 'color' or \
+             @type = 'submit' or @type = 'image' or @type = 'reset' or \
+             @type = 'button')) or name(.) = 'select' or name(.) = 'textarea')]"
         );
         // Non-overridden dynamic pseudos still never match.
         assert_eq!(h("a:hover"), "a[0]");
