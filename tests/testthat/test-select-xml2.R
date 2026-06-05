@@ -258,6 +258,28 @@ test_that("explicit no-namespace selectors exclude default-namespace elements", 
     expect_equal(get_ids("|é:only-of-type"), "plain")
 })
 
+test_that("'*|e' supports the of-type pseudo-classes", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+
+    doc <- read_xml(paste0(
+        '<r xmlns:s="http://example.com/ns">',
+        '<e id="plain"/>',
+        '<s:e id="prefixed"/>',
+        '<e id="plain2"/>',
+        '</r>'
+    ))
+    get_ids <- function(css) xml_attr(querySelectorAll(doc, css), "id")
+
+    expect_equal(get_ids("*|e"), c("plain", "prefixed", "plain2"))
+    # the sibling counts compare local names only, so the prefixed
+    # sibling is counted alongside the plain ones
+    expect_equal(get_ids("*|e:first-of-type"), "plain")
+    expect_equal(get_ids("*|e:last-of-type"), "plain2")
+    expect_equal(get_ids("*|e:nth-of-type(2)"), "prefixed")
+    expect_equal(get_ids("*|e:only-of-type"), character(0))
+})
+
 test_that("prefixed names in pseudo-class arguments resolve by namespace URI", {
     skip_if_not_installed("xml2")
     library(xml2)

@@ -188,12 +188,15 @@ impl Translator {
             NsConstraint::Any if name != "*" => {
                 // '*|e': 'e' in any namespace, including none. An unprefixed
                 // XPath name test only matches the null namespace, so test
-                // against local-name() instead.
+                // against local-name() instead. The of-type nodetest counts
+                // by local name too, an approximation: siblings sharing the
+                // name across namespaces are distinct types per the spec,
+                // but XPath 1.0 cannot compare a sibling's namespace
+                // against the matched element's.
+                let cond = format!("local-name() = {}", xpath_expr::xpath_literal(&name));
                 let mut xpath = XPathExpr::new("*");
-                xpath.add_condition(&format!(
-                    "local-name() = {}",
-                    xpath_expr::xpath_literal(&name)
-                ));
+                xpath.name_test = Some(format!("*[{cond}]"));
+                xpath.add_condition(&cond);
                 return xpath;
             }
             NsConstraint::ExplicitNone if name == "*" || !safe => {

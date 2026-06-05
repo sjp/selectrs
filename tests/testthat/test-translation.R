@@ -149,6 +149,13 @@ test_that("translation of pseudo-classes to XPath works", {
                  "*[name() = 'é' and count(preceding-sibling::*[name() = 'é']) = 1]")
     expect_equal(xpath('é:only-of-type'),
                  "*[name() = 'é' and count(preceding-sibling::*[name() = 'é']) = 0 and count(following-sibling::*[name() = 'é']) = 0]")
+    # '*|e' supports the of-type pseudos via local-name()
+    expect_equal(xpath('*|e:first-of-type'),
+                 "*[local-name() = 'e' and count(preceding-sibling::*[local-name() = 'e']) = 0]")
+    expect_equal(xpath('*|e:nth-of-type(2)'),
+                 "*[local-name() = 'e' and count(preceding-sibling::*[local-name() = 'e']) = 1]")
+    expect_equal(xpath('*|e:only-of-type'),
+                 "*[local-name() = 'e' and count(preceding-sibling::*[local-name() = 'e']) = 0 and count(following-sibling::*[local-name() = 'e']) = 0]")
     # '|é' pins the null namespace, and the sibling counts must keep that
     # pin: a same-named sibling in a default namespace is a different type
     expect_equal(xpath('|é:first-of-type'),
