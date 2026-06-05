@@ -83,6 +83,14 @@ test_that("namespace handling works correctly", {
     expect_error(formatNS(tmp), "The namespace object is missing some or all names.*")
     expect_error(formatNS(list(a = 1, b = 2)), "The values in the namespace object.*")
 
+    # list elements must each be a single string: a longer (or empty)
+    # element would misalign every subsequent prefix after unlist()
+    expect_error(formatNS(list(a = c("u1", "u2"), b = "u3")),
+                 "Each element in the namespace object must be a single character string.")
+    expect_error(formatNS(list(a = character(0), b = "u3")),
+                 "Each element in the namespace object must be a single character string.")
+    expect_equal(formatNS(list(a = "u1", b = "u3")), c(a = "u1", b = "u3"))
+
     # formatNSPrefix must return a pipe separated string of namespace prefixes
     expect_equal(formatNSPrefix(c(svg = "svg"), ""), "(//svg:*)/")
     expect_equal(formatNSPrefix(c(svg = "svg"), "asd"), "(//svg:*)/asd")
