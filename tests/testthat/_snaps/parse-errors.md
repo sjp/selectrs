@@ -73,6 +73,14 @@
 ---
 
     Code
+      css_to_xpath("col || td")
+    Condition
+      Error:
+      ! The CSS selector "col || td" uses the `||` column combinator, which selectrs does not support
+
+---
+
+    Code
       css_to_xpath("e:is(> a)")
     Condition
       Error:

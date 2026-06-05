@@ -316,8 +316,54 @@ impl<'i> selectors::parser::Parser<'i> for SelectrsParser {
     }
 }
 
+/// Whether the selector uses the Level 4 column combinator `||` —
+/// outside strings, escapes, and comments, where a doubled pipe can only
+/// be that combinator (a single `|` occurs in namespace prefixes and
+/// `|=`, never doubled). Servo has no column-combinator support and its
+/// parse error misreads the second pipe as namespace syntax
+/// (`ExplicitNamespaceUnexpectedToken`), so the construct is caught
+/// before parsing and named properly. Column selection has no XPath 1.0
+/// translation anyway: column membership depends on `colspan`/`rowspan`
+/// layout arithmetic.
+fn uses_column_combinator(css: &str) -> bool {
+    let bytes = css.as_bytes();
+    let mut i = 0;
+    let mut quote: Option<u8> = None;
+    while i < bytes.len() {
+        let b = bytes[i];
+        match quote {
+            Some(q) => {
+                if b == b'\\' {
+                    i += 1; // skip the escaped character
+                } else if b == q {
+                    quote = None;
+                }
+            }
+            None => match b {
+                b'\\' => i += 1, // skip the escaped character
+                b'"' | b'\'' => quote = Some(b),
+                b'/' if bytes.get(i + 1) == Some(&b'*') => {
+                    // Skip the comment body and its closing "*/".
+                    i += 2;
+                    while i + 1 < bytes.len() && !(bytes[i] == b'*' && bytes[i + 1] == b'/') {
+                        i += 1;
+                    }
+                    i += 1;
+                }
+                b'|' if bytes.get(i + 1) == Some(&b'|') => return true,
+                _ => {}
+            },
+        }
+        i += 1;
+    }
+    false
+}
+
 /// Parse a full selector list (comma-separated groups).
 pub fn parse(css: &str) -> Result<SelectorList<SelectrsImpl>, Error> {
+    if uses_column_combinator(css) {
+        return Err(Error::Unsupported("the `||` column combinator".into()));
+    }
     let mut input = ParserInput::new(css);
     let mut parser = CssParser::new(&mut input);
     SelectorList::parse(&SelectrsParser, &mut parser, ParseRelative::No).map_err(|e| {

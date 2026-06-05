@@ -243,6 +243,18 @@ mod tests {
         // Unknown pseudo-classes error.
         assert!(t.css_to_xpath("e:unknown-pseudo", "").is_err());
         assert!(t.css_to_xpath("e:first-line", "").is_err()); // pseudo-element
+        // The Level 4 column combinator and grid-structural pseudos have
+        // no XPath 1.0 translation: column membership rests on
+        // colspan/rowspan layout arithmetic. `||` is caught before Servo
+        // misparses it as namespace syntax...
+        assert!(t.css_to_xpath("col || td", "").is_err());
+        assert!(t.css_to_xpath("col||td", "").is_err());
+        assert!(t.css_to_xpath("e:nth-col(2)", "").is_err());
+        assert!(t.css_to_xpath("e:nth-last-col(2n)", "").is_err());
+        // ...while pipes in strings, escapes, and comments stay valid.
+        assert!(t.css_to_xpath("[foo=\"a||b\"]", "").is_ok());
+        assert!(t.css_to_xpath("a\\|\\|b", "").is_ok());
+        assert!(t.css_to_xpath("a /* || */ b", "").is_ok());
         // Pseudo-classes outside the never-match policy (see PseudoClass)
         // error rather than silently matching nothing: form validity and
         // state could be at least partially translated some day, and

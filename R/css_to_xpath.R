@@ -12,6 +12,12 @@
 #' else the context node cannot be expressed in XPath 1.0, so an error is
 #' raised.
 #'
+#' The CSS Selectors Level 4 column combinator (`"col || td"`) and the
+#' grid-structural pseudo-classes `:nth-col()` and `:nth-last-col()` are
+#' not supported and raise an error: table column membership depends on
+#' `colspan`/`rowspan` layout arithmetic that an XPath 1.0 expression
+#' cannot perform.
+#'
 #' The of-type pseudo-classes (`:first-of-type`, `:last-of-type`,
 #' `:nth-of-type()`, `:nth-last-of-type()`, and `:only-of-type`) need an
 #' element type in the same compound to count siblings with:

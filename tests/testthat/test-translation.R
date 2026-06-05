@@ -455,6 +455,15 @@ test_that("unsupported constructs error informatively", {
     expect_error(xpath('e:valid'))
     expect_error(xpath('e:read-only'))
     expect_error(xpath('e:placeholder-shown'))
+    # The column combinator and the grid-structural pseudo-classes have
+    # no XPath 1.0 translation (column membership is colspan/rowspan
+    # layout arithmetic); pipes in strings, escapes, and comments are
+    # still fine.
+    expect_error(xpath('col || td'), "column combinator")
+    expect_error(xpath('e:nth-col(2)'))
+    expect_error(xpath('e:nth-last-col(2n)'))
+    expect_equal(xpath('[foo="a||b"]'), "*[@foo = 'a||b']")
+    expect_equal(xpath('a /* || */ b'), "a//b")
     # :scope is supported in the leftmost compound only, and never inside
     # functional pseudo-class arguments.
     expect_error(xpath('a :scope'))
