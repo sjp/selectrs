@@ -1,6 +1,8 @@
 mod parser;
 mod translate;
 
+use std::collections::HashMap;
+
 use savvy::savvy;
 use savvy::{NotAvailableValue, OwnedStringSexp, StringSexp};
 
@@ -51,7 +53,8 @@ fn css_to_xpath_rust(
     if prefixes.iter().any(|p| p.is_na()) {
         return Err(savvy::Error::new("`prefixes` must not contain NA values"));
     }
-    let translators: Vec<Translator> = translators
+    let translator_names: Vec<&str> = translators.iter().collect();
+    let translators: Vec<Translator> = translator_names
         .iter()
         .map(|name| {
             if name.is_na() {
@@ -65,12 +68,23 @@ fn css_to_xpath_rust(
         .collect::<Result<_, _>>()?;
 
     let mut out = OwnedStringSexp::new(n)?;
+    // Duplicated (selector, prefix, translator) triples are translated
+    // once and the result reused.
+    let mut cache: HashMap<(&str, &str, &str), String> = HashMap::new();
     for (i, selector) in selectors.iter().enumerate() {
         if selector.is_na() {
             return Err(savvy::Error::new("`selectors` must not contain NA values"));
         }
+        let key = (selector, prefixes[i], translator_names[i]);
+        if let Some(xpath) = cache.get(&key) {
+            out.set_elt(i, xpath)?;
+            continue;
+        }
         match translators[i].css_to_xpath(selector, prefixes[i]) {
-            Ok(xpath) => out.set_elt(i, &xpath)?,
+            Ok(xpath) => {
+                out.set_elt(i, &xpath)?;
+                cache.insert(key, xpath);
+            }
             Err(e) => return Err(savvy::Error::new(e.into_message(selector))),
         }
     }

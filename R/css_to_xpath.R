@@ -4,9 +4,6 @@
 #' be used to query XML documents. Selectors using constructs selectrs does
 #' not support raise an error naming the construct.
 #'
-#' Argument validation and recycling happen in R; the translation itself is
-#' one vectorized call into the Rust core.
-#'
 #' @param selector A character vector of CSS selectors.
 #' @param prefix A character vector of prefixes to apply to the resulting
 #'   XPath expressions.
