@@ -59,7 +59,13 @@ impl Translator {
                      and (@type = 'checkbox' or @type = 'radio'))",
                 );
             }
-            (Kind::Html, PseudoClass::Link) => {
+            // :any-link is :link ∪ :visited. A static document has no
+            // visited state, so every link counts as unvisited and the
+            // two pseudo-classes coincide — :any-link shares :link's
+            // translation verbatim (keeping `link` in the element set
+            // for consistency, although HTML's :any-link strictly covers
+            // only `a` and `area`).
+            (Kind::Html, PseudoClass::Link) | (Kind::Html, PseudoClass::AnyLink) => {
                 xpath.add_condition(
                     "@href and (name(.) = 'a' or name(.) = 'link' or name(.) = 'area')",
                 );

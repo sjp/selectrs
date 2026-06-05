@@ -390,6 +390,9 @@ test_that("HTML translator overrides dynamic pseudo-classes", {
     h <- function(css) css_to_xpath(css, prefix = "", translator = "html")
     expect_equal(h("a:link"),
                  "a[@href and (name(.) = 'a' or name(.) = 'link' or name(.) = 'area')]")
+    # :any-link is :link plus :visited; with no visited state in a static
+    # document the two coincide, so they share a translation.
+    expect_equal(h("a:any-link"), h("a:link"))
     expect_equal(h("input:checked"),
                  paste0("input[(@selected and name(.) = 'option') or ",
                         "(@checked and (name(.) = 'input' or name(.) = 'command')",
@@ -397,7 +400,6 @@ test_that("HTML translator overrides dynamic pseudo-classes", {
     # Non-overridden dynamic pseudos still never match.
     expect_equal(h("a:hover"), "a[0]")
     expect_equal(h("a:visited"), "a[0]")
-    expect_equal(h("a:any-link"), "a[0]")
     # The xhtml translator shares the HTML overrides without lowercasing.
     expect_equal(css_to_xpath("A:link", "", "xhtml"),
                  "A[@href and (name(.) = 'a' or name(.) = 'link' or name(.) = 'area')]")

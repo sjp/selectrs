@@ -863,6 +863,10 @@ mod tests {
             h("a:link"),
             "a[@href and (name(.) = 'a' or name(.) = 'link' or name(.) = 'area')]"
         );
+        // :any-link is :link plus :visited; with no visited state in a
+        // static document the two coincide, so they share a translation.
+        assert_eq!(h("a:any-link"), h("a:link"));
+        assert_eq!(h("a:ANY-link"), h("a:link"));
         assert_eq!(
             h("input:checked"),
             "input[(@selected and name(.) = 'option') or (@checked and (name(.) = 'input' or name(.) = 'command')and (@type = 'checkbox' or @type = 'radio'))]"
