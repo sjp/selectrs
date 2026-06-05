@@ -193,15 +193,9 @@ mod tests {
     fn case_sensitivity_flags() {
         const LOWER_FOO: &str = "translate(@foo, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', \
                                  'abcdefghijklmnopqrstuvwxyz')";
-        assert_eq!(
-            xpath("e[foo=\"Bar\" i]"),
-            format!("e[{LOWER_FOO} = 'bar']")
-        );
+        assert_eq!(xpath("e[foo=\"Bar\" i]"), format!("e[{LOWER_FOO} = 'bar']"));
         // Flag idents are themselves case-insensitive.
-        assert_eq!(
-            xpath("e[foo=\"Bar\" I]"),
-            format!("e[{LOWER_FOO} = 'bar']")
-        );
+        assert_eq!(xpath("e[foo=\"Bar\" I]"), format!("e[{LOWER_FOO} = 'bar']"));
         assert_eq!(
             xpath("e[foo^=\"Bar\" i]"),
             format!("e[{LOWER_FOO} and starts-with({LOWER_FOO}, 'bar')]")
@@ -341,14 +335,8 @@ mod tests {
         );
         // Servo collapses :first-child & co. into nth data; the general
         // an+b form covers them (see translate::nth).
-        assert_eq!(
-            xpath("e:first-child"),
-            "e[count(preceding-sibling::*) = 0]"
-        );
-        assert_eq!(
-            xpath("e:last-child"),
-            "e[count(following-sibling::*) = 0]"
-        );
+        assert_eq!(xpath("e:first-child"), "e[count(preceding-sibling::*) = 0]");
+        assert_eq!(xpath("e:last-child"), "e[count(following-sibling::*) = 0]");
         assert_eq!(
             xpath("e:first-of-type"),
             "e[count(preceding-sibling::e) = 0]"
@@ -468,10 +456,7 @@ mod tests {
         );
         assert_eq!(xpath("e:nOT(*)"), "e[0]");
         assert_eq!(xpath("e:not(a)"), "e[not(name() = 'a')]");
-        assert_eq!(
-            xpath("e:not(a, b)"),
-            "e[not(name() = 'a' or name() = 'b')]"
-        );
+        assert_eq!(xpath("e:not(a, b)"), "e[not(name() = 'a' or name() = 'b')]");
         // A universal argument makes :not() unmatchable...
         assert_eq!(xpath("div:not(a, *)"), "div[0]");
         // :where() / :is() OR their arguments together into one condition
@@ -517,10 +502,7 @@ mod tests {
         assert_eq!(xpath("div:has(*)"), "div[.//*]");
         // Leading combinators in :has() (selectors-4 relative selectors).
         assert_eq!(xpath("e:has(> img)"), "e[child::*[name() = 'img']]");
-        assert_eq!(
-            xpath("e:has(~ p)"),
-            "e[following-sibling::*[name() = 'p']]"
-        );
+        assert_eq!(xpath("e:has(~ p)"), "e[following-sibling::*[name() = 'p']]");
         assert_eq!(
             xpath("e:has(+ p)"),
             "e[following-sibling::*[1][name() = 'p']]"
