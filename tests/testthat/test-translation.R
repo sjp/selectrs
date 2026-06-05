@@ -138,9 +138,9 @@ test_that("translation of pseudo-classes to XPath works", {
     expect_equal(xpath('e:last-of-type'),
                  "e[(count(following-sibling::e) = 0)]")
     expect_equal(xpath('e:only-child'),
-                 "e[(count(parent::*/child::*) = 1)]")
+                 "e[(count(preceding-sibling::*) = 0 and count(following-sibling::*) = 0)]")
     expect_equal(xpath('e:only-of-type'),
-                 "e[(count(parent::*/child::e) = 1)]")
+                 "e[(count(preceding-sibling::e) = 0 and count(following-sibling::e) = 0)]")
     # element names needing quoting fold into a name() condition; the
     # of-type pseudos count same-type siblings through the same test
     expect_equal(xpath('é:first-of-type'),
@@ -148,7 +148,7 @@ test_that("translation of pseudo-classes to XPath works", {
     expect_equal(xpath('é:nth-of-type(2)'),
                  "*[(name() = 'é') and (count(preceding-sibling::*[name() = 'é']) = 1)]")
     expect_equal(xpath('é:only-of-type'),
-                 "*[(name() = 'é') and (count(parent::*/child::*[name() = 'é']) = 1)]")
+                 "*[(name() = 'é') and (count(preceding-sibling::*[name() = 'é']) = 0 and count(following-sibling::*[name() = 'é']) = 0)]")
     expect_equal(xpath('e:empty'),
                  "e[(not(*) and not(string-length()))]")
     expect_equal(xpath('e:EmPTY'),

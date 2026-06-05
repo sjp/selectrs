@@ -28,9 +28,14 @@ impl Translator {
         let a = data.an_plus_b.0;
         let b = data.an_plus_b.1;
         match data.ty {
-            // :only-child
+            // :only-child — sibling counts rather than
+            // count(parent::*/child::*) = 1, so the root element (whose
+            // parent is the document node, not an element) matches, the
+            // same way the equivalent :first-child:last-child does.
             NthType::OnlyChild => {
-                xpath.add_condition("count(parent::*/child::*) = 1");
+                xpath.add_condition(
+                    "count(preceding-sibling::*) = 0 and count(following-sibling::*) = 0",
+                );
                 Ok(())
             }
             // :only-of-type
@@ -38,7 +43,10 @@ impl Translator {
                 let nodetest = xpath.same_type_nodetest().ok_or_else(|| {
                     Error::Unsupported("`:only-of-type` on the universal selector `*`".into())
                 })?;
-                xpath.add_condition(&format!("count(parent::*/child::{nodetest}) = 1"));
+                xpath.add_condition(&format!(
+                    "count(preceding-sibling::{nodetest}) = 0 \
+                     and count(following-sibling::{nodetest}) = 0"
+                ));
                 Ok(())
             }
             // :first-child / :last-child / :nth-child() / :nth-last-child()
