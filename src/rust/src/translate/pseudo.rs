@@ -52,7 +52,7 @@ impl Translator {
             (Kind::Html, PseudoClass::Disabled) => {
                 xpath.add_condition(
                     "( @disabled and ( \
-                     (name(.) = 'input' and @type != 'hidden') or \
+                     (name(.) = 'input' and not(@type = 'hidden')) or \
                      name(.) = 'button' or \
                      name(.) = 'select' or \
                      name(.) = 'textarea' or \
@@ -61,7 +61,7 @@ impl Translator {
                      name(.) = 'optgroup' or \
                      name(.) = 'option' \
                      ) ) or ( ( \
-                     (name(.) = 'input' and @type != 'hidden') or \
+                     (name(.) = 'input' and not(@type = 'hidden')) or \
                      name(.) = 'button' or \
                      name(.) = 'select' or \
                      name(.) = 'textarea' \
@@ -77,7 +77,7 @@ impl Translator {
                      ((name(.) = 'command' or name(.) = 'fieldset' or name(.) = 'optgroup') \
                      and not(@disabled)) \
                      or \
-                     (((name(.) = 'input' and @type != 'hidden') \
+                     (((name(.) = 'input' and not(@type = 'hidden')) \
                      or name(.) = 'button' \
                      or name(.) = 'select' \
                      or name(.) = 'textarea' \
