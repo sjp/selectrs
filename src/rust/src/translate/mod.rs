@@ -324,18 +324,12 @@ impl Translator {
                         let element = std::mem::replace(&mut sub.element, "*".to_owned());
                         sub.add_condition(&format!("self::{element}"));
                     }
-                    let mut rel_test = format!("{axis}{}", sub.element);
                     if matches!(combinator, Some(Combinator::NextSibling)) {
                         // Only the immediately following sibling: constrain
                         // position before applying the match conditions.
-                        rel_test.push_str("[1]");
+                        sub.add_predicate("1");
                     }
-                    if !sub.condition.is_empty() {
-                        rel_test.push('[');
-                        rel_test.push_str(&sub.condition);
-                        rel_test.push(']');
-                    }
-                    conditions.push(rel_test);
+                    conditions.push(format!("{axis}{}", sub.str()));
                 }
                 if !conditions.is_empty() {
                     xpath.add_condition(&conditions.join(" | "));
@@ -454,17 +448,12 @@ impl Translator {
             Combinator::LaterSibling => left.join("/following-sibling::", right),
             Combinator::NextSibling => {
                 left.join("/following-sibling::", right);
-                let target_element = left.element.clone();
-                let existing_condition = left.condition.clone();
-                left.add_name_test();
-                left.condition = if existing_condition.is_empty() {
-                    // No existing conditions, just position and element test
-                    format!("1][self::{target_element}")
-                } else {
-                    // Has existing conditions from right selector (e.g.,
-                    // attributes). Result: *[1][self::element][existing]
-                    format!("1][self::{target_element}][{existing_condition}")
-                };
+                // The node test moves into a self:: predicate so the [1]
+                // position test counts every sibling, not only same-name
+                // ones: *[1][self::element][existing conditions].
+                let target_element = std::mem::replace(&mut left.element, "*".to_owned());
+                left.add_predicate("1");
+                left.add_predicate(&format!("self::{target_element}"));
             }
             // PseudoElement / SlotAssignment / Part combinators can never be
             // produced: the corresponding parser hooks are disabled.

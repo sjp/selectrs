@@ -41,7 +41,8 @@ pub fn xpath_literal(literal: &str) -> String {
     }
 }
 
-/// A partially built XPath expression: path, element, and condition.
+/// A partially built XPath expression: path, element, predicates, and
+/// condition.
 ///
 /// `condition` is stored *with* its wrapping parentheses (see
 /// `add_condition`).
@@ -50,6 +51,11 @@ pub struct XPathExpr {
     pub path: String,
     pub element: String,
     pub condition: String,
+    /// Standalone predicates rendered each in its own bracket pair before
+    /// the combined condition: `element[p1][p2][condition]`. Used where
+    /// brackets must stay separate — e.g. the `+` combinator's `[1]`
+    /// position test, which has to apply before any further filtering.
+    predicates: Vec<String>,
     /// The element name `add_name_test` folded into a `name() = ...`
     /// condition, kept so the of-type pseudo-classes can still count
     /// same-type siblings.
@@ -62,18 +68,28 @@ impl XPathExpr {
             path: String::new(),
             element: element.to_owned(),
             condition: String::new(),
+            predicates: Vec::new(),
             folded_name: None,
         }
     }
 
     pub fn str(&self) -> String {
         let mut p = format!("{}{}", self.path, self.element);
+        for predicate in &self.predicates {
+            p.push('[');
+            p.push_str(predicate);
+            p.push(']');
+        }
         if !self.condition.is_empty() {
             p.push('[');
             p.push_str(&self.condition);
             p.push(']');
         }
         p
+    }
+
+    pub fn add_predicate(&mut self, predicate: &str) {
+        self.predicates.push(predicate.to_owned());
     }
 
     pub fn add_condition(&mut self, condition: &str) {
@@ -119,6 +135,7 @@ impl XPathExpr {
         self.path = p;
         self.element = other.element.clone();
         self.condition = other.condition.clone();
+        self.predicates = other.predicates.clone();
         self.folded_name = other.folded_name.clone();
     }
 }
@@ -152,5 +169,23 @@ mod tests {
         assert_eq!(xp.str(), "e[(@foo = 'bar')]");
         xp.add_condition("@baz");
         assert_eq!(xp.str(), "e[(@foo = 'bar') and (@baz)]");
+    }
+
+    #[test]
+    fn predicates_render_separately_before_condition() {
+        let mut xp = XPathExpr::new("*");
+        xp.add_predicate("1");
+        xp.add_predicate("self::f");
+        assert_eq!(xp.str(), "*[1][self::f]");
+        xp.add_condition("@bar");
+        assert_eq!(xp.str(), "*[1][self::f][(@bar)]");
+
+        // join bakes the left side's predicates into the path and takes
+        // over the right side's.
+        let other = XPathExpr::new("g");
+        xp.join("/following-sibling::", &other);
+        assert_eq!(xp.str(), "*[1][self::f][(@bar)]/following-sibling::g");
+        xp.add_predicate("1");
+        assert_eq!(xp.str(), "*[1][self::f][(@bar)]/following-sibling::g[1]");
     }
 }
