@@ -205,6 +205,14 @@ impl Translator {
                 let mut xpath = XPathExpr::new(&name);
                 xpath.add_name_test();
                 xpath.add_condition("namespace-uri() = ''");
+                if name != "*" {
+                    // The of-type nodetest must carry the namespace pin
+                    // set by the condition above
+                    xpath.name_test = Some(format!(
+                        "*[name() = {} and namespace-uri() = '']",
+                        xpath_expr::xpath_literal(&name)
+                    ));
+                }
                 return xpath;
             }
             NsConstraint::Prefix(prefix) => {

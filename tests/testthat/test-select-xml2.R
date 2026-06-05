@@ -229,6 +229,33 @@ test_that("explicit no-namespace selectors exclude default-namespace elements", 
     expect_equal(get_ids("é"), c("plain", "defaulted"))
     # '|é' restricts the same test to the null namespace
     expect_equal(get_ids("|é"), "plain")
+
+    # of-type sibling counts must keep the namespace restriction: a
+    # same-named *sibling* in a default namespace is a different type
+    doc <- read_xml(paste0(
+        '<r>',
+        '<é xmlns="http://example.com/ns" id="defaulted"/>',
+        '<é id="first"/>',
+        '<é id="last"/>',
+        '<é xmlns="http://example.com/ns" id="defaulted2"/>',
+        '</r>'
+    ))
+    get_ids <- function(css) xml_attr(querySelectorAll(doc, css), "id")
+
+    expect_equal(get_ids("|é:first-of-type"), "first")
+    expect_equal(get_ids("|é:last-of-type"), "last")
+    expect_equal(get_ids("|é:nth-of-type(2)"), "last")
+
+    # the only null-namespace é, despite the defaulted sibling
+    doc <- read_xml(paste0(
+        '<r>',
+        '<é xmlns="http://example.com/ns" id="defaulted"/>',
+        '<é id="plain"/>',
+        '</r>'
+    ))
+    get_ids <- function(css) xml_attr(querySelectorAll(doc, css), "id")
+
+    expect_equal(get_ids("|é:only-of-type"), "plain")
 })
 
 test_that("prefixed names in pseudo-class arguments resolve by namespace URI", {

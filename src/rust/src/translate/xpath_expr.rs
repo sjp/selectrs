@@ -78,10 +78,12 @@ pub struct XPathExpr {
     /// brackets must stay separate — e.g. the `+` combinator's `[1]`
     /// position test, which has to apply before any further filtering.
     predicates: Vec<String>,
-    /// The element name `add_name_test` folded into a `name() = ...`
-    /// condition, kept so the of-type pseudo-classes can still count
-    /// same-type siblings.
-    folded_name: Option<String>,
+    /// When an element name cannot be used as an XPath name test (and so
+    /// `element` has been folded into a condition on `*`), an equivalent
+    /// node test for that name; `None` otherwise. Lets the of-type
+    /// pseudo-classes distinguish such elements from the universal
+    /// selector and count their siblings correctly.
+    pub name_test: Option<String>,
 }
 
 impl XPathExpr {
@@ -91,7 +93,7 @@ impl XPathExpr {
             element: element.to_owned(),
             conditions: Vec::new(),
             predicates: Vec::new(),
-            folded_name: None,
+            name_test: None,
         }
     }
 
@@ -169,8 +171,9 @@ impl XPathExpr {
             return;
         }
         let cond = format!("name() = {}", xpath_literal(&self.element));
+        self.name_test = Some(format!("*[{cond}]"));
         self.add_condition(&cond);
-        self.folded_name = Some(std::mem::replace(&mut self.element, "*".to_owned()));
+        self.element = "*".to_owned();
     }
 
     /// The node test selecting siblings of the same type, for the of-type
@@ -179,9 +182,7 @@ impl XPathExpr {
         if self.element != "*" {
             Some(self.element.clone())
         } else {
-            self.folded_name
-                .as_ref()
-                .map(|name| format!("*[name() = {}]", xpath_literal(name)))
+            self.name_test.clone()
         }
     }
 
@@ -196,7 +197,7 @@ impl XPathExpr {
         self.element = other.element.clone();
         self.conditions = other.conditions.clone();
         self.predicates = other.predicates.clone();
-        self.folded_name = other.folded_name.clone();
+        self.name_test = other.name_test.clone();
     }
 }
 
