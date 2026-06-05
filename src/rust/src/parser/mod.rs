@@ -48,6 +48,14 @@ pub enum LangArg {
 /// `:enabled`, `:disabled`, and `:lang()`. Any other pseudo name is
 /// rejected at parse time (tree-structural pseudos are parsed natively by
 /// Servo and never reach this type).
+///
+/// Policy for what belongs here versus erroring: pseudo-classes whose
+/// semantics rest on user or runtime state a static document cannot have
+/// (the user-action, link, and target families) parse and never match.
+/// Names that are unknown, or whose semantics a static translation could
+/// at least partially answer but selectrs has not implemented (e.g. the
+/// form pseudo-classes `:required` or `:read-only`), error instead, so
+/// typos and genuinely missing features stay loud.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PseudoClass {
     AnyLink,
@@ -56,6 +64,8 @@ pub enum PseudoClass {
     Hover,
     Active,
     Focus,
+    FocusWithin,
+    FocusVisible,
     Target,
     TargetWithin,
     LocalLink,
@@ -75,6 +85,8 @@ impl PseudoClass {
             PseudoClass::Hover => "hover",
             PseudoClass::Active => "active",
             PseudoClass::Focus => "focus",
+            PseudoClass::FocusWithin => "focus-within",
+            PseudoClass::FocusVisible => "focus-visible",
             PseudoClass::Target => "target",
             PseudoClass::TargetWithin => "target-within",
             PseudoClass::LocalLink => "local-link",
@@ -125,7 +137,11 @@ impl NonTSPseudoClass for PseudoClass {
     fn is_user_action_state(&self) -> bool {
         matches!(
             self,
-            PseudoClass::Active | PseudoClass::Hover | PseudoClass::Focus
+            PseudoClass::Active
+                | PseudoClass::Hover
+                | PseudoClass::Focus
+                | PseudoClass::FocusWithin
+                | PseudoClass::FocusVisible
         )
     }
 }
@@ -182,7 +198,7 @@ impl<'i> selectors::parser::Parser<'i> for SelectrsParser {
 
     /// The supported non-tree-structural pseudo-classes: the "never
     /// matches" set plus the HTML-translator overrides. Anything else
-    /// errors.
+    /// errors (see the policy note on `PseudoClass`).
     fn parse_non_ts_pseudo_class(
         &self,
         location: SourceLocation,
@@ -195,6 +211,8 @@ impl<'i> selectors::parser::Parser<'i> for SelectrsParser {
             "hover" => PseudoClass::Hover,
             "active" => PseudoClass::Active,
             "focus" => PseudoClass::Focus,
+            "focus-within" => PseudoClass::FocusWithin,
+            "focus-visible" => PseudoClass::FocusVisible,
             "target" => PseudoClass::Target,
             "target-within" => PseudoClass::TargetWithin,
             "local-link" => PseudoClass::LocalLink,

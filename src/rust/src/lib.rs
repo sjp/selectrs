@@ -243,6 +243,14 @@ mod tests {
         // Unknown pseudo-classes error.
         assert!(t.css_to_xpath("e:unknown-pseudo", "").is_err());
         assert!(t.css_to_xpath("e:first-line", "").is_err()); // pseudo-element
+        // Pseudo-classes outside the never-match policy (see PseudoClass)
+        // error rather than silently matching nothing: form validity and
+        // state could be at least partially translated some day, and
+        // erroring keeps typos loud.
+        assert!(t.css_to_xpath("e:valid", "").is_err());
+        assert!(t.css_to_xpath("e:user-invalid", "").is_err());
+        assert!(t.css_to_xpath("e:required", "").is_err());
+        assert!(t.css_to_xpath("e:defined", "").is_err());
         // :scope is supported in the leftmost compound only, and never
         // inside functional pseudo-class arguments (the context node is
         // unreachable from an XPath 1.0 predicate).
@@ -452,6 +460,8 @@ mod tests {
             "hover",
             "active",
             "focus",
+            "focus-within",
+            "focus-visible",
             "target",
             "target-within",
             "local-link",
@@ -845,6 +855,8 @@ mod tests {
         // Non-overridden dynamic pseudos still never match.
         assert_eq!(h("a:hover"), "a[0]");
         assert_eq!(h("a:visited"), "a[0]");
+        assert_eq!(h("a:focus-within"), "a[0]");
+        assert_eq!(h("a:focus-visible"), "a[0]");
     }
 
     #[test]

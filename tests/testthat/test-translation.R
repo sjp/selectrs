@@ -196,6 +196,8 @@ test_that("translation of pseudo-classes to XPath works", {
     expect_equal(xpath('a:hover'), "a[0]")
     expect_equal(xpath('a:active'), "a[0]")
     expect_equal(xpath('a:focus'), "a[0]")
+    expect_equal(xpath('a:focus-within'), "a[0]")
+    expect_equal(xpath('a:focus-visible'), "a[0]")
     expect_equal(xpath('a:target'), "a[0]")
     expect_equal(xpath('a:target-within'), "a[0]")
     expect_equal(xpath('a:local-link'), "a[0]")
@@ -445,6 +447,11 @@ test_that("unsupported constructs error informatively", {
     expect_error(xpath('e:first-line'))
     # Unknown pseudo-classes error.
     expect_error(xpath('e:unknown-pseudo'))
+    # So do known pseudo-classes outside the never-match policy (form
+    # validity and state could be at least partially translated some day,
+    # and erroring keeps typos loud).
+    expect_error(xpath('e:valid'))
+    expect_error(xpath('e:required'))
     # :scope is supported in the leftmost compound only, and never inside
     # functional pseudo-class arguments.
     expect_error(xpath('a :scope'))
