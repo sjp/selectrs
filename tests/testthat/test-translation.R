@@ -321,6 +321,23 @@ test_that("complex selectors work inside functional pseudo-classes", {
                  "e[(count(preceding-sibling::*[name() = 'b' and ancestor::*[name() = 'a']]) +1) mod 2 = 0 and name() = 'b' and ancestor::*[name() = 'a']]")
 })
 
+test_that(":scope anchors the expression at the context node", {
+    # A leading :scope compound moves onto the self:: axis and replaces
+    # the prefix: the scope is the node the XPath is evaluated from.
+    expect_equal(css_to_xpath(":scope"), "self::*")
+    expect_equal(css_to_xpath(":scope > a"), "self::*/a")
+    expect_equal(css_to_xpath(":scope a"), "self::*//a")
+    expect_equal(css_to_xpath(":scope + a"),
+                 "self::*/following-sibling::*[1][self::a]")
+    # Other simple selectors in the compound constrain the context node.
+    expect_equal(css_to_xpath("div:scope"), "self::div")
+    expect_equal(css_to_xpath(":scope.foo > a"),
+                 "self::*[@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')]/a")
+    # Per selector group: other groups keep the prefix.
+    expect_equal(css_to_xpath("a, :scope > b"),
+                 "descendant-or-self::a | self::*/b")
+})
+
 test_that(":nth-child(an+b of S) generates correct XPath", {
     expect_equal(xpath("div:nth-child(2 of .foo)"),
                  paste0("div[count(preceding-sibling::*[@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')]) = 1",
@@ -428,7 +445,12 @@ test_that("unsupported constructs error informatively", {
     expect_error(xpath('e:first-line'))
     # Unknown pseudo-classes error.
     expect_error(xpath('e:unknown-pseudo'))
-    expect_error(xpath('e:scope'))
+    # :scope is supported in the leftmost compound only, and never inside
+    # functional pseudo-class arguments.
+    expect_error(xpath('a :scope'))
+    expect_error(xpath('a > :scope'))
+    expect_error(xpath('e:is(:scope)'))
+    expect_error(xpath('e:has(:scope)'))
     # Leading combinators are :has()-only; dangling and doubled
     # combinators are parse errors everywhere.
     expect_error(xpath('e:is(> a)'))

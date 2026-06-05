@@ -89,9 +89,38 @@ impl Translator {
     ) -> Result<String, Error> {
         let seqs = collect_seqs(selector);
 
-        // Leftmost compound first, then fold rightwards.
+        // :scope is the node the XPath is evaluated from. In the leftmost
+        // compound it anchors the expression on the self:: axis, which
+        // replaces the prefix (`:scope > a` is `self::*/a`, the context
+        // node's `a` children). Anywhere else the context node would have
+        // to be named from inside a predicate, which XPath 1.0 cannot do.
         let leftmost = seqs.len() - 1;
-        let mut xpath = self.compound_to_xpath(&seqs[leftmost].0)?;
+        for (compound, _) in &seqs[..leftmost] {
+            if compound.iter().any(|c| matches!(c, Component::Scope)) {
+                return Err(Error::Unsupported(
+                    "the `:scope` pseudo-class outside the leftmost compound".into(),
+                ));
+            }
+        }
+        let scope_anchored = seqs[leftmost]
+            .0
+            .iter()
+            .any(|c| matches!(c, Component::Scope));
+
+        // Leftmost compound first, then fold rightwards.
+        let mut xpath = if scope_anchored {
+            let compound: Vec<&Component<SelectrsImpl>> = seqs[leftmost]
+                .0
+                .iter()
+                .filter(|c| !matches!(c, Component::Scope))
+                .copied()
+                .collect();
+            let mut xp = self.compound_to_xpath(&compound)?;
+            xp.path = "self::".to_owned();
+            xp
+        } else {
+            self.compound_to_xpath(&seqs[leftmost].0)?
+        };
         for i in (0..leftmost).rev() {
             let combinator = seqs[i]
                 .1
@@ -100,6 +129,7 @@ impl Translator {
             xpath = self.apply_combinator(combinator, xpath, &right)?;
         }
 
+        let prefix = if scope_anchored { "" } else { prefix };
         Ok(format!("{prefix}{}", xpath.str()))
     }
 
@@ -605,7 +635,12 @@ fn apply_case_flag(
 /// Human-readable construct names for unsupported-error messages.
 fn describe_component(component: &Component<SelectrsImpl>) -> String {
     match component {
-        Component::Scope | Component::ImplicitScope => "the `:scope` pseudo-class".into(),
+        // Top-level :scope is handled (or rejected) in selector_to_xpath,
+        // so reaching this arm means :scope sits inside a functional
+        // pseudo-class argument, where the context node is unreachable.
+        Component::Scope | Component::ImplicitScope => {
+            "the `:scope` pseudo-class inside a functional pseudo-class".into()
+        }
         Component::Slotted(..) => "the `::slotted()` pseudo-element".into(),
         Component::Part(..) => "the `::part()` pseudo-element".into(),
         Component::Host(..) => "the `:host` pseudo-class".into(),

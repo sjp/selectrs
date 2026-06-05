@@ -26,6 +26,15 @@
 #' [xml2::xml_find_all()] if it is necessary to use a namespace present
 #' within the document. It can be ignored for content lacking a namespace.
 #'
+#' The `:scope` pseudo-class refers to `doc` itself, so a query can be
+#' anchored at the queried node: `querySelectorAll(node, ":scope > a")`
+#' returns `node`'s `a` children. When `doc` is a document rather than a
+#' node, queries are evaluated from its root element, so `:scope` matches
+#' the root element. Because `:scope` anchors the expression at the
+#' queried node, the `prefix` argument (including the namespace filter the
+#' `*NS` variants build into it) does not apply to selectors led by
+#' `:scope`.
+#'
 #' @param doc The XML document or node to be evaluated against.
 #' @param selector A selector used to query `doc`. This must be a single
 #'   character string.

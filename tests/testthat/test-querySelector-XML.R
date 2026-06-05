@@ -112,3 +112,33 @@ test_that("querySelector methods handle invalid arguments", {
     expect_error(querySelectorAllNS(doc, "a", NULL), "A namespace must be provided.", fixed = TRUE)
     expect_error(querySelectorAllNS(doc, "a", character(0)), "A namespace must be provided.", fixed = TRUE)
 })
+
+test_that(":scope queries are anchored at the queried node", {
+    skip_if_not_installed("XML")
+    library(XML)
+    doc <- xmlParse(paste0(
+        '<root>',
+        '<section id="s1"><div id="d1"><div id="d2"/></div></section>',
+        '<section id="s2"><div id="d3"/></section>',
+        '</root>'
+    ))
+    s1 <- querySelector(doc, "#s1")
+
+    ids <- function(x) {
+        if (is.null(x)) character() else
+        if (inherits(x, "XMLInternalNode")) xmlGetAttr(x, "id") else
+        vapply(x, function(n) xmlGetAttr(n, "id"), character(1))
+    }
+
+    # :scope is the queried node itself; combinators search relative to it
+    expect_equal(ids(querySelector(s1, ":scope")), "s1")
+    expect_equal(ids(querySelectorAll(s1, ":scope > div")), "d1")
+    expect_equal(ids(querySelectorAll(s1, ":scope div")), c("d1", "d2"))
+    expect_equal(ids(querySelector(s1, "section:scope")), "s1")
+    expect_equal(length(querySelectorAll(s1, "div:scope")), 0L)
+    expect_equal(ids(querySelectorAll(s1, ":scope + section")), "s2")
+    # XML documents are queried from their root element, so :scope there
+    # is the root element
+    expect_equal(ids(querySelectorAll(doc, ":scope > section")),
+                 c("s1", "s2"))
+})

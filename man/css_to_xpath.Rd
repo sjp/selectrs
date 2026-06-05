@@ -10,7 +10,7 @@ css_to_xpath(selector, prefix = "descendant-or-self::", translator = "generic")
 \item{selector}{A character vector of CSS selectors.}
 
 \item{prefix}{A character vector of prefixes to apply to the resulting
-XPath expressions.}
+XPath expressions. Not applied to selectors anchored by \verb{:scope}.}
 
 \item{translator}{A character vector of translators to use, each one of
 \code{"generic"}, \code{"html"}, or \code{"xhtml"}.}
@@ -22,6 +22,15 @@ A character vector of XPath expressions.
 This function maps a CSS selector to its XPath equivalent, which can then
 be used to query XML documents. Selectors using constructs selectrs does
 not support raise an error naming the construct.
+}
+\details{
+The \verb{:scope} pseudo-class refers to the node the resulting XPath
+expression is evaluated from: a selector starting with \verb{:scope} is
+anchored on the \verb{self::} axis (\code{":scope > a"} becomes \code{"self::*/a"},
+the context node's \code{a} children) and the \code{prefix} is not applied to it.
+\verb{:scope} is only supported in a selector's leftmost compound; anywhere
+else the context node cannot be expressed in XPath 1.0, so an error is
+raised.
 }
 \examples{
 css_to_xpath("#testid > .testclass")

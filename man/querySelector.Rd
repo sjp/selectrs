@@ -58,6 +58,15 @@ e.g. \code{"svg|g"}.
 The namespace argument, \code{ns}, is passed on to \code{\link[XML:getNodeSet]{XML::getNodeSet()}} or
 \code{\link[xml2:xml_find_all]{xml2::xml_find_all()}} if it is necessary to use a namespace present
 within the document. It can be ignored for content lacking a namespace.
+
+The \verb{:scope} pseudo-class refers to \code{doc} itself, so a query can be
+anchored at the queried node: \code{querySelectorAll(node, ":scope > a")}
+returns \code{node}'s \code{a} children. When \code{doc} is a document rather than a
+node, queries are evaluated from its root element, so \verb{:scope} matches
+the root element. Because \verb{:scope} anchors the expression at the
+queried node, the \code{prefix} argument (including the namespace filter the
+\verb{*NS} variants build into it) does not apply to selectors led by
+\verb{:scope}.
 }
 \examples{
 if (requireNamespace("xml2", quietly = TRUE)) {

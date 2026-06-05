@@ -4,9 +4,17 @@
 #' be used to query XML documents. Selectors using constructs selectrs does
 #' not support raise an error naming the construct.
 #'
+#' The `:scope` pseudo-class refers to the node the resulting XPath
+#' expression is evaluated from: a selector starting with `:scope` is
+#' anchored on the `self::` axis (`":scope > a"` becomes `"self::*/a"`,
+#' the context node's `a` children) and the `prefix` is not applied to it.
+#' `:scope` is only supported in a selector's leftmost compound; anywhere
+#' else the context node cannot be expressed in XPath 1.0, so an error is
+#' raised.
+#'
 #' @param selector A character vector of CSS selectors.
 #' @param prefix A character vector of prefixes to apply to the resulting
-#'   XPath expressions.
+#'   XPath expressions. Not applied to selectors anchored by `:scope`.
 #' @param translator A character vector of translators to use, each one of
 #'   `"generic"`, `"html"`, or `"xhtml"`.
 #' @returns A character vector of XPath expressions.

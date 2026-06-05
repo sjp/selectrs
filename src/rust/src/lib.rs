@@ -241,8 +241,18 @@ mod tests {
         assert!(t.css_to_xpath("[rel=stylesheet k]", "").is_err());
         assert!(t.css_to_xpath("[rel=stylesheet i i]", "").is_err());
         // Unknown pseudo-classes error.
-        assert!(t.css_to_xpath("e:scope", "").is_err());
+        assert!(t.css_to_xpath("e:unknown-pseudo", "").is_err());
         assert!(t.css_to_xpath("e:first-line", "").is_err()); // pseudo-element
+        // :scope is supported in the leftmost compound only, and never
+        // inside functional pseudo-class arguments (the context node is
+        // unreachable from an XPath 1.0 predicate).
+        assert!(t.css_to_xpath("a :scope", "").is_err());
+        assert!(t.css_to_xpath("a > :scope", "").is_err());
+        assert!(t.css_to_xpath(":scope :scope", "").is_err());
+        assert!(t.css_to_xpath("e:is(:scope)", "").is_err());
+        assert!(t.css_to_xpath("e:not(:scope)", "").is_err());
+        assert!(t.css_to_xpath("e:has(:scope)", "").is_err());
+        assert!(t.css_to_xpath("e:nth-child(2 of :scope)", "").is_err());
         // A leading combinator is :has()-only; dangling and doubled
         // combinators are parse errors everywhere.
         assert!(t.css_to_xpath("e:is(> a)", "").is_err());
@@ -731,6 +741,46 @@ mod tests {
             xpath("e:nth-last-child(3 of a b)"),
             "e[count(following-sibling::*[name() = 'b' and ancestor::*[name() = 'a']]) = 2 \
              and name() = 'b' and ancestor::*[name() = 'a']]"
+        );
+    }
+
+    /// :scope (Selectors Level 4) anchors the expression at the node the
+    /// XPath is evaluated from: the leftmost compound moves onto the
+    /// self:: axis and the prefix is not applied.
+    #[test]
+    fn scope_pseudo() {
+        let t = Translator::new("generic").unwrap();
+        assert_eq!(xpath(":scope"), "self::*");
+        assert_eq!(xpath(":ScoPE"), "self::*");
+        assert_eq!(xpath(":scope > a"), "self::*/a");
+        assert_eq!(xpath(":scope a"), "self::*//a");
+        assert_eq!(
+            xpath(":scope + a"),
+            "self::*/following-sibling::*[1][self::a]"
+        );
+        assert_eq!(xpath(":scope ~ a"), "self::*/following-sibling::a");
+        // Other simple selectors in the :scope compound constrain the
+        // context node itself.
+        assert_eq!(xpath("div:scope"), "self::div");
+        assert_eq!(xpath("svg|g:scope"), "self::svg:g");
+        assert_eq!(
+            xpath(":scope.foo > a"),
+            "self::*[@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')]/a"
+        );
+        assert_eq!(
+            xpath(":scope:first-child"),
+            "self::*[count(preceding-sibling::*) = 0]"
+        );
+        // The prefix is replaced by the self:: anchor, per selector group.
+        assert_eq!(
+            t.css_to_xpath(":scope > a", "descendant-or-self::")
+                .unwrap(),
+            "self::*/a"
+        );
+        assert_eq!(
+            t.css_to_xpath("a, :scope > b", "descendant-or-self::")
+                .unwrap(),
+            "descendant-or-self::a | self::*/b"
         );
     }
 
