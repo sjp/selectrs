@@ -208,3 +208,24 @@ test_that(":required/:optional match per the HTML semantics", {
     # The generic translator treats both as unmatchable runtime state.
     expect_equal(length(querySelectorAll(doc, ":required")), 0L)
 })
+
+test_that(":empty matches what browsers match: whitespace counts, comments do not", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+    # Browsers implement the Selectors Level 3 behaviour (the Level 4
+    # draft's whitespace loosening has never shipped in any engine, as of
+    # 2026), and selectr matches it: any text content, even whitespace
+    # alone, makes an element non-empty; comment nodes are not content.
+    doc <- read_xml(paste0(
+        '<root>',
+        '<a id="truly"/>',
+        '<a id="ws"> </a>',
+        '<a id="nl">\n</a>',
+        '<a id="text">x</a>',
+        '<a id="child"><b/></a>',
+        '<a id="comment"><!-- c --></a>',
+        '</root>'
+    ))
+    expect_equal(xml_attr(querySelectorAll(doc, "a:empty"), "id"),
+                 c("truly", "comment"))
+})

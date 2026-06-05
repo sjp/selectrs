@@ -12,6 +12,13 @@
 #' else the context node cannot be expressed in XPath 1.0, so an error is
 #' raised.
 #'
+#' The `:empty` pseudo-class matches what browsers match: an element with
+#' any text content — even white space alone — is not empty, while
+#' comment nodes do not count as content. The Selectors Level 4 draft
+#' loosens `:empty` to also match white-space-only elements, but no
+#' browser engine has shipped that change, and selectrs (like selectr)
+#' deliberately keeps the implemented-everywhere behaviour.
+#'
 #' The CSS Selectors Level 4 column combinator (`"col || td"`) and the
 #' grid-structural pseudo-classes `:nth-col()` and `:nth-last-col()` are
 #' not supported and raise an error: table column membership depends on
