@@ -1,3 +1,24 @@
+test_that("namespace selectors compose with combinators and attribute values", {
+    xpath <- function(css) css_to_xpath(css, prefix = "")
+
+    expect_equal(xpath(":not(*|e)"), "*[not(local-name() = 'e')]")
+    expect_equal(xpath("div > *|e"), "div/*[local-name() = 'e']")
+    expect_equal(xpath("[*|a='v']"), "*[@*[local-name() = 'a'] = 'v']")
+    expect_equal(xpath("[|a='v']"), "*[@a = 'v']")
+    expect_equal(xpath("[ns|a]"), "*[@ns:a]")
+})
+
+test_that("malformed namespace selectors are rejected", {
+    err <- function(css) {
+        expect_error(css_to_xpath(css),
+                     paste0('CSS selector "', css, '"'), fixed = TRUE)
+    }
+
+    err("e|")
+    err("a||b")
+    err("div .|x")
+})
+
 test_that("namespace selectors match correct elements", {
     skip_if_not_installed("xml2")
 

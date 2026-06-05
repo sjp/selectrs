@@ -257,6 +257,16 @@ test_that(":where() and :is() generate correct XPath", {
     # Chained :where()s AND together, so this can never match
     expect_equal(xpath("div:where(p):where(span)"),
                  "div[name() = 'p' and name() = 'span']")
+    expect_equal(xpath("e:is(.a):is(.b)"),
+                 "e[@class and contains(concat(' ', normalize-space(@class), ' '), ' a ') and @class and contains(concat(' ', normalize-space(@class), ' '), ' b ')]")
+    # Alternatives stay grouped: they AND with conditions before and after
+    # the pseudo-class instead of OR-ing across the whole compound
+    expect_equal(xpath("e.warning:is(.a, .b)"),
+                 "e[@class and contains(concat(' ', normalize-space(@class), ' '), ' warning ') and (@class and contains(concat(' ', normalize-space(@class), ' '), ' a ') or @class and contains(concat(' ', normalize-space(@class), ' '), ' b '))]")
+    expect_equal(xpath("e.warning:where(f, g)"),
+                 "e[@class and contains(concat(' ', normalize-space(@class), ' '), ' warning ') and (name() = 'f' or name() = 'g')]")
+    expect_equal(xpath(":is(f, g):first-child"),
+                 "*[(name() = 'f' or name() = 'g') and count(preceding-sibling::*) = 0]")
     # prefixed names stay node tests (see the :has() pins)
     expect_equal(xpath("e:is(svg|g)"), "e[self::svg:g]")
     expect_equal(xpath("e:not(svg|g)"), "e[not(self::svg:g)]")
@@ -291,6 +301,8 @@ test_that(":nth-child(an+b of S) generates correct XPath", {
     # A universal argument makes the list match everything, like a plain :nth-child
     expect_equal(xpath("li:nth-child(2 of .foo, *)"),
                  "li[count(preceding-sibling::*) = 1]")
+    expect_equal(xpath("li:nth-last-child(2 of .foo, *)"),
+                 "li[count(following-sibling::*) = 1]")
 })
 
 test_that(":lang() and :dir() generate correct XPath", {
@@ -356,6 +368,12 @@ test_that("translation of unsafe XPath names works", {
                  "*[attribute::*[name() = '123']]")
     expect_equal(xpath("e[foo='\\31 23']"), "e[@foo = '123']")
     expect_equal(xpath("e[foo='x\\79 z']"), "e[@foo = 'xyz']")
+    # Hex digits in escapes are case-insensitive
+    expect_equal(xpath("e[foo='\\4a']"), "e[@foo = 'J']")
+    expect_equal(xpath("e[foo='\\4A']"), "e[@foo = 'J']")
+    # An escaped backslash yields a literal backslash; what follows it
+    # must not be re-processed as another escape
+    expect_equal(xpath("e[foo='x\\\\79 z']"), "e[@foo = 'x\\79 z']")
 })
 
 test_that("unsupported constructs error informatively", {

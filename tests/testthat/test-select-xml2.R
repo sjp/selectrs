@@ -143,6 +143,17 @@ test_that("selection works correctly on a large barrage of tests", {
     expect_equal(pcss(':matches(#first-li, #second-li)'), c('first-li', 'second-li'))
     expect_equal(pcss('a:matches(#name-anchor, #tag-anchor)'), c('name-anchor', 'tag-anchor'))
     expect_equal(pcss(':matches(.c)'), c('first-ol', 'third-li', 'fourth-li'))
+    # :is()/:where() alternatives stay grouped: they AND with conditions
+    # before and after the pseudo-class instead of OR-ing across the compound
+    expect_equal(pcss('li.c:is(#third-li, #fifth-li)'), 'third-li')
+    expect_equal(pcss('li.c:where(#third-li, #fifth-li)'), 'third-li')
+    expect_equal(pcss(':is(li, ol):first-child'), 'first-li')
+    expect_equal(pcss('li:is(.c):is(#fourth-li)'), 'fourth-li')
+    # An always-true '*' argument makes the whole selector list match
+    # everything; it must not be silently dropped
+    expect_equal(pcss('li:is(#first-li, *)'), c('first-li', 'second-li', 'third-li', 'fourth-li', 'fifth-li', 'sixth-li', 'seventh-li'))
+    expect_equal(pcss('li:not(#first-li, *)'), NULL)
+    expect_equal(pcss('ol:nth-child(6 of a, *)'), 'second-ol')
 
     expect_equal(pcss('ol:has(li)'), 'first-ol')
     # :has(.c) matches all ancestors of elements with class 'c'
@@ -241,4 +252,44 @@ test_that("prefixed names in pseudo-class arguments resolve by namespace URI", {
     expect_equal(get_ids("d:has(> svg|g)"), "hit")
     expect_equal(get_ids("d:not(:has(svg|g))"), "miss")
     expect_equal(get_ids("d:has(svg|*)"), c("hit", "miss"))
+})
+
+test_that(":only-child and :only-of-type match the root element", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+
+    doc <- read_xml("<root><a/></root>")
+    count <- function(css)
+        length(xml_find_all(doc, css_to_xpath(css)))
+
+    # :only-child is defined as :first-child:last-child, which matches
+    # the root element, so :only-child must match it too
+    expect_equal(count("root:first-child:last-child"), 1)
+    expect_equal(count("root:only-child"), 1)
+    expect_equal(count("root:only-of-type"), 1)
+    expect_equal(count("a:only-child"), 1)
+    expect_equal(count("a:only-of-type"), 1)
+})
+
+test_that(":enabled and :disabled match inputs with no type attribute", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+
+    doc <- read_html(paste0(
+        '<form>',
+        '<input id="plain-disabled" disabled="" />',
+        '<input id="plain-enabled" />',
+        '<input type="hidden" id="hidden-disabled" disabled="" />',
+        '<input type="hidden" id="hidden-plain" />',
+        '</form>'
+    ))
+    get_ids <- function(css) {
+        xpath <- css_to_xpath(css, translator = "html")
+        unlist(lapply(xml_find_all(doc, xpath), xml_attr, "id"))
+    }
+
+    # An <input> with no type attribute defaults to type=text, so it
+    # participates in :enabled/:disabled; type=hidden inputs never do
+    expect_equal(get_ids("input:disabled"), "plain-disabled")
+    expect_equal(get_ids("input:enabled"), "plain-enabled")
 })

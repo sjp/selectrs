@@ -140,6 +140,17 @@ test_that("selection works correctly on a large barrage of tests", {
     expect_equal(pcss(':matches(#first-li, #second-li)'), c('first-li', 'second-li'))
     expect_equal(pcss('a:matches(#name-anchor, #tag-anchor)'), c('name-anchor', 'tag-anchor'))
     expect_equal(pcss(':matches(.c)'), c('first-ol', 'third-li', 'fourth-li'))
+    # :is()/:where() alternatives stay grouped: they AND with conditions
+    # before and after the pseudo-class instead of OR-ing across the compound
+    expect_equal(pcss('li.c:is(#third-li, #fifth-li)'), 'third-li')
+    expect_equal(pcss('li.c:where(#third-li, #fifth-li)'), 'third-li')
+    expect_equal(pcss(':is(li, ol):first-child'), 'first-li')
+    expect_equal(pcss('li:is(.c):is(#fourth-li)'), 'fourth-li')
+    # An always-true '*' argument makes the whole selector list match
+    # everything; it must not be silently dropped
+    expect_equal(pcss('li:is(#first-li, *)'), c('first-li', 'second-li', 'third-li', 'fourth-li', 'fifth-li', 'sixth-li', 'seventh-li'))
+    expect_equal(pcss('li:not(#first-li, *)'), NULL)
+    expect_equal(pcss('ol:nth-child(6 of a, *)'), 'second-ol')
 
     expect_equal(pcss('ol:has(li)'), 'first-ol')
     # :has(.c) matches all ancestors of elements with class 'c'
