@@ -73,14 +73,6 @@
 ---
 
     Code
-      css_to_xpath("e:is(a b)")
-    Condition
-      Error:
-      ! The CSS selector "e:is(a b)" uses a complex selector (with combinators) inside `:is()`, which selectrs does not support
-
----
-
-    Code
       css_to_xpath("e:is(> a)")
     Condition
       Error:

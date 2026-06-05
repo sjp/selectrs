@@ -271,3 +271,57 @@ test_that(":has() works with querySelector (returns first match)", {
     result_none <- querySelector(doc, "section:has(article)")
     expect_equal(result_none, NULL)
 })
+
+test_that("complex relative selectors inside :has() match correctly", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+
+    html <- paste0(
+        '<root>',
+        '  <section id="s1"><div><p/></div></section>',
+        '  <section id="s2"><div/><p/></section>',
+        '  <section id="s3"><p/></section>',
+        '  <section id="s4"><div><span><p/></span></div></section>',
+        '</root>'
+    )
+    doc <- read_xml(html)
+    get_ids <- function(css) xml_attr(querySelectorAll(doc, css), "id")
+
+    # descendant chains: p anywhere under a div vs p as a div's child
+    expect_equal(get_ids("section:has(div p)"), c("s1", "s4"))
+    expect_equal(get_ids("section:has(div > p)"), "s1")
+    expect_equal(get_ids("section:has(> div > span)"), "s4")
+    # sibling step inside the argument
+    expect_equal(get_ids("section:has(div + p)"), "s2")
+
+    # complex arguments in the backward-matching pseudos
+    expect_equal(get_ids("section:has(p):not(:has(div p))"),
+                 c("s2", "s3"))
+})
+
+test_that("complex selectors inside :is() and 'of S' match correctly", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+
+    html <- paste0(
+        '<root>',
+        '  <section><p id="p1"/></section>',
+        '  <article><p id="p2"/><p id="p3"/><div id="d1"/><p id="p4"/></article>',
+        '  <p id="p5"/>',
+        '</root>'
+    )
+    doc <- read_xml(html)
+    get_ids <- function(css) xml_attr(querySelectorAll(doc, css), "id")
+
+    # :is() with a descendant chain matches at the rightmost compound
+    expect_equal(get_ids(":is(section p)"), "p1")
+    expect_equal(get_ids(":is(article p, section p)"),
+                 c("p1", "p2", "p3", "p4"))
+    # sibling chains
+    expect_equal(get_ids(":is(p + p)"), "p3")
+    expect_equal(get_ids(":is(p ~ div)"), "d1")
+    expect_equal(get_ids("p:not(article p)"), c("p1", "p5"))
+    # 'of S' counts only the siblings matching the complex argument:
+    # the article's p children are p2, p3, p4 -> the 2nd is p3
+    expect_equal(get_ids(":nth-child(2 of article p)"), "p3")
+})

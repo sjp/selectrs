@@ -243,11 +243,9 @@ mod tests {
         // Unknown pseudo-classes error.
         assert!(t.css_to_xpath("e:scope", "").is_err());
         assert!(t.css_to_xpath("e:first-line", "").is_err()); // pseudo-element
-        // The pseudo-class argument grammar: one compound per argument
-        // (after :has()'s optional leading combinator).
-        assert!(t.css_to_xpath("e:is(a b)", "").is_err());
-        assert!(t.css_to_xpath("e:is(> a)", "").is_err()); // :has()-only
-        assert!(t.css_to_xpath("e:has(a > b)", "").is_err());
+        // A leading combinator is :has()-only; dangling and doubled
+        // combinators are parse errors everywhere.
+        assert!(t.css_to_xpath("e:is(> a)", "").is_err());
         assert!(t.css_to_xpath("e:has(> > a)", "").is_err());
         assert!(t.css_to_xpath("e:has(>)", "").is_err());
         assert!(t.css_to_xpath("e:has(a >)", "").is_err());
@@ -539,6 +537,200 @@ mod tests {
         assert_eq!(
             xpath("e:has(svg|g.foo)"),
             "e[.//svg:g[@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')]]"
+        );
+    }
+
+    /// Complex selectors (with combinators) inside the functional
+    /// pseudo-classes (Selectors Level 4). :is()/:where()/:not() and the
+    /// nth `of S` lists match their argument at the candidate element, so
+    /// each combinator becomes an existence test through the reversed
+    /// axis; :has() looks forward, extending its path compound by
+    /// compound.
+    #[test]
+    fn complex_pseudo_arguments() {
+        // One reversed axis per combinator.
+        assert_eq!(
+            xpath("e:is(a b)"),
+            "e[name() = 'b' and ancestor::*[name() = 'a']]"
+        );
+        assert_eq!(
+            xpath("e:is(a > b)"),
+            "e[name() = 'b' and parent::*[name() = 'a']]"
+        );
+        assert_eq!(
+            xpath("e:is(a + b)"),
+            "e[name() = 'b' and preceding-sibling::*[1][name() = 'a']]"
+        );
+        assert_eq!(
+            xpath("e:is(a ~ b)"),
+            "e[name() = 'b' and preceding-sibling::*[name() = 'a']]"
+        );
+        // Longer chains nest, each step wrapping the remainder.
+        assert_eq!(
+            xpath("e:is(a b c)"),
+            "e[name() = 'c' and ancestor::*[name() = 'b' and ancestor::*[name() = 'a']]]"
+        );
+        assert_eq!(
+            xpath("e:is(a > b ~ c)"),
+            "e[name() = 'c' and preceding-sibling::*[name() = 'b' and parent::*[name() = 'a']]]"
+        );
+        assert_eq!(
+            xpath("e:is(a + b > c)"),
+            "e[name() = 'c' and parent::*[name() = 'b' and preceding-sibling::*[1][name() = 'a']]]"
+        );
+        // :not() negates the whole chain condition; complex and compound
+        // arguments OR together ('and' binds tighter than 'or').
+        assert_eq!(
+            xpath("e:not(a b)"),
+            "e[not(name() = 'b' and ancestor::*[name() = 'a'])]"
+        );
+        assert_eq!(
+            xpath("e:not(a > b + c)"),
+            "e[not(name() = 'c' and preceding-sibling::*[1][name() = 'b' and parent::*[name() = 'a']])]"
+        );
+        assert_eq!(
+            xpath("e:is(a b, c)"),
+            "e[name() = 'b' and ancestor::*[name() = 'a'] or name() = 'c']"
+        );
+        assert_eq!(
+            xpath("e:is(a, b c)"),
+            "e[name() = 'a' or name() = 'c' and ancestor::*[name() = 'b']]"
+        );
+        // Universal steps: a bare-`*` left-hand side is a bare axis test,
+        // a bare-`*` rightmost compound leaves only the chain test, and a
+        // universal *argument* still makes the list trivially true (or
+        // :not() unmatchable).
+        assert_eq!(xpath("e:is(* b)"), "e[name() = 'b' and ancestor::*]");
+        assert_eq!(xpath("e:is(a *)"), "e[ancestor::*[name() = 'a']]");
+        assert_eq!(xpath("e:not(a *)"), "e[not(ancestor::*[name() = 'a'])]");
+        assert_eq!(xpath("e:is(a b, *)"), "e");
+        assert_eq!(xpath("e:not(a b, *)"), "e[0]");
+        // Conditions on chain steps come before each step's name test.
+        assert_eq!(
+            xpath("e:is(a.x b.y)"),
+            "e[@class and contains(concat(' ', normalize-space(@class), ' '), ' y ') and \
+             name() = 'b' and \
+             ancestor::*[@class and contains(concat(' ', normalize-space(@class), ' '), ' x ') \
+             and name() = 'a']]"
+        );
+        assert_eq!(
+            xpath("e:is(a[foo='bar'] > b)"),
+            "e[name() = 'b' and parent::*[@foo = 'bar' and name() = 'a']]"
+        );
+        assert_eq!(
+            xpath("e:is(a:first-child b)"),
+            "e[name() = 'b' and ancestor::*[count(preceding-sibling::*) = 0 and name() = 'a']]"
+        );
+        assert_eq!(
+            xpath("e:is(a:hover b)"),
+            "e[name() = 'b' and ancestor::*[0 and name() = 'a']]"
+        );
+        // Nested pseudo-classes inside chain steps; an or-group condition
+        // is parenthesized when conjoined with the chain test.
+        assert_eq!(
+            xpath("e:is(:not(a) b)"),
+            "e[name() = 'b' and ancestor::*[not(name() = 'a')]]"
+        );
+        assert_eq!(
+            xpath("e:not(:is(a b))"),
+            "e[not(name() = 'b' and ancestor::*[name() = 'a'])]"
+        );
+        assert_eq!(
+            xpath("e:is(:not(a b) c)"),
+            "e[name() = 'c' and ancestor::*[not(name() = 'b' and ancestor::*[name() = 'a'])]]"
+        );
+        assert_eq!(
+            xpath("e:is(:is(a, b) c)"),
+            "e[name() = 'c' and ancestor::*[name() = 'a' or name() = 'b']]"
+        );
+        assert_eq!(
+            xpath("e:is(c :is(a, b))"),
+            "e[(name() = 'a' or name() = 'b') and ancestor::*[name() = 'c']]"
+        );
+        // Prefixed names in chain steps stay self:: node tests.
+        assert_eq!(
+            xpath("ns|e:is(a b)"),
+            "ns:e[name() = 'b' and ancestor::*[name() = 'a']]"
+        );
+        assert_eq!(
+            xpath("e:is(ns|a b)"),
+            "e[name() = 'b' and ancestor::*[self::ns:a]]"
+        );
+        assert_eq!(
+            xpath("e:is(a ns|b)"),
+            "e[self::ns:b and ancestor::*[name() = 'a']]"
+        );
+        // :has() walks forward: one joiner per combinator, with the
+        // leading combinator choosing the first axis.
+        assert_eq!(
+            xpath("e:has(a b)"),
+            "e[.//*[name() = 'a']//*[name() = 'b']]"
+        );
+        assert_eq!(
+            xpath("e:has(a > b)"),
+            "e[.//*[name() = 'a']/*[name() = 'b']]"
+        );
+        assert_eq!(
+            xpath("e:has(a + b)"),
+            "e[.//*[name() = 'a']/following-sibling::*[1][name() = 'b']]"
+        );
+        assert_eq!(
+            xpath("e:has(a ~ b)"),
+            "e[.//*[name() = 'a']/following-sibling::*[name() = 'b']]"
+        );
+        assert_eq!(
+            xpath("e:has(> a b)"),
+            "e[child::*[name() = 'a']//*[name() = 'b']]"
+        );
+        assert_eq!(
+            xpath("e:has(> a > b)"),
+            "e[child::*[name() = 'a']/*[name() = 'b']]"
+        );
+        assert_eq!(
+            xpath("e:has(+ a > b)"),
+            "e[following-sibling::*[1][name() = 'a']/*[name() = 'b']]"
+        );
+        assert_eq!(
+            xpath("e:has(~ a + b)"),
+            "e[following-sibling::*[name() = 'a']/following-sibling::*[1][name() = 'b']]"
+        );
+        assert_eq!(
+            xpath("e:has(a > b + c)"),
+            "e[.//*[name() = 'a']/*[name() = 'b']/following-sibling::*[1][name() = 'c']]"
+        );
+        assert_eq!(
+            xpath("e:has(> a:is(b c))"),
+            "e[child::*[name() = 'c' and ancestor::*[name() = 'b'] and name() = 'a']]"
+        );
+        assert_eq!(
+            xpath("e:has(a.x > b.y)"),
+            "e[.//*[@class and contains(concat(' ', normalize-space(@class), ' '), ' x ') \
+             and name() = 'a']/*[@class and \
+             contains(concat(' ', normalize-space(@class), ' '), ' y ') and name() = 'b']]"
+        );
+        // Prefixed names stay path node tests, except under `+` where the
+        // [1] position predicate needs the node test to stay `*`.
+        assert_eq!(xpath("e:has(ns|a > b)"), "e[.//ns:a/*[name() = 'b']]");
+        assert_eq!(
+            xpath("e:has(a + ns|b)"),
+            "e[.//*[name() = 'a']/following-sibling::*[1][self::ns:b]]"
+        );
+        // `of S` with complex selectors: the chain condition filters the
+        // counted siblings and constrains the current element.
+        assert_eq!(
+            xpath("e:nth-child(2n of a b)"),
+            "e[(count(preceding-sibling::*[name() = 'b' and ancestor::*[name() = 'a']]) +1) \
+             mod 2 = 0 and name() = 'b' and ancestor::*[name() = 'a']]"
+        );
+        assert_eq!(
+            xpath("e:nth-child(2n of a > b)"),
+            "e[(count(preceding-sibling::*[name() = 'b' and parent::*[name() = 'a']]) +1) \
+             mod 2 = 0 and name() = 'b' and parent::*[name() = 'a']]"
+        );
+        assert_eq!(
+            xpath("e:nth-last-child(3 of a b)"),
+            "e[count(following-sibling::*[name() = 'b' and ancestor::*[name() = 'a']]) = 2 \
+             and name() = 'b' and ancestor::*[name() = 'a']]"
         );
     }
 

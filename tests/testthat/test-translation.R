@@ -299,6 +299,28 @@ test_that(":where() and :is() generate correct XPath", {
     expect_equal(xpath("div:where(a, *)"), "div")
 })
 
+test_that("complex selectors work inside functional pseudo-classes", {
+    # :is()/:not() and the nth 'of S' lists match their argument at the
+    # candidate element, so each combinator becomes an existence test
+    # through the reversed axis; :has() looks forward, extending its path
+    # compound by compound. (The full combinator/nesting matrix is pinned
+    # in the Rust unit tests.)
+    expect_equal(xpath("e:is(a b)"),
+                 "e[name() = 'b' and ancestor::*[name() = 'a']]")
+    expect_equal(xpath("e:is(a > b ~ c)"),
+                 "e[name() = 'c' and preceding-sibling::*[name() = 'b' and parent::*[name() = 'a']]]")
+    expect_equal(xpath("e:not(a + b)"),
+                 "e[not(name() = 'b' and preceding-sibling::*[1][name() = 'a'])]")
+    expect_equal(xpath("e:is(a b, c)"),
+                 "e[name() = 'b' and ancestor::*[name() = 'a'] or name() = 'c']")
+    expect_equal(xpath("e:has(a > b)"),
+                 "e[.//*[name() = 'a']/*[name() = 'b']]")
+    expect_equal(xpath("e:has(~ a + b)"),
+                 "e[following-sibling::*[name() = 'a']/following-sibling::*[1][name() = 'b']]")
+    expect_equal(xpath("e:nth-child(2n of a b)"),
+                 "e[(count(preceding-sibling::*[name() = 'b' and ancestor::*[name() = 'a']]) +1) mod 2 = 0 and name() = 'b' and ancestor::*[name() = 'a']]")
+})
+
 test_that(":nth-child(an+b of S) generates correct XPath", {
     expect_equal(xpath("div:nth-child(2 of .foo)"),
                  paste0("div[count(preceding-sibling::*[@class and contains(concat(' ', normalize-space(@class), ' '), ' foo ')]) = 1",
@@ -407,13 +429,11 @@ test_that("unsupported constructs error informatively", {
     # Unknown pseudo-classes error.
     expect_error(xpath('e:unknown-pseudo'))
     expect_error(xpath('e:scope'))
-    # One compound per pseudo-class argument (after :has()'s optional
-    # leading combinator); leading combinators are :has()-only.
-    expect_error(xpath('e:is(a b)'))
+    # Leading combinators are :has()-only; dangling and doubled
+    # combinators are parse errors everywhere.
     expect_error(xpath('e:is(> a)'))
     expect_error(xpath('e:where(~ a)'))
     expect_error(xpath('e:not(+ a)'))
-    expect_error(xpath('e:has(a > b)'))
     expect_error(xpath('e:has(> > a)'))
     expect_error(xpath('e:has(>)'))
     expect_error(xpath('e:has(a >)'))

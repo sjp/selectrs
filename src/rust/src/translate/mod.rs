@@ -87,22 +87,7 @@ impl Translator {
         selector: &Selector<SelectrsImpl>,
         prefix: &str,
     ) -> Result<String, Error> {
-        let mut iter = selector.iter();
-        // seqs[i] = (compound, combinator between this compound and the one
-        // to its left); match order, so seqs[0] is the rightmost compound.
-        let mut seqs: Vec<(Vec<&Component<SelectrsImpl>>, Option<Combinator>)> = Vec::new();
-        loop {
-            let mut compound = Vec::new();
-            for component in &mut iter {
-                compound.push(component);
-            }
-            let combinator = iter.next_sequence();
-            let done = combinator.is_none();
-            seqs.push((compound, combinator));
-            if done {
-                break;
-            }
-        }
+        let seqs = collect_seqs(selector);
 
         // Leftmost compound first, then fold rightwards.
         let leftmost = seqs.len() - 1;
@@ -295,55 +280,72 @@ impl Translator {
             // :has(): each argument is a relative selector whose optional
             // leading combinator scopes the match (`>` child, `~`
             // subsequent sibling, `+` next sibling; omitted means
-            // descendant). Only one compound is accepted after the
-            // combinator, so Servo's full complex-selector forms must error.
+            // descendant). Unlike the other functional pseudo-classes,
+            // :has() looks forward, so a complex argument extends the
+            // existence-test path step by step, leftmost compound first.
             Component::Has(relatives) => {
                 let mut conditions: Vec<String> = Vec::new();
                 for relative in relatives.iter() {
-                    let mut iter = relative.selector.iter();
-                    let mut compound: Vec<&Component<SelectrsImpl>> = Vec::new();
-                    for c in &mut iter {
-                        compound.push(c);
-                    }
-                    let combinator = iter.next_sequence();
-                    let anchor: Vec<&Component<SelectrsImpl>> = (&mut iter).collect();
-                    let anchor_only = anchor.len() == 1
-                        && matches!(anchor[0], Component::RelativeSelectorAnchor)
-                        && iter.next_sequence().is_none();
+                    let seqs = collect_seqs(&relative.selector);
+                    // The leftmost sequence is the anchor (the candidate
+                    // element itself); its combinator slot carries the
+                    // argument's leading combinator.
+                    let anchor = &seqs[seqs.len() - 1].0;
+                    let anchor_only = seqs.len() >= 2
+                        && anchor.len() == 1
+                        && matches!(anchor[0], Component::RelativeSelectorAnchor);
                     if !anchor_only {
                         return Err(Error::Unsupported(
-                            "a complex selector (with combinators) inside `:has()`".into(),
+                            "an unexpected selector structure inside `:has()`".into(),
                         ));
                     }
-                    let axis = match combinator {
-                        Some(Combinator::Descendant) => ".//",
-                        Some(Combinator::Child) => "child::",
-                        Some(Combinator::NextSibling) | Some(Combinator::LaterSibling) => {
-                            "following-sibling::"
+                    let mut test = String::new();
+                    for i in (0..seqs.len() - 1).rev() {
+                        let first = i == seqs.len() - 2;
+                        let combinator = seqs[i].1;
+                        // The first step is an axis from the candidate
+                        // element; later steps join onto the path.
+                        let axis = match (first, combinator) {
+                            (true, Some(Combinator::Descendant)) => ".//",
+                            (true, Some(Combinator::Child)) => "child::",
+                            (
+                                true,
+                                Some(Combinator::NextSibling) | Some(Combinator::LaterSibling),
+                            ) => "following-sibling::",
+                            (false, Some(Combinator::Descendant)) => "//",
+                            (false, Some(Combinator::Child)) => "/",
+                            (
+                                false,
+                                Some(Combinator::NextSibling) | Some(Combinator::LaterSibling),
+                            ) => "/following-sibling::",
+                            (_, other) => {
+                                return Err(Error::Unsupported(format!(
+                                    "an unexpected combinator ({other:?}) inside `:has()`"
+                                )));
+                            }
+                        };
+                        let mut sub = self.compound_to_xpath(&seqs[i].0)?;
+                        // A prefixed name stays in the node test
+                        // (`.//svg:g`) so it resolves through the
+                        // namespace map, except under `+` where the [1]
+                        // position predicate needs the node test to
+                        // stay `*`.
+                        if !sub.element.contains(':') {
+                            sub.add_name_test();
+                        } else if matches!(combinator, Some(Combinator::NextSibling)) {
+                            let element = std::mem::replace(&mut sub.element, "*".to_owned());
+                            sub.add_condition(&format!("self::{element}"));
                         }
-                        _ => {
-                            return Err(Error::Unsupported(
-                                "an unexpected combinator inside `:has()`".into(),
-                            ));
+                        if matches!(combinator, Some(Combinator::NextSibling)) {
+                            // Only the immediately following sibling:
+                            // constrain position before applying the match
+                            // conditions.
+                            sub.add_predicate("1");
                         }
-                    };
-                    let mut sub = self.compound_to_xpath(&compound)?;
-                    // A prefixed name stays in the node test (`.//svg:g`)
-                    // so it resolves through the namespace map, except
-                    // under `+` where the [1] position predicate needs the
-                    // node test to stay `*`.
-                    if !sub.element.contains(':') {
-                        sub.add_name_test();
-                    } else if matches!(combinator, Some(Combinator::NextSibling)) {
-                        let element = std::mem::replace(&mut sub.element, "*".to_owned());
-                        sub.add_condition(&format!("self::{element}"));
+                        test.push_str(axis);
+                        test.push_str(&sub.str());
                     }
-                    if matches!(combinator, Some(Combinator::NextSibling)) {
-                        // Only the immediately following sibling: constrain
-                        // position before applying the match conditions.
-                        sub.add_predicate("1");
-                    }
-                    conditions.push(format!("{axis}{}", sub.str()));
+                    conditions.push(test);
                 }
                 if !conditions.is_empty() {
                     xpath.add_condition(&conditions.join(" | "));
@@ -480,18 +482,11 @@ impl Translator {
 
     /// Harvest the conditions of a pseudo-class argument list, the shared
     /// pattern of :not()/:is()/:where() and the nth `of S` handling:
-    /// translate each argument, turn its element into a condition — a
-    /// `self::` node test for prefixed names (so the prefix resolves
-    /// through the namespace map, like a top-level `svg|g`), a `name()`
-    /// comparison otherwise — and keep each argument's combined
-    /// condition.
+    /// translate each argument into a condition on the candidate element.
     ///
     /// Returns `None` when any argument matches everything (e.g. `*`): the
     /// OR of the list is then trivially true, so callers must not constrain
     /// on the remaining arguments.
-    ///
-    /// The argument grammar only admits compound selectors, so a complex
-    /// selector like `:is(a b)` errors here.
     fn arg_conditions(
         &self,
         selectors: &[Selector<SelectrsImpl>],
@@ -500,24 +495,8 @@ impl Translator {
         let mut conditions = Vec::new();
         let mut trivially_true = false;
         for selector in selectors {
-            let mut iter = selector.iter();
-            let mut compound: Vec<&Component<SelectrsImpl>> = Vec::new();
-            for component in &mut iter {
-                compound.push(component);
-            }
-            if iter.next_sequence().is_some() {
-                return Err(Error::Unsupported(format!(
-                    "a complex selector (with combinators) inside `{context}`"
-                )));
-            }
-            let mut sub = self.compound_to_xpath(&compound)?;
-            if sub.element.contains(':') {
-                let element = std::mem::replace(&mut sub.element, "*".to_owned());
-                sub.add_condition(&format!("self::{element}"));
-            } else {
-                sub.add_name_test();
-            }
-            match sub.condition() {
+            let seqs = collect_seqs(selector);
+            match self.argument_condition(&seqs, 0, context)? {
                 None => trivially_true = true,
                 Some(condition) => conditions.push(condition),
             }
@@ -528,6 +507,75 @@ impl Translator {
             Some(conditions)
         })
     }
+
+    /// The condition imposed on the candidate element by the argument
+    /// chain from `seqs[idx]` leftwards. The compound's element becomes a
+    /// condition — a `self::` node test for prefixed names (so the prefix
+    /// resolves through the namespace map, like a top-level `svg|g`), a
+    /// `name()` comparison otherwise. A complex argument applies its
+    /// rightmost compound to the candidate, with everything to its left
+    /// becoming an existence test through reversed axes, recursively:
+    /// `:is(a > b ~ c)` matches a `c` with a preceding sibling `b` whose
+    /// parent is an `a`.
+    ///
+    /// `None` means the chain imposes no condition (a bare `*` argument).
+    fn argument_condition(
+        &self,
+        seqs: &[(Vec<&Component<SelectrsImpl>>, Option<Combinator>)],
+        idx: usize,
+        context: &str,
+    ) -> Result<Option<Condition>, Error> {
+        let (compound, combinator) = &seqs[idx];
+        let mut sub = self.compound_to_xpath(compound)?;
+        if sub.element.contains(':') {
+            let element = std::mem::replace(&mut sub.element, "*".to_owned());
+            sub.add_condition(&format!("self::{element}"));
+        } else {
+            sub.add_name_test();
+        }
+        if idx + 1 < seqs.len() {
+            // The axis pointing back at where the left-hand side of the
+            // combinator must be, relative to the element matched here.
+            let axis = match combinator {
+                Some(Combinator::Descendant) => "ancestor::*",
+                Some(Combinator::Child) => "parent::*",
+                Some(Combinator::LaterSibling) => "preceding-sibling::*",
+                Some(Combinator::NextSibling) => "preceding-sibling::*[1]",
+                other => {
+                    return Err(Error::Unsupported(format!(
+                        "an unexpected combinator ({other:?}) inside `{context}`"
+                    )));
+                }
+            };
+            let rev_test = match self.argument_condition(seqs, idx + 1, context)? {
+                Some(inner) => format!("{axis}[{}]", inner.expr),
+                None => axis.to_owned(),
+            };
+            sub.add_condition(&rev_test);
+        }
+        Ok(sub.condition())
+    }
+}
+
+/// Collect a selector's compound sequences in match order: `seqs[i]` is
+/// (compound, combinator between this compound and the one to its left),
+/// so `seqs[0]` is the rightmost compound and only the last entry's
+/// combinator is `None`.
+fn collect_seqs(
+    selector: &Selector<SelectrsImpl>,
+) -> Vec<(Vec<&Component<SelectrsImpl>>, Option<Combinator>)> {
+    let mut iter = selector.iter();
+    let mut seqs: Vec<(Vec<&Component<SelectrsImpl>>, Option<Combinator>)> = Vec::new();
+    loop {
+        let compound: Vec<&Component<SelectrsImpl>> = (&mut iter).collect();
+        let combinator = iter.next_sequence();
+        let done = combinator.is_none();
+        seqs.push((compound, combinator));
+        if done {
+            break;
+        }
+    }
+    seqs
 }
 
 /// The Level 4 case-sensitivity flag handling.

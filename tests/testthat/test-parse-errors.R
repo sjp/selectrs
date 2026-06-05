@@ -59,9 +59,7 @@ test_that("invalid selectors error, naming the selector", {
     err(":not(:before)")
     err(":not(a,)")
     err(":is(:before)")
-    err(":is(a b)")
     err(":matches(:before)")
-    err(":matches(a b)")
 })
 
 test_that("constructs unclosed at EOF translate as their closed forms", {
@@ -90,7 +88,6 @@ test_that("selectrs' parse-error wording is stable", {
     expect_snapshot(error = TRUE, css_to_xpath('e:contains("foo")'))  # unknown pseudo-class
     expect_snapshot(error = TRUE, css_to_xpath("e::before"))          # pseudo-element
     expect_snapshot(error = TRUE, css_to_xpath("e:lang(-)"))          # bad :lang() argument
-    expect_snapshot(error = TRUE, css_to_xpath("e:is(a b)"))          # complex pseudo argument
     expect_snapshot(error = TRUE, css_to_xpath("e:is(> a)"))          # leading combinator outside :has()
     expect_snapshot(error = TRUE, css_to_xpath("e:has(a:has(b))"))    # nested :has()
     expect_snapshot(error = TRUE, css_to_xpath("*:first-of-type"))    # of-type on '*'
