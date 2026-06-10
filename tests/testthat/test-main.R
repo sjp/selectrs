@@ -23,7 +23,14 @@ test_that("css_to_xpath vectorises arguments", {
     expect_equal(css_to_xpath("a b"), "descendant-or-self::a//b")
     expect_equal(css_to_xpath("a b", prefix = ""), "a//b")
     expect_equal(css_to_xpath("a b", prefix = c("descendant-or-self::", "")), c("descendant-or-self::a//b", "a//b"))
-    expect_equal(css_to_xpath("a:checked", prefix = "", translator = c("generic", "html", "xhtml")), c("a[0]", "a[(@selected and name(.) = 'option') or (@checked and (name(.) = 'input' or name(.) = 'command')and (@type = 'checkbox' or @type = 'radio'))]", "a[(@selected and name(.) = 'option') or (@checked and (name(.) = 'input' or name(.) = 'command')and (@type = 'checkbox' or @type = 'radio'))]"))
+    # @type comparisons fold case (HTML enumerated attribute); shared by
+    # the html and xhtml translators.
+    t_lc <- paste0("translate(@type, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', ",
+                   "'abcdefghijklmnopqrstuvwxyz')")
+    checked_html <- paste0("a[(@selected and name(.) = 'option') or ",
+                           "(@checked and (name(.) = 'input' or name(.) = 'command')",
+                           "and (", t_lc, " = 'checkbox' or ", t_lc, " = 'radio'))]")
+    expect_equal(css_to_xpath("a:checked", prefix = "", translator = c("generic", "html", "xhtml")), c("a[0]", checked_html, checked_html))
     expect_equal(css_to_xpath(c("a b", "b c"), prefix = ""), c("a//b", "b//c"))
 
     # repeated selectors translate once and reuse the result; a repeat is
