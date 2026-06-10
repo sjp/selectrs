@@ -923,6 +923,46 @@ mod tests {
                  {t_lc} = 'button')) or name(.) = 'select' or name(.) = 'textarea')]"
             )
         );
+        // :disabled/:enabled fold @type case and apply HTML's
+        // "actually disabled" carve-out: a control inside a disabled
+        // fieldset's first legend is NOT disabled. Expressed by counting —
+        // more disabled-fieldset ancestors than protecting first-legends.
+        let fd = "count(ancestor::fieldset[@disabled]) > \
+                  count(ancestor::legend[not(preceding-sibling::legend)]\
+                  [parent::fieldset[@disabled]])";
+        assert_eq!(
+            h("input:disabled"),
+            format!(
+                "input[( @disabled and ( \
+                 (name(.) = 'input' and not({t_lc} = 'hidden')) or \
+                 name(.) = 'button' or name(.) = 'select' or \
+                 name(.) = 'textarea' or name(.) = 'command' or \
+                 name(.) = 'fieldset' or name(.) = 'optgroup' or \
+                 name(.) = 'option' \
+                 ) ) or ( ( \
+                 (name(.) = 'input' and not({t_lc} = 'hidden')) or \
+                 name(.) = 'button' or name(.) = 'select' or \
+                 name(.) = 'textarea' \
+                 ) \
+                 and {fd} \
+                 )]"
+            )
+        );
+        assert_eq!(
+            h("input:enabled"),
+            format!(
+                "input[(@href and (name(.) = 'a' or name(.) = 'link' or \
+                 name(.) = 'area')) or \
+                 ((name(.) = 'command' or name(.) = 'fieldset' or \
+                 name(.) = 'optgroup') and not(@disabled)) or \
+                 (((name(.) = 'input' and not({t_lc} = 'hidden')) \
+                 or name(.) = 'button' or name(.) = 'select' \
+                 or name(.) = 'textarea' or name(.) = 'keygen') \
+                 and not (@disabled or {fd})) \
+                 or (name(.) = 'option' and not(@disabled or \
+                 ancestor::optgroup[@disabled]))]"
+            )
+        );
         // Non-overridden dynamic pseudos still never match.
         assert_eq!(h("a:hover"), "a[0]");
         assert_eq!(h("a:visited"), "a[0]");

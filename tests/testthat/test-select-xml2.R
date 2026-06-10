@@ -377,3 +377,36 @@ test_that("form pseudo-classes fold case on the @type keyword", {
     expect_equal(get_ids("input:disabled"), NULL)
     expect_equal(get_ids("input:enabled"), c("up-radio", "lo-radio", "up-text"))
 })
+
+test_that(":disabled/:enabled honour the disabled-fieldset legend carve-out", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+
+    # HTML's "actually disabled": a control in a disabled fieldset's FIRST
+    # legend stays enabled; one in the body or a later legend is disabled.
+    doc <- read_html(paste0(
+        '<form>',
+        '<fieldset disabled="">',
+        '  <legend><input id="in-legend" /></legend>',
+        '  <legend><input id="in-second-legend" /></legend>',
+        '  <input id="in-body" />',
+        '</fieldset>',
+        '<fieldset disabled="">',
+        '  <fieldset disabled="">',
+        '    <legend><input id="in-nested-legend" /></legend>',
+        '  </fieldset>',
+        '</fieldset>',
+        '</form>'
+    ))
+    get_ids <- function(css) {
+        xpath <- css_to_xpath(css, translator = "html")
+        unlist(lapply(xml_find_all(doc, xpath), xml_attr, "id"))
+    }
+
+    # Only the first legend's control escapes; body and second-legend are
+    # disabled. The nested control sits in the inner fieldset's first legend
+    # but below the outer disabled fieldset, so it stays disabled.
+    expect_equal(get_ids("input:disabled"),
+                 c("in-second-legend", "in-body", "in-nested-legend"))
+    expect_equal(get_ids("input:enabled"), "in-legend")
+})

@@ -423,9 +423,15 @@ test_that("HTML translator overrides dynamic pseudo-classes", {
     # The xhtml translator shares the HTML overrides without lowercasing.
     expect_equal(css_to_xpath("A:link", "", "xhtml"),
                  "A[@href and (name(.) = 'a' or name(.) = 'link' or name(.) = 'area')]")
-    # :enabled/:disabled have long HTML conditions; pin their shape.
-    expect_match(h("input:disabled"), "ancestor::fieldset\\[@disabled\\]")
-    expect_match(h("input:enabled"), "not \\(@disabled or ancestor::fieldset\\[@disabled\\]\\)")
+    # :enabled/:disabled have long HTML conditions; pin their shape. The
+    # fieldset-disabled term counts disabled-fieldset ancestors against
+    # protecting first-legends (HTML's "actually disabled" carve-out).
+    fd <- paste0("count\\(ancestor::fieldset\\[@disabled\\]\\) > ",
+                 "count\\(ancestor::legend",
+                 "\\[not\\(preceding-sibling::legend\\)\\]",
+                 "\\[parent::fieldset\\[@disabled\\]\\]\\)")
+    expect_match(h("input:disabled"), fd)
+    expect_match(h("input:enabled"), paste0("not \\(@disabled or ", fd, "\\)"))
 })
 
 test_that("translation of unsafe XPath names works", {

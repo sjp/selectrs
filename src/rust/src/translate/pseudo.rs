@@ -24,6 +24,17 @@ const LANG_ATTRIBUTE: &str = "lang";
 const TYPE_LC: &str = "translate(@type, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', \
                        'abcdefghijklmnopqrstuvwxyz')";
 
+/// A form control is disabled by a `fieldset[disabled]` ancestor unless it
+/// sits inside that fieldset's first `legend` child (HTML's "actually
+/// disabled" carve-out keeps a disabled group's caption usable). Each such
+/// first-legend ancestor protects against exactly one disabled fieldset
+/// (distinct legends have distinct parents), so the control is
+/// fieldset-disabled iff it has more disabled-fieldset ancestors than
+/// protecting legends — which counts nested disabled fieldsets correctly.
+const FIELDSET_DISABLED: &str = "count(ancestor::fieldset[@disabled]) > \
+     count(ancestor::legend[not(preceding-sibling::legend)]\
+     [parent::fieldset[@disabled]])";
+
 /// The elements the `required` attribute applies to, for `:required` and
 /// `:optional` (HTML spec): `select`, `textarea`, and `input` except the
 /// types on which `required` has no effect — those match neither
@@ -111,7 +122,7 @@ impl Translator {
                      name(.) = 'select' or \
                      name(.) = 'textarea' \
                      ) \
-                     and ancestor::fieldset[@disabled] \
+                     and {FIELDSET_DISABLED} \
                      )"
                 ));
             }
@@ -127,7 +138,7 @@ impl Translator {
                      or name(.) = 'select' \
                      or name(.) = 'textarea' \
                      or name(.) = 'keygen') \
-                     and not (@disabled or ancestor::fieldset[@disabled])) \
+                     and not (@disabled or {FIELDSET_DISABLED})) \
                      or (name(.) = 'option' and not(@disabled or \
                      ancestor::optgroup[@disabled]))"
                 ));
