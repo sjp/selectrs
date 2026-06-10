@@ -890,26 +890,38 @@ mod tests {
         // static document the two coincide, so they share a translation.
         assert_eq!(h("a:any-link"), h("a:link"));
         assert_eq!(h("a:ANY-link"), h("a:link"));
+        // @type comparisons fold case (HTML enumerated attribute), so
+        // type="RADIO" reads as a radio. The fold is the same translate()
+        // the `i` attribute flag uses.
+        let t_lc = "translate(@type, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')";
         assert_eq!(
             h("input:checked"),
-            "input[(@selected and name(.) = 'option') or (@checked and (name(.) = 'input' or name(.) = 'command')and (@type = 'checkbox' or @type = 'radio'))]"
+            format!(
+                "input[(@selected and name(.) = 'option') or (@checked and \
+                 (name(.) = 'input' or name(.) = 'command')and \
+                 ({t_lc} = 'checkbox' or {t_lc} = 'radio'))]"
+            )
         );
         // :required/:optional test the @required attribute over the
         // elements it applies to; input types where it has no effect
         // match neither.
         assert_eq!(
             h("input:required"),
-            "input[@required and ((name(.) = 'input' and not(\
-             @type = 'hidden' or @type = 'range' or @type = 'color' or \
-             @type = 'submit' or @type = 'image' or @type = 'reset' or \
-             @type = 'button')) or name(.) = 'select' or name(.) = 'textarea')]"
+            format!(
+                "input[@required and ((name(.) = 'input' and not(\
+                 {t_lc} = 'hidden' or {t_lc} = 'range' or {t_lc} = 'color' or \
+                 {t_lc} = 'submit' or {t_lc} = 'image' or {t_lc} = 'reset' or \
+                 {t_lc} = 'button')) or name(.) = 'select' or name(.) = 'textarea')]"
+            )
         );
         assert_eq!(
             h("select:optional"),
-            "select[not(@required) and ((name(.) = 'input' and not(\
-             @type = 'hidden' or @type = 'range' or @type = 'color' or \
-             @type = 'submit' or @type = 'image' or @type = 'reset' or \
-             @type = 'button')) or name(.) = 'select' or name(.) = 'textarea')]"
+            format!(
+                "select[not(@required) and ((name(.) = 'input' and not(\
+                 {t_lc} = 'hidden' or {t_lc} = 'range' or {t_lc} = 'color' or \
+                 {t_lc} = 'submit' or {t_lc} = 'image' or {t_lc} = 'reset' or \
+                 {t_lc} = 'button')) or name(.) = 'select' or name(.) = 'textarea')]"
+            )
         );
         // Non-overridden dynamic pseudos still never match.
         assert_eq!(h("a:hover"), "a[0]");

@@ -410,10 +410,13 @@ test_that("HTML translator overrides dynamic pseudo-classes", {
     # :any-link is :link plus :visited; with no visited state in a static
     # document the two coincide, so they share a translation.
     expect_equal(h("a:any-link"), h("a:link"))
+    # @type comparisons fold case (HTML enumerated attribute).
+    t_lc <- paste0("translate(@type, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', ",
+                   "'abcdefghijklmnopqrstuvwxyz')")
     expect_equal(h("input:checked"),
                  paste0("input[(@selected and name(.) = 'option') or ",
                         "(@checked and (name(.) = 'input' or name(.) = 'command')",
-                        "and (@type = 'checkbox' or @type = 'radio'))]"))
+                        "and (", t_lc, " = 'checkbox' or ", t_lc, " = 'radio'))]"))
     # Non-overridden dynamic pseudos still never match.
     expect_equal(h("a:hover"), "a[0]")
     expect_equal(h("a:visited"), "a[0]")

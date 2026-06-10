@@ -16,20 +16,33 @@ use super::{Kind, Translator};
 /// use for one — its `:lang()` goes through XPath's `lang()` function.)
 const LANG_ATTRIBUTE: &str = "lang";
 
+/// The HTML `type` attribute, ASCII-lowercased so comparisons against
+/// enumerated-attribute keywords are case-insensitive: `type` is an
+/// [enumerated attribute](https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#enumerated-attribute),
+/// so `type="RADIO"` is a radio and `type="HIDDEN"` is hidden. This is the
+/// same ASCII fold the `i` attribute flag uses (`apply_case_flag`).
+const TYPE_LC: &str = "translate(@type, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', \
+                       'abcdefghijklmnopqrstuvwxyz')";
+
 /// The elements the `required` attribute applies to, for `:required` and
 /// `:optional` (HTML spec): `select`, `textarea`, and `input` except the
 /// types on which `required` has no effect — those match neither
-/// pseudo-class, whatever attributes they carry.
-const REQUIRED_APPLIES: &str = "((name(.) = 'input' and not(\
-                                @type = 'hidden' or \
-                                @type = 'range' or \
-                                @type = 'color' or \
-                                @type = 'submit' or \
-                                @type = 'image' or \
-                                @type = 'reset' or \
-                                @type = 'button')) or \
-                                name(.) = 'select' or \
-                                name(.) = 'textarea')";
+/// pseudo-class, whatever attributes they carry. The type keywords are
+/// matched case-insensitively (see [`TYPE_LC`]).
+fn required_applies() -> String {
+    format!(
+        "((name(.) = 'input' and not(\
+         {TYPE_LC} = 'hidden' or \
+         {TYPE_LC} = 'range' or \
+         {TYPE_LC} = 'color' or \
+         {TYPE_LC} = 'submit' or \
+         {TYPE_LC} = 'image' or \
+         {TYPE_LC} = 'reset' or \
+         {TYPE_LC} = 'button')) or \
+         name(.) = 'select' or \
+         name(.) = 'textarea')"
+    )
+}
 
 impl Translator {
     pub(crate) fn apply_pseudo_class(
@@ -57,12 +70,12 @@ impl Translator {
             }
             // HTML overrides
             (Kind::Html, PseudoClass::Checked) => {
-                xpath.add_or_condition(
+                xpath.add_or_condition(&format!(
                     "(@selected and name(.) = 'option') or \
                      (@checked \
                      and (name(.) = 'input' or name(.) = 'command')\
-                     and (@type = 'checkbox' or @type = 'radio'))",
-                );
+                     and ({TYPE_LC} = 'checkbox' or {TYPE_LC} = 'radio'))"
+                ));
             }
             // :any-link is :link ∪ :visited. A static document has no
             // visited state, so every link counts as unvisited and the
@@ -76,15 +89,15 @@ impl Translator {
                 );
             }
             (Kind::Html, PseudoClass::Required) => {
-                xpath.add_condition(&format!("@required and {REQUIRED_APPLIES}"));
+                xpath.add_condition(&format!("@required and {}", required_applies()));
             }
             (Kind::Html, PseudoClass::Optional) => {
-                xpath.add_condition(&format!("not(@required) and {REQUIRED_APPLIES}"));
+                xpath.add_condition(&format!("not(@required) and {}", required_applies()));
             }
             (Kind::Html, PseudoClass::Disabled) => {
-                xpath.add_or_condition(
+                xpath.add_or_condition(&format!(
                     "( @disabled and ( \
-                     (name(.) = 'input' and not(@type = 'hidden')) or \
+                     (name(.) = 'input' and not({TYPE_LC} = 'hidden')) or \
                      name(.) = 'button' or \
                      name(.) = 'select' or \
                      name(.) = 'textarea' or \
@@ -93,31 +106,31 @@ impl Translator {
                      name(.) = 'optgroup' or \
                      name(.) = 'option' \
                      ) ) or ( ( \
-                     (name(.) = 'input' and not(@type = 'hidden')) or \
+                     (name(.) = 'input' and not({TYPE_LC} = 'hidden')) or \
                      name(.) = 'button' or \
                      name(.) = 'select' or \
                      name(.) = 'textarea' \
                      ) \
                      and ancestor::fieldset[@disabled] \
-                     )",
-                );
+                     )"
+                ));
             }
             (Kind::Html, PseudoClass::Enabled) => {
-                xpath.add_or_condition(
+                xpath.add_or_condition(&format!(
                     "(@href and (name(.) = 'a' or name(.) = 'link' or name(.) = 'area')) \
                      or \
                      ((name(.) = 'command' or name(.) = 'fieldset' or name(.) = 'optgroup') \
                      and not(@disabled)) \
                      or \
-                     (((name(.) = 'input' and not(@type = 'hidden')) \
+                     (((name(.) = 'input' and not({TYPE_LC} = 'hidden')) \
                      or name(.) = 'button' \
                      or name(.) = 'select' \
                      or name(.) = 'textarea' \
                      or name(.) = 'keygen') \
                      and not (@disabled or ancestor::fieldset[@disabled])) \
                      or (name(.) = 'option' and not(@disabled or \
-                     ancestor::optgroup[@disabled]))",
-                );
+                     ancestor::optgroup[@disabled]))"
+                ));
             }
             // Everything else never matches.
             _ => {

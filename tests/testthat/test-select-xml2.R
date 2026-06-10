@@ -344,3 +344,36 @@ test_that(":enabled and :disabled match inputs with no type attribute", {
     expect_equal(get_ids("input:disabled"), "plain-disabled")
     expect_equal(get_ids("input:enabled"), "plain-enabled")
 })
+
+test_that("form pseudo-classes fold case on the @type keyword", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+
+    # type is an HTML enumerated attribute: its keywords match ASCII
+    # case-insensitively, so type="RADIO" is a radio and type="HIDDEN" is
+    # hidden. xml2 lowercases element/attribute names but preserves
+    # attribute values, so the uppercase keywords reach the XPath tests.
+    doc <- read_html(paste0(
+        '<form>',
+        '<input id="up-hidden" type="HIDDEN" required="" disabled="" />',
+        '<input id="up-radio" type="RADIO" checked="" />',
+        '<input id="lo-radio" type="radio" checked="" />',
+        '<input id="up-text" type="TEXT" required="" />',
+        '</form>'
+    ))
+    get_ids <- function(css) {
+        xpath <- css_to_xpath(css, translator = "html")
+        unlist(lapply(xml_find_all(doc, xpath), xml_attr, "id"))
+    }
+
+    # A type=HIDDEN input is hidden: required has no effect, so it matches
+    # neither :required nor :optional. type=TEXT/RADIO support required, so
+    # the required one is :required and the unrequired ones are :optional.
+    expect_equal(get_ids("input:required"), "up-text")
+    expect_equal(get_ids("input:optional"), c("up-radio", "lo-radio"))
+    # Both radios are checked regardless of keyword case.
+    expect_equal(get_ids("input:checked"), c("up-radio", "lo-radio"))
+    # type=HIDDEN never participates in :enabled/:disabled.
+    expect_equal(get_ids("input:disabled"), NULL)
+    expect_equal(get_ids("input:enabled"), c("up-radio", "lo-radio", "up-text"))
+})
