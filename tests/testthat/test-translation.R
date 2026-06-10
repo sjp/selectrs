@@ -388,6 +388,19 @@ test_that(":lang() and :dir() generate correct XPath", {
                  paste0("e[", lang_test("en-"), "]"))
     expect_equal(css_to_xpath("e:lang(*)", "", "html"),
                  "e[ancestor-or-self::*[@lang]]")
+    # A bare '*' stays match-anything alongside other ranges; it is not the
+    # head of an interior wildcard.
+    expect_equal(xpath("e:lang(*, fr)"), "e[true() or lang('fr')]")
+    # Interior wildcards (RFC 4647 extended filtering) are valid CSS but
+    # inexpressible in XPath 1.0, so both spellings error rather than
+    # over-match (unquoted *-CH) or never match (quoted "*-CH").
+    for (translator in c("generic", "html", "xhtml")) {
+        for (sel in c("e:lang(*-CH)", 'e:lang("*-CH")',
+                      "e:lang(de-*-DE)", 'e:lang("de-*-DE")')) {
+            expect_error(css_to_xpath(sel, "", translator),
+                         "does not support", fixed = TRUE)
+        }
+    }
 })
 
 test_that("HTML translator overrides dynamic pseudo-classes", {

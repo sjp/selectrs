@@ -827,6 +827,9 @@ mod tests {
         assert_eq!(xpath("e:lang(en, fr)"), "e[lang('en') or lang('fr')]");
         // Whitespace is a separator too.
         assert_eq!(xpath("e:lang(en fr)"), "e[lang('en') or lang('fr')]");
+        // A bare * stays match-anything even alongside other ranges: it
+        // must not be confused with the head of an interior wildcard.
+        assert_eq!(xpath("e:lang(*, fr)"), "e[true() or lang('fr')]");
         // HTML: nearest lang-attributed ancestor, lowercased prefix match.
         let html = Translator::new("html").unwrap();
         assert_eq!(
@@ -843,12 +846,27 @@ mod tests {
             xhtml.css_to_xpath("E:lang(*)", "").unwrap(),
             "E[ancestor-or-self::*[@lang]]"
         );
+        // Interior wildcards (RFC 4647 extended filtering) are valid CSS
+        // but inexpressible in XPath 1.0, so both spellings error rather
+        // than over-match (unquoted *-CH) or never match (quoted "*-CH").
+        let t = Translator::new("generic").unwrap();
+        for sel in [
+            "e:lang(*-CH)",
+            "e:lang(\"*-CH\")",
+            "e:lang(de-*-DE)",
+            "e:lang(\"de-*-DE\")",
+        ] {
+            assert!(t.css_to_xpath(sel, "").is_err(), "{sel} should error");
+            assert!(
+                html.css_to_xpath(sel, "").is_err(),
+                "{sel} should error (html)"
+            );
+        }
         // :dir() takes exactly one identifier (selectors-4) — none of
         // :lang()'s strings, wildcards, or lists. It never matches in any
         // translator: resolved directionality needs runtime bidi
         // resolution, and a nearest-@dir approximation is deliberately
         // not attempted (see apply_pseudo_class).
-        let t = Translator::new("generic").unwrap();
         assert_eq!(xpath("e:dir(rtl)"), "e[0]");
         assert_eq!(html.css_to_xpath("e:dir(rtl)", "").unwrap(), "e[0]");
         assert_eq!(xhtml.css_to_xpath("e:dir(ltr)", "").unwrap(), "e[0]");

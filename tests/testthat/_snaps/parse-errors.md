@@ -73,6 +73,14 @@
 ---
 
     Code
+      css_to_xpath("e:lang(*-CH)")
+    Condition
+      Error:
+      ! The CSS selector "e:lang(*-CH)" uses the :lang() language range "*-CH" (a wildcard outside the final subtag), which selectrs does not support
+
+---
+
+    Code
       css_to_xpath("col || td")
     Condition
       Error:
