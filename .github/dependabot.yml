@@ -17,3 +17,12 @@ updates:
       devcontainers:
         patterns:
           - "*"
+
+  - package-ecosystem: "cargo"
+    directory: "/src/rust"
+    schedule:
+      interval: "weekly"
+    groups:
+      cargo:
+        patterns:
+          - "*"
