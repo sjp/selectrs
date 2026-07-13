@@ -371,10 +371,6 @@ pub fn parse(css: &str) -> Result<SelectorList<SelectrsImpl>, Error> {
             cssparser::ParseErrorKind::Basic(ref kind) => format!("{kind:?}"),
             cssparser::ParseErrorKind::Custom(ref kind) => format!("{kind:?}"),
         };
-        Error::Parse(format!(
-            "{detail} (at {}:{})",
-            e.location.line + 1,
-            e.location.column
-        ))
+        Error::Parse(detail, e.location.column)
     })
 }
