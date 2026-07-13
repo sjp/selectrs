@@ -25,7 +25,7 @@ crate-type = ["staticlib", "lib"]
 # vendoring freezes the dependency tree anyway. Upgrades are deliberate
 # events, gated on the full test suite.
 savvy = "=0.10.2"
-selectors = "=0.38.0"
+selectors = "=0.39.0"
 cssparser = "=0.37.0"
 precomputed-hash = "=0.1.1"
 
