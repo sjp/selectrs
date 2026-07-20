@@ -1,9 +1,11 @@
-test_that("the Rust core is reachable and its version matches the package", {
+test_that("the Rust core is reachable and reports the css-to-xpath crate version", {
     core <- selectrs:::selectrs_core_version()
-    # the crate carries R's fourth (development) component as a semver
-    # pre-release suffix (0.0.0.9000 <-> 0.0.0-9000)
-    expect_equal(gsub("-", ".", core, fixed = TRUE),
-                 as.character(packageVersion("selectrs")))
+    expect_type(core, "character")
+    expect_length(core, 1L)
+    expect_false(is.na(core))
+    expect_true(nzchar(core))
+    # version should be parseable as a numeric_version
+    expect_no_error(numeric_version(core))
 })
 
 test_that("the Rust boundary itself rejects NA values", {

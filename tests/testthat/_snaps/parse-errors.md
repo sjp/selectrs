@@ -103,7 +103,7 @@
       css_to_xpath("e:lang(*-CH)")
     Condition
       Error:
-      ! The CSS selector "e:lang(*-CH)" uses the :lang() language range "*-CH" (a wildcard outside the final subtag), which selectrs does not support
+      ! The CSS selector "e:lang(*-CH)" uses the :lang() language range "*-CH" (a wildcard outside the final subtag), which this translator does not support
 
 ---
 
@@ -111,7 +111,7 @@
       css_to_xpath("col || td")
     Condition
       Error:
-      ! The CSS selector "col || td" uses the `||` column combinator, which selectrs does not support
+      ! The CSS selector "col || td" uses the `||` column combinator, which this translator does not support
 
 ---
 
@@ -141,7 +141,7 @@
       css_to_xpath("*:first-of-type")
     Condition
       Error:
-      ! The CSS selector "*:first-of-type" uses an of-type pseudo-class on the universal selector `*`, which selectrs does not support
+      ! The CSS selector "*:first-of-type" uses an of-type pseudo-class on the universal selector `*`, which this translator does not support
 
 ---
 

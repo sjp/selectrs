@@ -21,13 +21,11 @@ crate-type = ["staticlib", "lib"]
 [workspace]
 
 [dependencies]
-# Exact pins: `selectors` is a 0.x crate tied to Servo's needs, and CRAN
-# vendoring freezes the dependency tree anyway. Upgrades are deliberate
-# events, gated on the full test suite.
 savvy = "=0.10.2"
-selectors = "=0.39.0"
-cssparser = "=0.37.0"
-precomputed-hash = "=0.1.1"
+# Path dependency for the interim co-located layout; switches to a
+# crates.io version pin once the crate is published and the in-tree
+# directory is removed.
+css-to-xpath = "=0.1.0"
 
 [profile.release]
 # The entire input surface is arbitrary user-supplied CSS flowing into
