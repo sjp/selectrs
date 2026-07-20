@@ -20,15 +20,20 @@ The Rust core statically links the following crates, vendored in the
 source tarball as src/rust/vendor.tar.xz (versions exactly as pinned in
 src/rust/Cargo.lock). Their licenses and authors, from `cargo metadata`:
 
-bitflags 2.12.1
+bitflags 2.13.1
   License: MIT OR Apache-2.0
   Authors: The Rust Project Developers
   Repository: https://github.com/bitflags/bitflags
 
-cc 1.2.63
+cc 1.3.0
   License: MIT OR Apache-2.0
   Authors: Alex Crichton <alex@alexcrichton.com>
   Repository: https://github.com/rust-lang/cc-rs
+
+css-to-xpath 0.1.0
+  License: MIT
+  Authors: (not stated; see repository)
+  Repository: (no repository listed)
 
 cssparser 0.37.0
   License: MPL-2.0
@@ -60,7 +65,7 @@ dtoa-short 0.3.5
   Authors: Xidorn Quan <me@upsuper.org>
   Repository: https://github.com/upsuper/dtoa-short
 
-fastrand 2.4.1
+fastrand 2.5.0
   License: Apache-2.0 OR MIT
   Authors: Stjepan Glavina <stjepang@gmail.com>
   Repository: https://github.com/smol-rs/fastrand
@@ -75,7 +80,7 @@ itoa 1.0.18
   Authors: David Tolnay <dtolnay@gmail.com>
   Repository: https://github.com/dtolnay/itoa
 
-log 0.4.31
+log 0.4.33
   License: MIT OR Apache-2.0
   Authors: The Rust Project Developers
   Repository: https://github.com/rust-lang/log
@@ -115,12 +120,12 @@ precomputed-hash 0.1.1
   Authors: Emilio Cobos Álvarez <emilio@crisal.io>
   Repository: https://github.com/emilio/precomputed-hash
 
-proc-macro2 1.0.106
+proc-macro2 1.0.107
   License: MIT OR Apache-2.0
   Authors: David Tolnay <dtolnay@gmail.com>, Alex Crichton <alex@alexcrichton.com>
   Repository: https://github.com/dtolnay/proc-macro2
 
-quote 1.0.45
+quote 1.0.47
   License: MIT OR Apache-2.0
   Authors: David Tolnay <dtolnay@gmail.com>
   Repository: https://github.com/dtolnay/quote
@@ -130,7 +135,7 @@ rustc_version 0.4.1
   Authors: (not stated; see repository)
   Repository: https://github.com/djc/rustc-version-rs
 
-rustc-hash 2.1.2
+rustc-hash 2.1.3
   License: Apache-2.0 OR MIT
   Authors: The Rust Project Developers
   Repository: https://github.com/rust-lang/rustc-hash
@@ -155,7 +160,7 @@ savvy-macro 0.10.2
   Authors: Hiroaki Yutani
   Repository: https://github.com/yutannihilation/savvy/
 
-selectors 0.38.0
+selectors 0.39.0
   License: MPL-2.0
   Authors: The Servo Project Developers
   Repository: https://github.com/servo/stylo
@@ -165,17 +170,17 @@ semver 1.0.28
   Authors: David Tolnay <dtolnay@gmail.com>
   Repository: https://github.com/dtolnay/semver
 
-serde 1.0.228
+serde 1.0.229
   License: MIT OR Apache-2.0
   Authors: Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>
   Repository: https://github.com/serde-rs/serde
 
-serde_core 1.0.228
+serde_core 1.0.229
   License: MIT OR Apache-2.0
   Authors: Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>
   Repository: https://github.com/serde-rs/serde
 
-serde_derive 1.0.228
+serde_derive 1.0.229
   License: MIT OR Apache-2.0
   Authors: Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>
   Repository: https://github.com/serde-rs/serde
@@ -195,7 +200,7 @@ siphasher 1.0.3
   Authors: Frank Denis <github@pureftpd.org>
   Repository: https://github.com/jedisct1/rust-siphash
 
-smallvec 1.15.1
+smallvec 1.15.2
   License: MIT OR Apache-2.0
   Authors: The Servo Project Developers
   Repository: https://github.com/servo/rust-smallvec
@@ -205,7 +210,12 @@ stable_deref_trait 1.2.1
   Authors: Robert Grosse <n210241048576@gmail.com>
   Repository: https://github.com/storyyeller/stable_deref_trait
 
-syn 2.0.117
+syn 2.0.119
+  License: MIT OR Apache-2.0
+  Authors: David Tolnay <dtolnay@gmail.com>
+  Repository: https://github.com/dtolnay/syn
+
+syn 3.0.2
   License: MIT OR Apache-2.0
   Authors: David Tolnay <dtolnay@gmail.com>
   Repository: https://github.com/dtolnay/syn
