@@ -13,8 +13,12 @@
 		"vscode": {
 			"extensions": [
 				"REditorSupport.r-syntax",
-				"RDebugger.r-debugger"
-			]
+				"RDebugger.r-debugger",
+				"rust-lang.rust-analyzer"
+			],
+			"settings": {
+				"rust-analyzer.server.path": "/usr/local/cargo/bin/rust-analyzer"
+			}
 		}
 	},
 	"mounts": [
