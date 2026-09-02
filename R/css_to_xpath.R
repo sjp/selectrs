@@ -50,6 +50,68 @@
 #' `"*|p:first-of-type"` counts same-typed siblings by `local-name()`,
 #' which groups same-named types from different namespaces together.
 #'
+#' @section Translators:
+#' The `translator` argument chooses how names, and the pseudo-classes
+#' whose meaning depends on document semantics, are translated:
+#'
+#' * `"generic"` — plain CSS and XPath semantics: element and attribute
+#'   names are matched case-sensitively, and no pseudo-class carries an
+#'   HTML-specific meaning.
+#' * `"html"` — lower-cases element and attribute names, as HTML parsing
+#'   does, and gives `:link`, `:any-link`, `:checked`, `:enabled`,
+#'   `:disabled` (including HTML's `fieldset`/`legend` carve-out),
+#'   `:required`, `:optional` and `:lang()` their static HTML meaning.
+#' * `"xhtml"` — the same pseudo-class meanings as `"html"`, but names
+#'   keep their case, XHTML being XML.
+#'
+#' The argument is matched case-insensitively and on a unique prefix, so
+#' `"g"`, `"H"` and `"xh"` name the `"generic"`, `"html"` and `"xhtml"`
+#' translators.
+#'
+#' @section Supported selectors:
+#' Every translator handles:
+#'
+#' * Type, universal (`*`) and namespaced (`"ns|e"`, `"*|e"`, `"|e"`)
+#'   selectors.
+#' * ID (`"#id"`) and class (`".class"`) selectors.
+#' * Attribute selectors — `[attr]`, `=`, `~=`, `|=`, `^=`, `$=` and
+#'   `*=` — with the Level 4 `i` and `s` case-sensitivity flags.
+#' * The descendant, child (`>`), next-sibling (`+`) and
+#'   subsequent-sibling (`~`) combinators, and selector lists
+#'   (`"a, b"`).
+#' * The nth family — `:nth-child()`, `:nth-last-child()`,
+#'   `:nth-of-type()`, `:nth-last-of-type()`, `:first-child`,
+#'   `:last-child`, `:first-of-type`, `:last-of-type`, `:only-child`
+#'   and `:only-of-type` — including the Level 4 `An+B of S` form.
+#' * `:is()` (and its legacy alias `:matches()`), `:where()`, `:not()`
+#'   and `:has()`, with complex, combinator-bearing arguments and with a
+#'   leading combinator inside `:has()` (`"e:has(> .foo)"`).
+#' * `:scope`, `:root`, `:empty` and `:lang()`.
+#'
+#' The pseudo-classes whose meaning rests on user or runtime state that
+#' a static document does not have are parsed but never match,
+#' translating to the always-false predicate `[0]`: `:hover`, `:active`,
+#' `:focus`, `:focus-within`, `:focus-visible`, `:visited`, `:target`,
+#' `:target-within`, `:local-link` and `:dir()`, plus — under the
+#' `"generic"` translator, which has no HTML semantics to give them —
+#' `:link`, `:any-link`, `:checked`, `:enabled`, `:disabled`,
+#' `:required` and `:optional`.
+#'
+#' Everything else is an error rather than an approximation:
+#'
+#' * Pseudo-elements (`"::before"`, `"::slotted()"`, `"::part()"`).
+#' * The column combinator and `:nth-col()` / `:nth-last-col()`, and the
+#'   of-type pseudo-classes without an element type to count with, as
+#'   described above.
+#' * The non-standard `[attr!=value]` and `:contains()`.
+#' * Any other pseudo-class, including the form pseudo-classes `:valid`,
+#'   `:read-only` and `:placeholder-shown`, so that a typo stays loud
+#'   instead of silently matching nothing.
+#' * `:host`, the `&` nesting selector, and a `:has()` nested inside
+#'   another `:has()`.
+#' * `:scope` outside the leftmost compound, or inside a functional
+#'   pseudo-class such as `":is(:scope)"`.
+#'
 #' @section Errors:
 #' Errors raised by selectrs are classed conditions, so callers can tell
 #' the kinds of failure apart without matching on the message. All of them
@@ -70,7 +132,8 @@
 #' @param prefix A character vector of prefixes to apply to the resulting
 #'   XPath expressions. Not applied to selectors anchored by `:scope`.
 #' @param translator A character vector of translators to use, each one of
-#'   `"generic"`, `"html"`, or `"xhtml"`.
+#'   `"generic"`, `"html"`, or `"xhtml"`, matched case-insensitively and
+#'   on a unique prefix. See the Translators section.
 #' @returns A character vector of XPath expressions, one per element of
 #'   the recycled arguments.
 #' @examples

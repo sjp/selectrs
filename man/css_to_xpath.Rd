@@ -13,7 +13,8 @@ css_to_xpath(selector, prefix = "descendant-or-self::", translator = "generic")
 XPath expressions. Not applied to selectors anchored by \verb{:scope}.}
 
 \item{translator}{A character vector of translators to use, each one of
-\code{"generic"}, \code{"html"}, or \code{"xhtml"}.}
+\code{"generic"}, \code{"html"}, or \code{"xhtml"}, matched case-insensitively and
+on a unique prefix. See the Translators section.}
 }
 \value{
 A character vector of XPath expressions, one per element of
@@ -71,6 +72,75 @@ has the same limitation.) Note also that an any-namespace type like
 \code{"*|p:first-of-type"} counts same-typed siblings by \code{local-name()},
 which groups same-named types from different namespaces together.
 }
+\section{Translators}{
+
+The \code{translator} argument chooses how names, and the pseudo-classes
+whose meaning depends on document semantics, are translated:
+\itemize{
+\item \code{"generic"} — plain CSS and XPath semantics: element and attribute
+names are matched case-sensitively, and no pseudo-class carries an
+HTML-specific meaning.
+\item \code{"html"} — lower-cases element and attribute names, as HTML parsing
+does, and gives \verb{:link}, \verb{:any-link}, \verb{:checked}, \verb{:enabled},
+\verb{:disabled} (including HTML's \code{fieldset}/\code{legend} carve-out),
+\verb{:required}, \verb{:optional} and \verb{:lang()} their static HTML meaning.
+\item \code{"xhtml"} — the same pseudo-class meanings as \code{"html"}, but names
+keep their case, XHTML being XML.
+}
+
+The argument is matched case-insensitively and on a unique prefix, so
+\code{"g"}, \code{"H"} and \code{"xh"} name the \code{"generic"}, \code{"html"} and \code{"xhtml"}
+translators.
+}
+
+\section{Supported selectors}{
+
+Every translator handles:
+\itemize{
+\item Type, universal (\code{*}) and namespaced (\code{"ns|e"}, \code{"*|e"}, \code{"|e"})
+selectors.
+\item ID (\code{"#id"}) and class (\code{".class"}) selectors.
+\item Attribute selectors — \verb{[attr]}, \code{=}, \verb{~=}, \verb{|=}, \verb{^=}, \verb{$=} and
+\verb{*=} — with the Level 4 \code{i} and \code{s} case-sensitivity flags.
+\item The descendant, child (\code{>}), next-sibling (\code{+}) and
+subsequent-sibling (\code{~}) combinators, and selector lists
+(\code{"a, b"}).
+\item The nth family — \verb{:nth-child()}, \verb{:nth-last-child()},
+\verb{:nth-of-type()}, \verb{:nth-last-of-type()}, \verb{:first-child},
+\verb{:last-child}, \verb{:first-of-type}, \verb{:last-of-type}, \verb{:only-child}
+and \verb{:only-of-type} — including the Level 4 \verb{An+B of S} form.
+\item \verb{:is()} (and its legacy alias \verb{:matches()}), \verb{:where()}, \verb{:not()}
+and \verb{:has()}, with complex, combinator-bearing arguments and with a
+leading combinator inside \verb{:has()} (\code{"e:has(> .foo)"}).
+\item \verb{:scope}, \verb{:root}, \verb{:empty} and \verb{:lang()}.
+}
+
+The pseudo-classes whose meaning rests on user or runtime state that
+a static document does not have are parsed but never match,
+translating to the always-false predicate \verb{[0]}: \verb{:hover}, \verb{:active},
+\verb{:focus}, \verb{:focus-within}, \verb{:focus-visible}, \verb{:visited}, \verb{:target},
+\verb{:target-within}, \verb{:local-link} and \verb{:dir()}, plus — under the
+\code{"generic"} translator, which has no HTML semantics to give them —
+\verb{:link}, \verb{:any-link}, \verb{:checked}, \verb{:enabled}, \verb{:disabled},
+\verb{:required} and \verb{:optional}.
+
+Everything else is an error rather than an approximation:
+\itemize{
+\item Pseudo-elements (\code{"::before"}, \code{"::slotted()"}, \code{"::part()"}).
+\item The column combinator and \verb{:nth-col()} / \verb{:nth-last-col()}, and the
+of-type pseudo-classes without an element type to count with, as
+described above.
+\item The non-standard \verb{[attr!=value]} and \verb{:contains()}.
+\item Any other pseudo-class, including the form pseudo-classes \verb{:valid},
+\verb{:read-only} and \verb{:placeholder-shown}, so that a typo stays loud
+instead of silently matching nothing.
+\item \verb{:host}, the \code{&} nesting selector, and a \verb{:has()} nested inside
+another \verb{:has()}.
+\item \verb{:scope} outside the leftmost compound, or inside a functional
+pseudo-class such as \code{":is(:scope)"}.
+}
+}
+
 \section{Errors}{
 
 Errors raised by selectrs are classed conditions, so callers can tell

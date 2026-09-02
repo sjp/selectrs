@@ -78,6 +78,24 @@ declares are collected, with \code{\link[xml2:xml_ns]{xml2::xml_ns()}}, for ever
 zero-length \code{ns} skips that walk of the document, which is worth doing in
 a loop over a large document known to be un-namespaced.
 
+A document with a \emph{default} namespace — one declared as
+\code{xmlns="..."}, as XHTML, SVG and Atom documents are — needs its
+element names prefixed in the selector even though the markup does not
+prefix them: XPath 1.0 has no notion of a default namespace, so an
+unprefixed name only matches elements in no namespace at all, and a
+bare \code{"p"} finds nothing. With \pkg{xml2} the default \code{ns = NULL}
+collects the document's namespaces with \code{\link[xml2:xml_ns]{xml2::xml_ns()}}, which names
+each default namespace \code{d1}, \code{d2}, and so on, so \code{"d1|p"} selects the
+\code{p} elements. \code{"*|p"} selects them whatever the prefix and works with
+\pkg{XML} too, as does naming the namespace yourself
+(\code{ns = c(x = "http://www.w3.org/1999/xhtml")}, then \code{"x|p"}). A
+document read as HTML, by \code{\link[XML:htmlParse]{XML::htmlParse()}} or \code{\link[xml2:read_html]{xml2::read_html()}},
+is not affected: libxml2's HTML parser puts elements in no namespace,
+so bare names match. Prefer an explicit prefix to relying on the
+arguments of \verb{:is()}, \verb{:where()}, \verb{:not()}, \verb{:has()} and \verb{of S}, whose
+names currently do match a default namespace, so that \code{":is(p)"}
+matches where \code{"p"} does not.
+
 Selectors are translated with the \code{generic} (XML) translator unless a
 \code{translator} argument is given to be passed on to \code{\link[=css_to_xpath]{css_to_xpath()}},
 with one exception: a document parsed as HTML, by \code{\link[XML:htmlParse]{XML::htmlParse()}} or
@@ -118,6 +136,12 @@ if (requireNamespace("xml2", quietly = TRUE)) {
   querySelectorAll(exdoc, "b")    # A list of length one
   querySelector(exdoc, "d")       # No match
   querySelectorAll(exdoc, "d")    # No match
+
+  # A default namespace needs a prefix in the selector: xml2 names it d1
+  nsdoc <- xml2::read_xml('<a xmlns="http://example.org"><b/></a>')
+  querySelectorAll(nsdoc, "b")    # No match
+  querySelectorAll(nsdoc, "d1|b") # The namespace xml_ns() named d1
+  querySelectorAll(nsdoc, "*|b")  # Any namespace
 
   # Queries can be chained, the second running from each node matched by
   # the first
