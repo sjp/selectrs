@@ -221,3 +221,33 @@ test_that(":empty matches what browsers match: whitespace counts, comments do no
     expect_equal(xml_attr(querySelectorAll(doc, "a:empty"), "id"),
                  c("truly", "comment"))
 })
+
+test_that("the *NS variants are scoped to the queried node", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+    doc <- read_xml(paste0(
+        '<root xmlns:s="urn:s">',
+        '<s:a id="outer"/>',
+        '<wrap><s:a id="inner"/></wrap>',
+        '</root>'
+    ))
+    ns <- c(s = "urn:s")
+    wrap <- xml_find_first(doc, "//wrap")
+
+    expect_equal(xml_attr(querySelectorAllNS(wrap, "s|a", ns), "id"), "inner")
+    expect_equal(xml_attr(querySelectorNS(wrap, "s|a", ns), "id"), "inner")
+    expect_equal(xml_attr(querySelectorAllNS(xml_find_all(doc, "//wrap"),
+                                             "s|a", ns), "id"), "inner")
+    # matching the un-namespaced functions given the same namespace
+    expect_equal(xml_attr(querySelectorAll(wrap, "s|a", ns = ns), "id"),
+                 "inner")
+
+    # a query on the document still reaches everything
+    expect_equal(xml_attr(querySelectorAllNS(doc, "s|a", ns), "id"),
+                 c("outer", "inner"))
+
+    # the filter is descendant-or-self::, so the element it starts from can
+    # itself match
+    nsdoc <- read_xml('<s:root xmlns:s="urn:s"><s:a id="a"/></s:root>')
+    expect_equal(length(querySelectorAllNS(nsdoc, "s|root", ns)), 1L)
+})

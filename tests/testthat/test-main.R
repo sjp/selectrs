@@ -110,8 +110,10 @@ test_that("namespace handling works correctly", {
     expect_equal(formatNS(list(a = "u1", b = "u3")), c(a = "u1", b = "u3"))
 
     # formatNSPrefix must return a pipe separated string of namespace prefixes
-    expect_equal(formatNSPrefix(c(svg = "svg"), ""), "(//svg:*)/")
-    expect_equal(formatNSPrefix(c(svg = "svg"), "asd"), "(//svg:*)/asd")
-    expect_equal(formatNSPrefix(c(svg = "svg", math = "mathml"), ""), "(//svg:*|//math:*)/")
-    expect_equal(formatNSPrefix(c(svg = "svg", math = "mathml"), "asd"), "(//svg:*|//math:*)/asd")
+    expect_equal(formatNSPrefix(c(svg = "svg"), ""), "(descendant-or-self::svg:*)/")
+    expect_equal(formatNSPrefix(c(svg = "svg"), "asd"), "(descendant-or-self::svg:*)/asd")
+    expect_equal(formatNSPrefix(c(svg = "svg", math = "mathml"), ""),
+                 "(descendant-or-self::svg:*|descendant-or-self::math:*)/")
+    expect_equal(formatNSPrefix(c(svg = "svg", math = "mathml"), "asd"),
+                 "(descendant-or-self::svg:*|descendant-or-self::math:*)/asd")
 })

@@ -142,3 +142,36 @@ test_that(":scope queries are anchored at the queried node", {
     expect_equal(ids(querySelectorAll(doc, ":scope > section")),
                  c("s1", "s2"))
 })
+
+test_that("the *NS variants are scoped to the queried node", {
+    skip_if_not_installed("XML")
+    library(XML)
+    doc <- xmlParse(paste0(
+        '<root xmlns:s="urn:s">',
+        '<s:a id="outer"/>',
+        '<wrap><s:a id="inner"/></wrap>',
+        '</root>'
+    ))
+    ns <- c(s = "urn:s")
+    wrap <- getNodeSet(doc, "//wrap")[[1]]
+    ids <- function(x) {
+        if (is.null(x)) character() else
+        if (inherits(x, "XMLInternalNode")) xmlGetAttr(x, "id") else
+        vapply(x, function(n) xmlGetAttr(n, "id"), character(1))
+    }
+
+    expect_equal(ids(querySelectorAllNS(wrap, "s|a", ns)), "inner")
+    expect_equal(ids(querySelectorNS(wrap, "s|a", ns)), "inner")
+    expect_equal(ids(querySelectorAllNS(getNodeSet(doc, "//wrap"), "s|a", ns)),
+                 "inner")
+    # matching the un-namespaced functions given the same namespace
+    expect_equal(ids(querySelectorAll(wrap, "s|a", ns = ns)), "inner")
+
+    # a query on the document still reaches everything
+    expect_equal(ids(querySelectorAllNS(doc, "s|a", ns)), c("outer", "inner"))
+
+    # the filter is descendant-or-self::, so the element it starts from can
+    # itself match
+    nsdoc <- xmlParse('<s:root xmlns:s="urn:s"><s:a id="a"/></s:root>')
+    expect_equal(length(querySelectorAllNS(nsdoc, "s|root", ns)), 1L)
+})
