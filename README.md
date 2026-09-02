@@ -4,7 +4,7 @@
 
 `selectrs` is a package which makes working with HTML and XML documents easier. It does this by performing translation of CSS selectors into XPath expressions so that you can query `XML` and `xml2` documents easily.
 
-It is a standalone, API-compatible port of the [selectr](https://github.com/sjp/selectr) package with the parsing and translation core implemented in Rust on top of Servo's [cssparser](https://crates.io/crates/cssparser) and [selectors](https://crates.io/crates/selectors) crates. Queries return the same results as `selectr`, but faster.
+It is a standalone, API-compatible port of the [selectr](https://github.com/sjp/selectr) package with the parsing and translation core implemented in Rust by the [css-to-xpath](https://crates.io/crates/css-to-xpath) crate, which builds on Servo's [cssparser](https://crates.io/crates/cssparser) and [selectors](https://crates.io/crates/selectors) crates. Queries return the same results as `selectr`, but faster.
 
 ``` r
 library(selectrs)
