@@ -40,14 +40,19 @@ NULL
 #' Translate CSS selectors to XPath expressions
 #'
 #' The vectorized core of `css_to_xpath()`. R has already validated and
-#' recycled the arguments to equal length. The first element that fails —
-#' invalid syntax or an unsupported construct — aborts the call with an
-#' error naming the selector and the construct.
+#' recycled the arguments to equal length.
+#'
+#' A selector that fails to translate does not raise an error here: the
+#' first failure is returned as the named list `describe_failure()`
+#' builds, so that R can raise a condition classed by the kind of
+#' failure. Success returns a character vector, so the caller tells the
+#' two apart by type.
 #'
 #' @param selectors A character vector of CSS selectors.
 #' @param prefixes A character vector of XPath prefixes.
 #' @param translators A character vector: "generic", "html", or "xhtml".
-#' @returns A character vector of XPath expressions.
+#' @returns A character vector of XPath expressions, or a named list
+#'   describing the first selector that could not be translated.
 #' @noRd
 `css_to_xpath_rust` <- function(`selectors`, `prefixes`, `translators`) {
   .Call(savvy_css_to_xpath_rust__impl, `selectors`, `prefixes`, `translators`)

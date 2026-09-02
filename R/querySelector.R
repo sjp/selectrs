@@ -63,6 +63,9 @@
 #' `*NS` variants build into it) does not apply to selectors led by
 #' `:scope`.
 #'
+#' Errors raised by these functions are classed conditions; see the Errors
+#' section of [css_to_xpath()].
+#'
 #' @param doc The XML document, node, or set of nodes to be evaluated
 #'   against.
 #' @param selector A selector used to query `doc`. This must be a single
@@ -124,24 +127,24 @@ querySelectorAllNS <- function(doc, selector, ns,
 
 #' @export
 querySelector.default <- function(doc, selector, ns = NULL, ...) {
-    stop("The object given to querySelector() is not an 'XML' or 'xml2' document or node.")
+    argumentError("The object given to querySelector() is not an 'XML' or 'xml2' document or node.")
 }
 
 #' @export
 querySelectorAll.default <- function(doc, selector, ns = NULL, ...) {
-    stop("The object given to querySelectorAll() is not an 'XML' or 'xml2' document or node.")
+    argumentError("The object given to querySelectorAll() is not an 'XML' or 'xml2' document or node.")
 }
 
 #' @export
 querySelectorNS.default <- function(doc, selector, ns,
                                     prefix = "descendant-or-self::", ...) {
-    stop("The object given to querySelectorNS() is not an 'XML' or 'xml2' document or node.")
+    argumentError("The object given to querySelectorNS() is not an 'XML' or 'xml2' document or node.")
 }
 
 #' @export
 querySelectorAllNS.default <- function(doc, selector, ns,
                                     prefix = "descendant-or-self::", ...) {
-    stop("The object given to querySelectorAllNS() is not an 'XML' or 'xml2' document or node.")
+    argumentError("The object given to querySelectorAllNS() is not an 'XML' or 'xml2' document or node.")
 }
 
 #' @export
@@ -222,7 +225,7 @@ querySelectorNS.XMLInternalDocument <- function(doc, selector, ns,
                                                 prefix = "descendant-or-self::", ...) {
     validateSelector(selector)
     if (missing(ns) || !length(ns))
-        stop("A namespace must be provided.")
+        argumentError("A namespace must be provided.")
     ns <- formatNS(ns)
     prefix <- formatNSPrefix(ns, prefix)
     querySelector(doc, selector, ns, prefix = prefix, ...)
@@ -239,7 +242,7 @@ querySelectorAllNS.XMLInternalDocument <- function(doc, selector, ns,
                                                    prefix = "descendant-or-self::", ...) {
     validateSelector(selector)
     if (missing(ns) || !length(ns))
-        stop("A namespace must be provided.")
+        argumentError("A namespace must be provided.")
     ns <- formatNS(ns)
     prefix <- formatNSPrefix(ns, prefix)
     querySelectorAll(doc, selector, ns, prefix = prefix, ...)
@@ -324,7 +327,7 @@ querySelectorNS.xml_node <- function(doc, selector, ns,
                                      prefix = "descendant-or-self::", ...) {
     validateSelector(selector)
     if (missing(ns) || is.null(ns) || !length(ns))
-        stop("A namespace must be provided.")
+        argumentError("A namespace must be provided.")
     ns <- formatNS(ns)
     prefix <- formatNSPrefix(ns, prefix)
     querySelector(doc, selector, ns, prefix = prefix, ...)
@@ -341,7 +344,7 @@ querySelectorAllNS.xml_node <- function(doc, selector, ns,
                                         prefix = "descendant-or-self::", ...) {
     validateSelector(selector)
     if (missing(ns) || is.null(ns) || !length(ns))
-        stop("A namespace must be provided.")
+        argumentError("A namespace must be provided.")
     ns <- formatNS(ns)
     prefix <- formatNSPrefix(ns, prefix)
     querySelectorAll(doc, selector, ns, prefix = prefix, ...)
@@ -383,7 +386,7 @@ emptyNodeSet <- function() {
 
 validateSelector <- function(selector) {
     if (missing(selector) || !is.character(selector) || length(selector) != 1L)
-        stop("A valid selector (single character string) must be provided.")
+        argumentError("A valid selector (single character string) must be provided.")
 }
 
 # Takes a named vector or list and gives a named vector back
@@ -391,15 +394,15 @@ formatNS <- function(ns) {
     if (is.null(ns))
         return(NULL)
     if (!is.list(ns) && !is.character(ns))
-        stop("A namespace object must be either a named list or a named character vector.")
+        argumentError("A namespace object must be either a named list or a named character vector.")
     if (is.list(ns) && any(lengths(ns) != 1))
-        stop("Each element in the namespace object must be a single character string.")
+        argumentError("Each element in the namespace object must be a single character string.")
     nsNames <- names(ns)
     if (is.null(nsNames) || anyNA(nsNames) || !all(nzchar(nsNames)))
-        stop("The namespace object is missing some or all names for each element in its collection.")
+        argumentError("The namespace object is missing some or all names for each element in its collection.")
     ns <- unlist(ns)
     if (!is.character(ns))
-        stop("The values in the namespace object must be a character vector.")
+        argumentError("The values in the namespace object must be a character vector.")
     names(ns) <- nsNames
     ns
 }

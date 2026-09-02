@@ -64,6 +64,23 @@ has the same limitation.) Note also that an any-namespace type like
 \code{"*|p:first-of-type"} counts same-typed siblings by \code{local-name()},
 which groups same-named types from different namespaces together.
 }
+\section{Errors}{
+
+Errors raised by selectrs are classed conditions, so callers can tell
+the kinds of failure apart without matching on the message. All of them
+inherit from \code{selectrs_error}, and each carries the fields listed here:
+\itemize{
+\item \code{selectrs_parse_error} — the selector is not valid CSS. Fields
+\code{selector}, \code{index} (which element of a vectorised call failed) and
+\code{column}, the 1-based byte column the parse failed at.
+\item \code{selectrs_translation_error} — the selector is valid CSS but uses a
+construct that has no XPath 1.0 equivalent. Fields \code{selector},
+\code{index} and \code{construct}.
+\item \code{selectrs_argument_error} — the arguments themselves are wrong (a
+non-character selector, an \code{NA}, an unknown translator).
+}
+}
+
 \examples{
 css_to_xpath("#testid > .testclass")
 }

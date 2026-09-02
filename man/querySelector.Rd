@@ -97,6 +97,9 @@ the root element. Because \verb{:scope} anchors the expression at the
 queried node, the \code{prefix} argument (including the namespace filter the
 \verb{*NS} variants build into it) does not apply to selectors led by
 \verb{:scope}.
+
+Errors raised by these functions are classed conditions; see the Errors
+section of \code{\link[=css_to_xpath]{css_to_xpath()}}.
 }
 \examples{
 if (requireNamespace("xml2", quietly = TRUE)) {

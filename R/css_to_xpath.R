@@ -44,6 +44,20 @@
 #' `"*|p:first-of-type"` counts same-typed siblings by `local-name()`,
 #' which groups same-named types from different namespaces together.
 #'
+#' @section Errors:
+#' Errors raised by selectrs are classed conditions, so callers can tell
+#' the kinds of failure apart without matching on the message. All of them
+#' inherit from `selectrs_error`, and each carries the fields listed here:
+#'
+#' * `selectrs_parse_error` — the selector is not valid CSS. Fields
+#'   `selector`, `index` (which element of a vectorised call failed) and
+#'   `column`, the 1-based byte column the parse failed at.
+#' * `selectrs_translation_error` — the selector is valid CSS but uses a
+#'   construct that has no XPath 1.0 equivalent. Fields `selector`,
+#'   `index` and `construct`.
+#' * `selectrs_argument_error` — the arguments themselves are wrong (a
+#'   non-character selector, an `NA`, an unknown translator).
+#'
 #' @param selector A character vector of CSS selectors.
 #' @param prefix A character vector of prefixes to apply to the resulting
 #'   XPath expressions. Not applied to selectors anchored by `:scope`.
@@ -55,21 +69,21 @@
 #' @export
 css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator = "generic") {
     if (missing(selector) || is.null(selector))
-        stop("A valid selector (character vector) must be provided.")
+        argumentError("A valid selector (character vector) must be provided.")
 
     if (!is.character(selector))
-        stop("The 'selector' argument must be a character vector")
+        argumentError("The 'selector' argument must be a character vector")
     if (!is.character(prefix))
-        stop("The 'prefix' argument must be a character vector")
+        argumentError("The 'prefix' argument must be a character vector")
     if (!is.character(translator))
-        stop("The 'translator' argument must be a character vector")
+        argumentError("The 'translator' argument must be a character vector")
 
     if (anyNA(selector))
-        stop("NA values are not allowed in the 'selector' argument")
+        argumentError("NA values are not allowed in the 'selector' argument")
     if (anyNA(prefix))
-        stop("NA values are not allowed in the 'prefix' argument")
+        argumentError("NA values are not allowed in the 'prefix' argument")
     if (anyNA(translator))
-        stop("NA values are not allowed in the 'translator' argument")
+        argumentError("NA values are not allowed in the 'translator' argument")
 
     zeroLengthArgs <- character(0)
     if (!length(selector))
@@ -81,14 +95,14 @@ css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator =
 
     if (length(zeroLengthArgs)) {
         plural <- if (length(zeroLengthArgs) > 1) "s" else ""
-        stop("Zero length character vector found for the following argument",
-             plural,
-             ": ",
-             paste0(zeroLengthArgs, collapse = ", "))
+        argumentError(paste0("Zero length character vector found for the ",
+                             "following argument", plural, ": ",
+                             paste0(zeroLengthArgs, collapse = ", ")))
     }
 
     translator <- sapply(translator, function(tran) {
-        match.arg(tolower(tran), c("generic", "html", "xhtml"))
+        tryCatch(match.arg(tolower(tran), c("generic", "html", "xhtml")),
+                 error = function(e) argumentError(conditionMessage(e)))
     })
 
     maxArgLength <- max(length(selector), length(prefix), length(translator))
@@ -96,5 +110,10 @@ css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator =
     prefix <- rep(prefix, length.out = maxArgLength)
     translator <- rep(translator, length.out = maxArgLength)
 
-    as.character(css_to_xpath_rust(selector, prefix, translator))
+    # The core returns a character vector on success and a description of
+    # the first untranslatable selector otherwise.
+    xpath <- css_to_xpath_rust(selector, prefix, translator)
+    if (!is.character(xpath))
+        translationError(xpath)
+    as.character(xpath)
 }
