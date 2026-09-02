@@ -1,6 +1,7 @@
 # The four querySelector* generics, their default, XML
-# (XMLInternalNode/XMLInternalDocument), and xml2 (xml_node) methods, plus
-# the formatNS/formatNSPrefix helpers. css_to_xpath() dispatches into the
+# (XMLInternalNode/XMLInternalDocument/XMLNodeSet), and xml2
+# (xml_node/xml_nodeset/xml_missing) methods, plus the
+# formatNS/formatNSPrefix helpers. css_to_xpath() dispatches into the
 # Rust core.
 
 #' Find nodes that match a group of CSS selectors in an XML tree
@@ -11,10 +12,19 @@
 #' CSS selector. Namespaced variants `querySelectorNS` and
 #' `querySelectorAllNS` search relative to a given namespace.
 #'
-#' Methods are provided for documents and nodes from both the \pkg{XML}
-#' package (`XMLInternalDocument`/`XMLInternalNode`) and the \pkg{xml2}
-#' package (`xml_node`); the matching package must be installed for the
-#' corresponding method to work.
+#' Methods are provided for documents, nodes and sets of nodes from both the
+#' \pkg{XML} package (`XMLInternalDocument`/`XMLInternalNode`/`XMLNodeSet`)
+#' and the \pkg{xml2} package (`xml_node`/`xml_nodeset`/`xml_missing`); the
+#' matching package must be installed for the corresponding method to work.
+#'
+#' Queries may therefore be chained: a `querySelectorAll(doc, "table")` can
+#' be followed by `querySelectorAll(tables, "tr")`, which searches each
+#' matched table in turn. The selector is evaluated from each node of the
+#' set, so a relative selector such as `":scope > a"` applies per node, and
+#' a node that matches from more than one node of the set is returned only
+#' once, at the position it first matched. An `xml_missing`, the result of
+#' a failed [xml2::xml_find_first()], yields no matches rather than an
+#' error.
 #'
 #' The `querySelectorNS` and `querySelectorAllNS` functions are convenience
 #' functions for working with namespaced documents. They filter out all
@@ -35,7 +45,8 @@
 #' `*NS` variants build into it) does not apply to selectors led by
 #' `:scope`.
 #'
-#' @param doc The XML document or node to be evaluated against.
+#' @param doc The XML document, node, or set of nodes to be evaluated
+#'   against.
 #' @param selector A selector used to query `doc`. This must be a single
 #'   character string.
 #' @param ns The namespace that the query will be filtered to: a named list
@@ -46,8 +57,10 @@
 #' @param ... Parameters to be passed on to [css_to_xpath()].
 #' @returns For `querySelector`, the first matched node, or `NULL` when
 #'   nothing matches. For `querySelectorAll`, a (possibly empty) list of
-#'   matched nodes. The `*NS` variants return the same types as their
-#'   un-namespaced counterparts.
+#'   matched nodes, of the same class the queried document's package uses:
+#'   an `xml_nodeset` for \pkg{xml2} and an `XMLNodeSet` for \pkg{XML}. The
+#'   `*NS` variants return the same types as their un-namespaced
+#'   counterparts.
 #' @references CSS Selectors Level 4 <https://www.w3.org/TR/selectors-4/>,
 #'   XPath <https://www.w3.org/TR/xpath/>, querySelectorAll
 #'   <https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelectorAll>.
@@ -61,6 +74,10 @@
 #'   querySelectorAll(exdoc, "b")    # A list of length one
 #'   querySelector(exdoc, "d")       # No match
 #'   querySelectorAll(exdoc, "d")    # No match
+#'
+#'   # Queries can be chained, the second running from each node matched by
+#'   # the first
+#'   querySelectorAll(querySelectorAll(exdoc, "a"), "c")
 #' }
 #' @export
 querySelector <- function(doc, selector, ns = NULL, ...) {
@@ -123,6 +140,9 @@ querySelector.XMLInternalDocument <- function(doc, selector, ns = NULL, ...) {
 querySelector.XMLInternalNode <- querySelector.XMLInternalDocument
 
 #' @export
+querySelector.XMLNodeSet <- querySelector.XMLInternalDocument
+
+#' @export
 querySelectorAll.XMLInternalNode <- function(doc, selector, ns = NULL, ...) {
     validateSelector(selector)
     xpath <- css_to_xpath(selector, ...)
@@ -142,6 +162,27 @@ querySelectorAll.XMLInternalDocument <- function(doc, selector, ns = NULL, ...) 
 }
 
 #' @export
+querySelectorAll.XMLNodeSet <- function(doc, selector, ns = NULL, ...) {
+    validateSelector(selector)
+    xpath <- css_to_xpath(selector, ...)
+    if (!is.null(ns))
+        ns <- formatNS(ns)
+    results <- lapply(doc, function(node) {
+        if (is.null(ns))
+            XML::getNodeSet(node, xpath)
+        else
+            XML::getNodeSet(node, xpath, ns)
+    })
+    results <- unlist(results, recursive = FALSE)
+    if (is.null(results))
+        results <- list()
+    # A node matched from more than one node in the set is returned once, at
+    # the position it was first matched, mirroring what xml2 does when given
+    # a nodeset.
+    structure(unique(results), class = "XMLNodeSet")
+}
+
+#' @export
 querySelectorNS.XMLInternalDocument <- function(doc, selector, ns,
                                                 prefix = "descendant-or-self::", ...) {
     validateSelector(selector)
@@ -156,6 +197,9 @@ querySelectorNS.XMLInternalDocument <- function(doc, selector, ns,
 querySelectorNS.XMLInternalNode <- querySelectorNS.XMLInternalDocument
 
 #' @export
+querySelectorNS.XMLNodeSet <- querySelectorNS.XMLInternalDocument
+
+#' @export
 querySelectorAllNS.XMLInternalDocument <- function(doc, selector, ns,
                                                    prefix = "descendant-or-self::", ...) {
     validateSelector(selector)
@@ -168,6 +212,9 @@ querySelectorAllNS.XMLInternalDocument <- function(doc, selector, ns,
 
 #' @export
 querySelectorAllNS.XMLInternalNode <- querySelectorAllNS.XMLInternalDocument
+
+#' @export
+querySelectorAllNS.XMLNodeSet <- querySelectorAllNS.XMLInternalDocument
 
 #' @export
 querySelector.xml_node <- function(doc, selector, ns = NULL, ...) {
@@ -196,6 +243,42 @@ querySelectorAll.xml_node <- function(doc, selector, ns = NULL, ...) {
 }
 
 #' @export
+querySelector.xml_nodeset <- function(doc, selector, ns = NULL, ...) {
+    validateSelector(selector)
+    results <- querySelectorAll(doc, selector, ns, ...)
+    if (length(results))
+        results[[1]]
+    else
+        NULL
+}
+
+#' @export
+querySelectorAll.xml_nodeset <- function(doc, selector, ns = NULL, ...) {
+    validateSelector(selector)
+    if (is.null(ns))
+        ns <- xml2::xml_ns(doc)
+    else
+        ns <- formatNS(ns)
+    xpath <- css_to_xpath(selector, ...)
+    # xml2 evaluates the expression from each node in turn, so a relative
+    # selector (e.g. ":scope > a") applies per node, and a node matched more
+    # than once is returned only once.
+    xml2::xml_find_all(doc, xpath, ns)
+}
+
+#' @export
+querySelector.xml_missing <- function(doc, selector, ns = NULL, ...) {
+    validateSelector(selector)
+    NULL
+}
+
+#' @export
+querySelectorAll.xml_missing <- function(doc, selector, ns = NULL, ...) {
+    validateSelector(selector)
+    emptyNodeSet()
+}
+
+#' @export
 querySelectorNS.xml_node <- function(doc, selector, ns,
                                      prefix = "descendant-or-self::", ...) {
     validateSelector(selector)
@@ -207,6 +290,12 @@ querySelectorNS.xml_node <- function(doc, selector, ns,
 }
 
 #' @export
+querySelectorNS.xml_nodeset <- querySelectorNS.xml_node
+
+#' @export
+querySelectorNS.xml_missing <- querySelectorNS.xml_node
+
+#' @export
 querySelectorAllNS.xml_node <- function(doc, selector, ns,
                                         prefix = "descendant-or-self::", ...) {
     validateSelector(selector)
@@ -215,6 +304,18 @@ querySelectorAllNS.xml_node <- function(doc, selector, ns,
     ns <- formatNS(ns)
     prefix <- formatNSPrefix(ns, prefix)
     querySelectorAll(doc, selector, ns, prefix = prefix, ...)
+}
+
+#' @export
+querySelectorAllNS.xml_nodeset <- querySelectorAllNS.xml_node
+
+#' @export
+querySelectorAllNS.xml_missing <- querySelectorAllNS.xml_node
+
+# xml2 does not export a constructor for an empty nodeset, but this is the
+# structure it uses for one.
+emptyNodeSet <- function() {
+    structure(list(), class = "xml_nodeset")
 }
 
 validateSelector <- function(selector) {

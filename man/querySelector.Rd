@@ -16,7 +16,8 @@ querySelectorNS(doc, selector, ns, prefix = "descendant-or-self::", ...)
 querySelectorAllNS(doc, selector, ns, prefix = "descendant-or-self::", ...)
 }
 \arguments{
-\item{doc}{The XML document or node to be evaluated against.}
+\item{doc}{The XML document, node, or set of nodes to be evaluated
+against.}
 
 \item{selector}{A selector used to query \code{doc}. This must be a single
 character string.}
@@ -33,8 +34,10 @@ default or \code{""} are most commonly used.}
 \value{
 For \code{querySelector}, the first matched node, or \code{NULL} when
 nothing matches. For \code{querySelectorAll}, a (possibly empty) list of
-matched nodes. The \verb{*NS} variants return the same types as their
-un-namespaced counterparts.
+matched nodes, of the same class the queried document's package uses:
+an \code{xml_nodeset} for \pkg{xml2} and an \code{XMLNodeSet} for \pkg{XML}. The
+\verb{*NS} variants return the same types as their un-namespaced
+counterparts.
 }
 \description{
 The purpose of these functions is to mimic the functionality of the
@@ -44,10 +47,19 @@ CSS selector. Namespaced variants \code{querySelectorNS} and
 \code{querySelectorAllNS} search relative to a given namespace.
 }
 \details{
-Methods are provided for documents and nodes from both the \pkg{XML}
-package (\code{XMLInternalDocument}/\code{XMLInternalNode}) and the \pkg{xml2}
-package (\code{xml_node}); the matching package must be installed for the
-corresponding method to work.
+Methods are provided for documents, nodes and sets of nodes from both the
+\pkg{XML} package (\code{XMLInternalDocument}/\code{XMLInternalNode}/\code{XMLNodeSet})
+and the \pkg{xml2} package (\code{xml_node}/\code{xml_nodeset}/\code{xml_missing}); the
+matching package must be installed for the corresponding method to work.
+
+Queries may therefore be chained: a \code{querySelectorAll(doc, "table")} can
+be followed by \code{querySelectorAll(tables, "tr")}, which searches each
+matched table in turn. The selector is evaluated from each node of the
+set, so a relative selector such as \code{":scope > a"} applies per node, and
+a node that matches from more than one node of the set is returned only
+once, at the position it first matched. An \code{xml_missing}, the result of
+a failed \code{\link[xml2:xml_find_first]{xml2::xml_find_first()}}, yields no matches rather than an
+error.
 
 The \code{querySelectorNS} and \code{querySelectorAllNS} functions are convenience
 functions for working with namespaced documents. They filter out all
@@ -78,6 +90,10 @@ if (requireNamespace("xml2", quietly = TRUE)) {
   querySelectorAll(exdoc, "b")    # A list of length one
   querySelector(exdoc, "d")       # No match
   querySelectorAll(exdoc, "d")    # No match
+
+  # Queries can be chained, the second running from each node matched by
+  # the first
+  querySelectorAll(querySelectorAll(exdoc, "a"), "c")
 }
 }
 \references{
