@@ -20,6 +20,23 @@ fn selectrs_core_version() -> savvy::Result<savvy::Sexp> {
     Ok(out.into())
 }
 
+/// Panic, so that the unwind path can be tested from R
+///
+/// The whole input surface is arbitrary user CSS flowing into
+/// third-party parsing code, so the release profile sets
+/// `panic = "unwind"` to keep a reachable panic a catchable R error
+/// rather than a dead session. Nothing else reaches that path on
+/// purpose, so this export exists for the test that does. It is not in
+/// NAMESPACE and takes no arguments; the only way to call it is by name
+/// from inside the package.
+///
+/// @returns Never returns.
+/// @noRd
+#[savvy]
+fn selectrs_panic_test() -> savvy::Result<savvy::Sexp> {
+    panic!("panic from the Rust core")
+}
+
 /// Longest selector, in bytes, echoed whole in an error message.
 ///
 /// R truncates a printed error at `options(warning.length)`, 1000 bytes

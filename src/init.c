@@ -49,10 +49,16 @@ SEXP savvy_selectrs_core_version__impl(void) {
     return handle_result(res);
 }
 
+SEXP savvy_selectrs_panic_test__impl(void) {
+    SEXP res = savvy_selectrs_panic_test__ffi();
+    return handle_result(res);
+}
+
 
 static const R_CallMethodDef CallEntries[] = {
     {"savvy_css_to_xpath_rust__impl", (DL_FUNC) &savvy_css_to_xpath_rust__impl, 3},
     {"savvy_selectrs_core_version__impl", (DL_FUNC) &savvy_selectrs_core_version__impl, 0},
+    {"savvy_selectrs_panic_test__impl", (DL_FUNC) &savvy_selectrs_panic_test__impl, 0},
     {NULL, NULL, 0}
 };
 

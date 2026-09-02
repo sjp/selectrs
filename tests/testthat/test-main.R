@@ -155,3 +155,13 @@ test_that("namespace handling works correctly", {
     expect_equal(formatNSPrefix(c(svg = "svg", math = "mathml"), "asd"),
                  "(descendant-or-self::svg:*|descendant-or-self::math:*)/asd")
 })
+
+test_that("a panic in the Rust core surfaces as a catchable R error", {
+    # The release profile sets panic = "unwind" so that a panic reachable
+    # from arbitrary user CSS becomes an R error rather than killing the
+    # session; selectrs_panic_test() exists to exercise that path.
+    # (savvy reports the panic and its location on stderr, and raises this)
+    expect_error(selectrs:::selectrs_panic_test(), "panic happened")
+    # and the session carries on afterwards
+    expect_equal(css_to_xpath("a", prefix = ""), "a")
+})

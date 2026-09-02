@@ -58,15 +58,32 @@ NULL
   .Call(savvy_css_to_xpath_rust__impl, `selectors`, `prefixes`, `translators`)
 }
 
-#' Version of the selectrs Rust core
+#' Version of the css-to-xpath translation crate
 #'
-#' Returns the version of the underlying Rust crate. A trivial export used
-#' to verify that the Rust toolchain and FFI bindings are working.
+#' Returns the version of the underlying `css-to-xpath` crate. A trivial
+#' export used to verify that the Rust toolchain and FFI bindings are
+#' working.
 #'
 #' @returns A length-one character vector.
 #' @noRd
 `selectrs_core_version` <- function() {
   .Call(savvy_selectrs_core_version__impl)
+}
+
+#' Panic, so that the unwind path can be tested from R
+#'
+#' The whole input surface is arbitrary user CSS flowing into
+#' third-party parsing code, so the release profile sets
+#' `panic = "unwind"` to keep a reachable panic a catchable R error
+#' rather than a dead session. Nothing else reaches that path on
+#' purpose, so this export exists for the test that does. It is not in
+#' NAMESPACE and takes no arguments; the only way to call it is by name
+#' from inside the package.
+#'
+#' @returns Never returns.
+#' @noRd
+`selectrs_panic_test` <- function() {
+  .Call(savvy_selectrs_panic_test__impl)
 }
 
 

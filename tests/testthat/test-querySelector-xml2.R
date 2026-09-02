@@ -1,287 +1,85 @@
-test_that("querySelector returns a single node or NULL", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml('<a><b id="#test"/><c class="ex"/><c class="xmp"/></a>')
-    p <- function(x) {
-        if (is.null(x)) x else as.character(x)
-    }
-    expect_equal(p(querySelector(doc, "a")), p(xml_find_first(doc, "//a")))
-    expect_equal(p(querySelector(doc, "*", prefix = "")), p(xml_find_first(doc, "*")))
-    expect_equal(p(querySelector(doc, "d")), NULL)
-    expect_equal(p(querySelector(doc, "c")), p(xml_find_first(doc, "//c")))
-})
+# What xml2 does that the XML package does not: with no `ns` argument it
+# collects the document's own namespace declarations with xml_ns(), so an
+# unprefixed selector resolves against the default namespace without a
+# warning. The rest of the querySelector* contract is in
+# test-querySelector.R.
 
-test_that("querySelectorAll returns expected nodes", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml('<a><b id="#test"/><c class="ex"/><c class="xmp"/></a>')
-    p <- function(x) {
-        lapply(x, function(node) as.character(node))
-    }
-    expect_equal(p(querySelectorAll(doc, "a")), p(xml_find_all(doc, "//a")))
-    expect_equal(p(querySelectorAll(doc, "*", prefix = "")), p(xml_find_all(doc, "*")))
-    expect_equal(p(querySelectorAll(doc, "c")), p(xml_find_all(doc, "//c")))
-})
-
-test_that("querySelectorAll returns empty list for no match", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml('<a><b id="#test"/><c class="ex"/><c class="xmp"/></a>')
-    p <- function(x) {
-        lapply(x, function(node) as.character(node))
-    }
-    expect_equal(p(querySelectorAll(doc, "d")), p(xml_find_all(doc, "//d")))
-})
+svgDoc <- function() {
+    xml2::read_xml(paste0(
+        '<svg xmlns="http://www.w3.org/2000/svg">',
+        '<circle cx="10" cy="10" r="10"/>',
+        '<circle cx="20" cy="20" r="20"/>',
+        '<circle cx="30" cy="30" r="30"/>',
+        '</svg>'))
+}
 
 test_that("querySelector handles namespaces", {
     skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml('<svg xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10"/><circle cx="20" cy="20" r="20"/><circle cx="30" cy="30" r="30"/></svg>')
-    p <- function(x) {
-        if (is.null(x)) x else as.character(x)
+    svg <- c(svg = "http://www.w3.org/2000/svg")
+    doc <- svgDoc()
+    p <- function(x) if (is.null(x)) x else as.character(x)
+    circle <- function() {
+        xml2::xml_find_all(doc, "//svg:circle", ns = svg)[[1]]
     }
 
-    expect_equal(querySelector(doc, "circle"), NULL)
-    expect_equal(querySelector(doc, "circle", ns = c(svg = "http://www.w3.org/2000/svg")), NULL)
-    expect_equal(p(querySelector(doc, "svg|circle", ns = c(svg = "http://www.w3.org/2000/svg"))), p(xml_find_all(doc, "//svg:circle", ns = c(svg = "http://www.w3.org/2000/svg"))[[1]]))
+    expect_null(querySelector(doc, "circle"))
+    expect_null(querySelector(doc, "circle", ns = svg))
+    expect_equal(p(querySelector(doc, "svg|circle", ns = svg)), p(circle()))
 
     # now with querySelectorNS
-    expect_equal(querySelectorNS(doc, "circle", c(svg = "http://www.w3.org/2000/svg")), NULL)
-    expect_equal(p(querySelectorNS(doc, "svg|circle", c(svg = "http://www.w3.org/2000/svg"))), p(xml_find_all(doc, "//svg:circle", ns = c(svg = "http://www.w3.org/2000/svg"))[[1]]))
+    expect_null(querySelectorNS(doc, "circle", svg))
+    expect_equal(p(querySelectorNS(doc, "svg|circle", svg)), p(circle()))
 })
 
 test_that("querySelectorAll handles namespaces", {
     skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml('<svg xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10"/><circle cx="20" cy="20" r="20"/><circle cx="30" cy="30" r="30"/></svg>')
-    p <- function(x) {
-        lapply(x, function(node) as.character(node))
-    }
+    svg <- c(svg = "http://www.w3.org/2000/svg")
+    doc <- svgDoc()
+    p <- function(x) lapply(x, as.character)
 
-    expect_equal(p(querySelectorAll(doc, "circle")), p(xml_find_all(doc, "//circle")))
-    expect_equal(p(querySelectorAll(doc, "circle", ns = c(svg = "http://www.w3.org/2000/svg"))), p(xml_find_all(doc, "//circle", ns = c(svg = "http://www.w3.org/2000/svg"))))
-    expect_equal(p(querySelectorAll(doc, "svg|circle", ns = c(svg = "http://www.w3.org/2000/svg"))), p(xml_find_all(doc, "//svg:circle", ns = c(svg = "http://www.w3.org/2000/svg"))))
+    expect_equal(p(querySelectorAll(doc, "circle")),
+                 p(xml2::xml_find_all(doc, "//circle")))
+    expect_equal(p(querySelectorAll(doc, "circle", ns = svg)),
+                 p(xml2::xml_find_all(doc, "//circle", ns = svg)))
+    expect_equal(p(querySelectorAll(doc, "svg|circle", ns = svg)),
+                 p(xml2::xml_find_all(doc, "//svg:circle", ns = svg)))
 
     # now with querySelectorAllNS
-    expect_equal(p(querySelectorAllNS(doc, "circle", c(svg = "http://www.w3.org/2000/svg"))), p(xml_find_all(doc, "//circle", ns = c(svg = "http://www.w3.org/2000/svg"))))
-    expect_equal(p(querySelectorAllNS(doc, "svg|circle", c(svg = "http://www.w3.org/2000/svg"))), p(xml_find_all(doc, "//svg:circle", ns = c(svg = "http://www.w3.org/2000/svg"))))
+    expect_equal(p(querySelectorAllNS(doc, "circle", svg)),
+                 p(xml2::xml_find_all(doc, "//circle", ns = svg)))
+    expect_equal(p(querySelectorAllNS(doc, "svg|circle", svg)),
+                 p(xml2::xml_find_all(doc, "//svg:circle", ns = svg)))
 })
 
-test_that("a named list works the same as a named character vector for ns", {
+test_that("an xml_ns() namespace map can be handed straight to the queries", {
     skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml('<svg xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10"/></svg>')
-    ns_chr <- c(svg = "http://www.w3.org/2000/svg")
-    ns_list <- list(svg = "http://www.w3.org/2000/svg")
-    p <- function(x) {
-        if (is.null(x)) x else as.character(x)
-    }
-    pAll <- function(x) {
-        lapply(x, function(node) as.character(node))
-    }
+    # xml_ns() returns an xml_namespace-classed character vector, and the
+    # prefixes it invents for a default namespace (d1, d2, ...) are the ones
+    # a selector then has to use.
+    doc <- xml2::read_xml(paste0(
+        '<r xmlns="urn:default" xmlns:s="urn:s">',
+        '<a id="1"/><s:a id="2"/>',
+        '</r>'))
+    ns <- xml2::xml_ns(doc)
+    expect_s3_class(ns, "xml_namespace")
+    expect_equal(sort(names(ns)), c("d1", "s"))
 
-    expect_equal(p(querySelector(doc, "svg|circle", ns = ns_list)),
-                 p(querySelector(doc, "svg|circle", ns = ns_chr)))
-    expect_equal(pAll(querySelectorAll(doc, "svg|circle", ns = ns_list)),
-                 pAll(querySelectorAll(doc, "svg|circle", ns = ns_chr)))
-    expect_equal(p(querySelectorNS(doc, "svg|circle", ns_list)),
-                 p(querySelectorNS(doc, "svg|circle", ns_chr)))
-    expect_equal(pAll(querySelectorAllNS(doc, "svg|circle", ns_list)),
-                 pAll(querySelectorAllNS(doc, "svg|circle", ns_chr)))
-
-    # malformed namespace objects are still rejected
-    expect_error(querySelectorAll(doc, "svg|circle", ns = list(svg = 1)),
-                 "The values in the namespace object.*")
-    expect_error(querySelectorAll(doc, "svg|circle", ns = c("http://www.w3.org/2000/svg")),
-                 "The namespace object is missing some or all names.*")
-    expect_error(querySelectorAll(doc, "svg|circle",
-                                  ns = list(svg = c("http://www.w3.org/2000/svg", "extra"))),
-                 "Each element in the namespace object must be a single character string.")
+    expect_equal(xml2::xml_attr(querySelectorAll(doc, "d1|a", ns = ns), "id"), "1")
+    expect_equal(xml2::xml_attr(querySelectorAllNS(doc, "d1|a", ns), "id"), "1")
+    expect_equal(xml2::xml_attr(querySelectorNS(doc, "s|a", ns), "id"), "2")
+    # the *NS filter keeps only the namespaces it was given, so asking for
+    # both prefixes returns both elements
+    expect_equal(xml2::xml_attr(querySelectorAllNS(doc, "*|a", ns), "id"),
+                 c("1", "2"))
 })
 
-test_that("querySelectorAll honours attribute case-sensitivity flags", {
+test_that("a zero-length namespace leaves xml2 with no prefix to resolve", {
     skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml('<r><a rel="NoFollow"/><a rel="nofollow"/><a rel="other"/></r>')
-    rels <- function(css) {
-        unlist(lapply(querySelectorAll(doc, css), xml_attr, "rel"))
-    }
-
-    expect_equal(rels('a[rel="nofollow"]'), "nofollow")
-    expect_equal(rels('a[rel="nofollow" i]'), c("NoFollow", "nofollow"))
-})
-
-test_that("querySelector methods handle invalid arguments", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml('<a><b id="#test"/><c class="ex"/><c class="xmp"/></a>')
-
-    selector_error <- "A valid selector (single character string) must be provided."
-    expect_error(querySelector(doc), selector_error, fixed = TRUE)
-    expect_error(querySelectorAll(doc), selector_error, fixed = TRUE)
-    expect_error(querySelectorNS(doc), selector_error, fixed = TRUE)
-    expect_error(querySelectorAllNS(doc), selector_error, fixed = TRUE)
-
-    # selectors must be a single string, not a vector
-    expect_error(querySelector(doc, c("b", "c")), selector_error, fixed = TRUE)
-    expect_error(querySelectorAll(doc, c("b", "c")), selector_error, fixed = TRUE)
-    expect_error(querySelectorNS(doc, c("b", "c"), c(svg = "http://www.w3.org/2000/svg")), selector_error, fixed = TRUE)
-    expect_error(querySelectorAllNS(doc, c("b", "c"), c(svg = "http://www.w3.org/2000/svg")), selector_error, fixed = TRUE)
-    expect_error(querySelectorAll(doc, character(0)), selector_error, fixed = TRUE)
-    expect_error(querySelectorAll(doc, 1), selector_error, fixed = TRUE)
-    expect_error(querySelectorAll(doc, NULL), selector_error, fixed = TRUE)
-
-    expect_error(querySelectorNS(doc, "a"), "A namespace must be provided.", fixed = TRUE)
-    expect_error(querySelectorNS(doc, "a", NULL), "A namespace must be provided.", fixed = TRUE)
-    expect_error(querySelectorNS(doc, "a", character(0)), "A namespace must be provided.", fixed = TRUE)
-    expect_error(querySelectorAllNS(doc, "a"), "A namespace must be provided.", fixed = TRUE)
-    expect_error(querySelectorAllNS(doc, "a", NULL), "A namespace must be provided.", fixed = TRUE)
-    expect_error(querySelectorAllNS(doc, "a", character(0)), "A namespace must be provided.", fixed = TRUE)
-})
-
-test_that(":scope queries are anchored at the queried node", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml(paste0(
-        '<root>',
-        '<section id="s1"><div id="d1"><div id="d2"/></div></section>',
-        '<section id="s2"><div id="d3"/></section>',
-        '</root>'
-    ))
-    s1 <- querySelector(doc, "#s1")
-
-    ids <- function(x) xml_attr(x, "id")
-
-    # :scope is the queried node itself; combinators search relative to it
-    expect_equal(ids(querySelector(s1, ":scope")), "s1")
-    expect_equal(ids(querySelectorAll(s1, ":scope > div")), "d1")
-    expect_equal(ids(querySelectorAll(s1, ":scope div")), c("d1", "d2"))
-    expect_equal(ids(querySelector(s1, "section:scope")), "s1")
-    expect_equal(length(querySelectorAll(s1, "div:scope")), 0L)
-    # a plain query is evaluated relative to the node too, but includes
-    # the node itself; :scope > anchors a child (not descendant) search
-    expect_equal(ids(querySelectorAll(s1, "div")), c("d1", "d2"))
-    # sibling scope: the next sibling of s1 is s2
-    expect_equal(ids(querySelectorAll(s1, ":scope + section")), "s2")
-    # xml2 evaluates document queries from the root element, so :scope on
-    # a document is the root element
-    expect_equal(ids(querySelectorAll(doc, ":scope > section")),
-                 c("s1", "s2"))
-})
-
-test_that(":required/:optional match per the HTML semantics", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    # Ground truth from browser document.querySelectorAll() on the same
-    # markup: required/optional only apply to select, textarea, and the
-    # input types that support the required attribute.
-    doc <- read_xml(paste0(
-        '<form>',
-        '<input id="text-req" required="required"/>',
-        '<input id="text-opt"/>',
-        '<input id="check-req" type="checkbox" required="required"/>',
-        '<input id="hidden-req" type="hidden" required="required"/>',
-        '<input id="hidden-opt" type="hidden"/>',
-        '<input id="range-req" type="range" required="required"/>',
-        '<input id="submit-req" type="submit" required="required"/>',
-        '<select id="select-req" required="required"/>',
-        '<select id="select-opt"/>',
-        '<textarea id="textarea-req" required="required"/>',
-        '<button id="button"/>',
-        '<option id="option"/>',
-        '</form>'
-    ))
-    ids <- function(css) {
-        xml_attr(querySelectorAll(doc, css, translator = "html"), "id")
-    }
-
-    expect_equal(ids(":required"),
-                 c("text-req", "check-req", "select-req", "textarea-req"))
-    # The generic translator treats it as unmatchable runtime state.
-    expect_equal(length(querySelectorAll(doc, ":required")), 0L)
-})
-
-test_that(":empty matches what browsers match: whitespace counts, comments do not", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    # Browsers implement the Selectors Level 3 behaviour (the Level 4
-    # draft's whitespace loosening has never shipped in any engine, as of
-    # 2026), and selectr matches it: any text content, even whitespace
-    # alone, makes an element non-empty; comment nodes are not content.
-    doc <- read_xml(paste0(
-        '<root>',
-        '<a id="truly"/>',
-        '<a id="ws"> </a>',
-        '<a id="nl">\n</a>',
-        '<a id="text">x</a>',
-        '<a id="child"><b/></a>',
-        '<a id="comment"><!-- c --></a>',
-        '</root>'
-    ))
-    expect_equal(xml_attr(querySelectorAll(doc, "a:empty"), "id"),
-                 c("truly", "comment"))
-})
-
-test_that("the *NS variants are scoped to the queried node", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml(paste0(
-        '<root xmlns:s="urn:s">',
-        '<s:a id="outer"/>',
-        '<wrap><s:a id="inner"/></wrap>',
-        '</root>'
-    ))
-    ns <- c(s = "urn:s")
-    wrap <- xml_find_first(doc, "//wrap")
-
-    expect_equal(xml_attr(querySelectorAllNS(wrap, "s|a", ns), "id"), "inner")
-    expect_equal(xml_attr(querySelectorNS(wrap, "s|a", ns), "id"), "inner")
-    expect_equal(xml_attr(querySelectorAllNS(xml_find_all(doc, "//wrap"),
-                                             "s|a", ns), "id"), "inner")
-    # matching the un-namespaced functions given the same namespace
-    expect_equal(xml_attr(querySelectorAll(wrap, "s|a", ns = ns), "id"),
-                 "inner")
-
-    # a query on the document still reaches everything
-    expect_equal(xml_attr(querySelectorAllNS(doc, "s|a", ns), "id"),
-                 c("outer", "inner"))
-
-    # the filter is descendant-or-self::, so the element it starts from can
-    # itself match
-    nsdoc <- read_xml('<s:root xmlns:s="urn:s"><s:a id="a"/></s:root>')
-    expect_equal(length(querySelectorAllNS(nsdoc, "s|root", ns)), 1L)
-})
-
-test_that("a zero-length namespace skips the document's namespace map", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml("<a><b id='1'/><c><b id='2'/></c></a>")
-    node <- xml_find_first(doc, "//c")
-    nodes <- xml_find_all(doc, "//c")
-    ids <- function(x) if (is.null(x)) character() else xml_attr(x, "id")
-
-    for (none in list(character(0), list())) {
-        expect_equal(ids(querySelectorAll(doc, "b", ns = none)), c("1", "2"))
-        expect_equal(ids(querySelector(doc, "b", ns = none)), "1")
-        expect_equal(ids(querySelectorAll(node, "b", ns = none)), "2")
-        expect_equal(ids(querySelector(node, "b", ns = none)), "2")
-        expect_equal(ids(querySelectorAll(nodes, "b", ns = none)), "2")
-        expect_equal(ids(querySelector(nodes, "b", ns = none)), "2")
-        expect_equal(ids(querySelectorAll(doc, "d", ns = none)), character())
-        expect_equal(querySelector(doc, "d", ns = none), NULL)
-    }
-
-    # without a map there is no prefix to resolve, so a prefixed selector on
-    # a namespaced document is left to libxml2 to complain about
-    nsdoc <- read_xml('<r xmlns:s="urn:s"><s:b id="1"/></r>')
-    expect_warning(querySelectorAll(nsdoc, "s|b", ns = character(0)),
+    # xml_find_all() registers only the map it is handed, so with none a
+    # prefixed selector is left to libxml2 to complain about.
+    doc <- xml2::read_xml('<r xmlns:s="urn:s"><s:b id="1"/></r>')
+    expect_warning(querySelectorAll(doc, "s|b", ns = character(0)),
                    "Undefined namespace prefix")
-    expect_equal(xml_attr(querySelectorAll(nsdoc, "s|b",
-                                           ns = c(s = "urn:s")), "id"), "1")
-
-    # the *NS variants still demand a namespace
-    expect_error(querySelectorAllNS(doc, "b", character(0)),
-                 "A namespace must be provided.", fixed = TRUE)
-    expect_error(querySelectorNS(doc, "b", list()),
-                 "A namespace must be provided.", fixed = TRUE)
+    expect_equal(length(suppressWarnings(querySelectorAll(doc, "s|b",
+                                                          ns = character(0)))), 0L)
 })
