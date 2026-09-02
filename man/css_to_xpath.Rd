@@ -16,7 +16,8 @@ XPath expressions. Not applied to selectors anchored by \verb{:scope}.}
 \code{"generic"}, \code{"html"}, or \code{"xhtml"}.}
 }
 \value{
-A character vector of XPath expressions.
+A character vector of XPath expressions, one per element of
+the recycled arguments.
 }
 \description{
 This function maps a CSS selector to its XPath equivalent, which can then
@@ -24,6 +25,12 @@ be used to query XML documents. Selectors using constructs selectrs does
 not support raise an error naming the construct.
 }
 \details{
+The three arguments are vectorised together: the result has the length
+of the longest of them, and an argument of length 1 is used for every
+element. Any other length must match that longest length exactly —
+unlike base R's arithmetic, a length that only partially fills the
+result is an error rather than a silent partial recycle.
+
 The \verb{:scope} pseudo-class refers to the node the resulting XPath
 expression is evaluated from: a selector starting with \verb{:scope} is
 anchored on the \verb{self::} axis (\code{":scope > a"} becomes \code{"self::*/a"},
@@ -77,7 +84,8 @@ inherit from \code{selectrs_error}, and each carries the fields listed here:
 construct that has no XPath 1.0 equivalent. Fields \code{selector},
 \code{index} and \code{construct}.
 \item \code{selectrs_argument_error} — the arguments themselves are wrong (a
-non-character selector, an \code{NA}, an unknown translator).
+non-character selector, an \code{NA}, an unknown translator, lengths that
+do not recycle).
 }
 }
 

@@ -4,6 +4,12 @@
 #' be used to query XML documents. Selectors using constructs selectrs does
 #' not support raise an error naming the construct.
 #'
+#' The three arguments are vectorised together: the result has the length
+#' of the longest of them, and an argument of length 1 is used for every
+#' element. Any other length must match that longest length exactly —
+#' unlike base R's arithmetic, a length that only partially fills the
+#' result is an error rather than a silent partial recycle.
+#'
 #' The `:scope` pseudo-class refers to the node the resulting XPath
 #' expression is evaluated from: a selector starting with `:scope` is
 #' anchored on the `self::` axis (`":scope > a"` becomes `"self::*/a"`,
@@ -56,14 +62,16 @@
 #'   construct that has no XPath 1.0 equivalent. Fields `selector`,
 #'   `index` and `construct`.
 #' * `selectrs_argument_error` — the arguments themselves are wrong (a
-#'   non-character selector, an `NA`, an unknown translator).
+#'   non-character selector, an `NA`, an unknown translator, lengths that
+#'   do not recycle).
 #'
 #' @param selector A character vector of CSS selectors.
 #' @param prefix A character vector of prefixes to apply to the resulting
 #'   XPath expressions. Not applied to selectors anchored by `:scope`.
 #' @param translator A character vector of translators to use, each one of
 #'   `"generic"`, `"html"`, or `"xhtml"`.
-#' @returns A character vector of XPath expressions.
+#' @returns A character vector of XPath expressions, one per element of
+#'   the recycled arguments.
 #' @examples
 #' css_to_xpath("#testid > .testclass")
 #' @export
@@ -105,7 +113,24 @@ css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator =
                  error = function(e) argumentError(conditionMessage(e)))
     })
 
-    maxArgLength <- max(length(selector), length(prefix), length(translator))
+    argLengths <- c(selector = length(selector), prefix = length(prefix),
+                    translator = length(translator))
+    maxArgLength <- max(argLengths)
+    # Only length-1 arguments broadcast: partial recycling would pair
+    # arguments up in a way the caller is unlikely to have meant.
+    badArgs <- names(argLengths)[argLengths != 1L & argLengths != maxArgLength]
+    if (length(badArgs)) {
+        offenders <- if (length(badArgs) > 1)
+            "the following arguments do not"
+        else
+            "the following argument does not"
+        argumentError(paste0("The 'selector', 'prefix' and 'translator' ",
+                             "arguments must each have length 1 or ",
+                             maxArgLength, ", but ", offenders, ": ",
+                             paste0(badArgs, " (length ", argLengths[badArgs],
+                                    ")", collapse = ", ")))
+    }
+
     selector <- rep(selector, length.out = maxArgLength)
     prefix <- rep(prefix, length.out = maxArgLength)
     translator <- rep(translator, length.out = maxArgLength)

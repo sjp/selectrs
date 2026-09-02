@@ -84,6 +84,32 @@ test_that("css_to_xpath handles bad arguments", {
     expect_error(css_to_xpath("a", translator = c("generic", "a")), "'arg' should be one of.*")
 })
 
+test_that("css_to_xpath rejects lengths that only partially recycle", {
+    # a length that does not fill the result is a call-site mistake, not
+    # a request to recycle
+    expect_error(css_to_xpath(c("a", "b"), prefix = c("", "", "//")),
+                 "must each have length 1 or 3, but the following argument does not: selector (length 2)",
+                 fixed = TRUE)
+    expect_error(css_to_xpath(c("a", "b", "c"), prefix = c("", "//")),
+                 "must each have length 1 or 3, but the following argument does not: prefix (length 2)",
+                 fixed = TRUE)
+    expect_error(css_to_xpath(c("a", "b", "c", "d"), translator = c("html", "generic")),
+                 "the following argument does not: translator (length 2)",
+                 fixed = TRUE)
+    expect_error(css_to_xpath(c("a", "b"), prefix = c("", "//", "///"),
+                              translator = c("html", "generic")),
+                 "the following arguments do not: selector (length 2), translator (length 2)",
+                 fixed = TRUE)
+    expect_true(inherits(tryCatch(css_to_xpath(c("a", "b"), prefix = c("", "", "//")),
+                                  error = identity),
+                         "selectrs_argument_error"))
+
+    # length-1 arguments still broadcast, and equal lengths still pair up
+    expect_equal(css_to_xpath(c("a", "b"), prefix = "//"), c("//a", "//b"))
+    expect_equal(css_to_xpath("a", prefix = c("//", "")), c("//a", "a"))
+    expect_equal(css_to_xpath(c("a", "b"), prefix = c("//", "")), c("//a", "b"))
+})
+
 test_that("namespace handling works correctly", {
     # formatNS must return a NULL or a named vector
     expect_equal(formatNS(NULL), NULL)
