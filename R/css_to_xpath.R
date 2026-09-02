@@ -109,10 +109,10 @@ css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator =
                              paste0(zeroLengthArgs, collapse = ", ")))
     }
 
-    translator <- sapply(translator, function(tran) {
+    translator <- vapply(translator, function(tran) {
         tryCatch(match.arg(tolower(tran), c("generic", "html", "xhtml")),
                  error = function(e) argumentError(conditionMessage(e)))
-    })
+    }, character(1), USE.NAMES = FALSE)
 
     argLengths <- c(selector = length(selector), prefix = length(prefix),
                     translator = length(translator))
@@ -141,5 +141,5 @@ css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator =
     xpath <- css_to_xpath_rust(selector, prefix, translator)
     if (!is.character(xpath))
         translationError(xpath)
-    as.character(xpath)
+    xpath
 }

@@ -251,3 +251,37 @@ test_that("the *NS variants are scoped to the queried node", {
     nsdoc <- read_xml('<s:root xmlns:s="urn:s"><s:a id="a"/></s:root>')
     expect_equal(length(querySelectorAllNS(nsdoc, "s|root", ns)), 1L)
 })
+
+test_that("a zero-length namespace skips the document's namespace map", {
+    skip_if_not_installed("xml2")
+    library(xml2)
+    doc <- read_xml("<a><b id='1'/><c><b id='2'/></c></a>")
+    node <- xml_find_first(doc, "//c")
+    nodes <- xml_find_all(doc, "//c")
+    ids <- function(x) if (is.null(x)) character() else xml_attr(x, "id")
+
+    for (none in list(character(0), list())) {
+        expect_equal(ids(querySelectorAll(doc, "b", ns = none)), c("1", "2"))
+        expect_equal(ids(querySelector(doc, "b", ns = none)), "1")
+        expect_equal(ids(querySelectorAll(node, "b", ns = none)), "2")
+        expect_equal(ids(querySelector(node, "b", ns = none)), "2")
+        expect_equal(ids(querySelectorAll(nodes, "b", ns = none)), "2")
+        expect_equal(ids(querySelector(nodes, "b", ns = none)), "2")
+        expect_equal(ids(querySelectorAll(doc, "d", ns = none)), character())
+        expect_equal(querySelector(doc, "d", ns = none), NULL)
+    }
+
+    # without a map there is no prefix to resolve, so a prefixed selector on
+    # a namespaced document is left to libxml2 to complain about
+    nsdoc <- read_xml('<r xmlns:s="urn:s"><s:b id="1"/></r>')
+    expect_warning(querySelectorAll(nsdoc, "s|b", ns = character(0)),
+                   "Undefined namespace prefix")
+    expect_equal(xml_attr(querySelectorAll(nsdoc, "s|b",
+                                           ns = c(s = "urn:s")), "id"), "1")
+
+    # the *NS variants still demand a namespace
+    expect_error(querySelectorAllNS(doc, "b", character(0)),
+                 "A namespace must be provided.", fixed = TRUE)
+    expect_error(querySelectorNS(doc, "b", list()),
+                 "A namespace must be provided.", fixed = TRUE)
+})

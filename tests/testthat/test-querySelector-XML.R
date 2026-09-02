@@ -175,3 +175,27 @@ test_that("the *NS variants are scoped to the queried node", {
     nsdoc <- xmlParse('<s:root xmlns:s="urn:s"><s:a id="a"/></s:root>')
     expect_equal(length(querySelectorAllNS(nsdoc, "s|root", ns)), 1L)
 })
+
+test_that("a zero-length namespace skips the namespaces argument", {
+    skip_if_not_installed("XML")
+    library(XML)
+    doc <- xmlParse("<a><b id='1'/><c><b id='2'/></c></a>")
+    node <- getNodeSet(doc, "//c")[[1]]
+    nodes <- getNodeSet(doc, "//c")
+    ids <- function(x)
+        if (is.null(x)) character() else
+        if (inherits(x, "XMLInternalNode")) xmlGetAttr(x, "id") else
+        vapply(x, function(n) xmlGetAttr(n, "id"), character(1))
+
+    for (none in list(character(0), list())) {
+        expect_equal(ids(querySelectorAll(doc, "b", ns = none)), c("1", "2"))
+        expect_equal(ids(querySelector(doc, "b", ns = none)), "1")
+        expect_equal(ids(querySelectorAll(node, "b", ns = none)), "2")
+        expect_equal(ids(querySelectorAll(nodes, "b", ns = none)), "2")
+        expect_equal(ids(querySelectorAll(doc, "d", ns = none)), character())
+        expect_equal(querySelector(doc, "d", ns = none), NULL)
+    }
+
+    expect_error(querySelectorAllNS(doc, "b", character(0)),
+                 "A namespace must be provided.", fixed = TRUE)
+})

@@ -220,23 +220,25 @@ fn css_to_xpath_rust(
         return Err(savvy::Error::new("`prefixes` must not contain NA values"));
     }
     let translator_names: Vec<&str> = translators.iter().collect();
-    let translators: Vec<Translator> = translator_names
-        .iter()
-        .map(|name| {
-            if name.is_na() {
-                return Err(savvy::Error::new(
-                    "`translators` must not contain NA values",
-                ));
-            }
-            let mode = match *name {
-                "generic" => Mode::Generic,
-                "html" => Mode::Html,
-                "xhtml" => Mode::Xhtml,
-                other => return Err(savvy::Error::new(format!("Unknown translator '{other}'"))),
-            };
-            Ok(Translator::new(mode))
-        })
-        .collect::<Result<_, _>>()?;
+    // However long the input, it names at most three translators.
+    let mut translators: HashMap<&str, Translator> = HashMap::new();
+    for name in &translator_names {
+        if name.is_na() {
+            return Err(savvy::Error::new(
+                "`translators` must not contain NA values",
+            ));
+        }
+        if translators.contains_key(name) {
+            continue;
+        }
+        let mode = match *name {
+            "generic" => Mode::Generic,
+            "html" => Mode::Html,
+            "xhtml" => Mode::Xhtml,
+            other => return Err(savvy::Error::new(format!("Unknown translator '{other}'"))),
+        };
+        translators.insert(*name, Translator::new(mode));
+    }
 
     let mut out = OwnedStringSexp::new(n)?;
     // Duplicated (selector, prefix, translator) triples are translated
@@ -251,7 +253,7 @@ fn css_to_xpath_rust(
             out.set_elt(i, xpath)?;
             continue;
         }
-        match translators[i].css_to_xpath(selector, prefixes[i]) {
+        match translators[&translator_names[i]].css_to_xpath(selector, prefixes[i]) {
             Ok(xpath) => {
                 out.set_elt(i, &xpath)?;
                 cache.insert(key, xpath);

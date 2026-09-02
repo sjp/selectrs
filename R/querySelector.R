@@ -35,6 +35,10 @@
 #' The namespace argument, `ns`, is passed on to [XML::getNodeSet()] or
 #' [xml2::xml_find_all()] if it is necessary to use a namespace present
 #' within the document. It can be ignored for content lacking a namespace.
+#' For \pkg{xml2}, leaving it at `NULL` means the namespaces the document
+#' declares are collected, with [xml2::xml_ns()], for every query; passing a
+#' zero-length `ns` skips that walk of the document, which is worth doing in
+#' a loop over a large document known to be un-namespaced.
 #'
 #' Selectors are translated with the `generic` (XML) translator unless a
 #' `translator` argument is given to be passed on to [css_to_xpath()],
@@ -73,7 +77,9 @@
 #' @param ns The namespace that the query will be filtered to: a named list
 #'   or vector mapping namespace prefixes to namespace URIs. Both the
 #'   prefixes and the URIs must be non-missing, non-empty character strings.
-#'   Optional for the un-namespaced functions.
+#'   Optional for the un-namespaced functions, where the default, `NULL`,
+#'   uses the namespaces declared by the document itself, and a zero-length
+#'   `ns` (`character(0)` or `list()`) uses none at all.
 #' @param prefix The prefix to apply to the resulting XPath expression. The
 #'   default or `""` are most commonly used.
 #' @param ... Parameters to be passed on to [css_to_xpath()].
@@ -150,7 +156,6 @@ querySelectorAllNS.default <- function(doc, selector, ns,
 
 #' @export
 querySelector.XMLInternalDocument <- function(doc, selector, ns = NULL, ...) {
-    validateSelector(selector)
     results <- querySelectorAll(doc, selector, ns, ...)
     if (length(results))
         results[[1]]
@@ -168,17 +173,15 @@ querySelector.XMLNodeSet <- querySelector.XMLInternalDocument
 querySelectorAll.XMLInternalNode <- function(doc, selector, ns = NULL, ...) {
     validateSelector(selector)
     xpath <- css_to_xpath(selector, ...)
-    if (!is.null(ns)) {
-        ns <- formatNS(ns)
+    ns <- formatNS(ns)
+    if (length(ns))
         XML::getNodeSet(doc, xpath, ns)
-    } else {
+    else
         XML::getNodeSet(doc, xpath)
-    }
 }
 
 #' @export
 querySelectorAll.XMLInternalDocument <- function(doc, selector, ns = NULL, ...) {
-    validateSelector(selector)
     doc <- XML::xmlRoot(doc)
     querySelectorAll(doc, selector, ns, ...)
 }
@@ -195,7 +198,6 @@ querySelectorAll.XMLInternalDocument <- function(doc, selector, ns = NULL, ...) 
 #' @export
 querySelectorAll.HTMLInternalDocument <- function(doc, selector, ns = NULL,
                                                   translator = "html", ...) {
-    validateSelector(selector)
     doc <- XML::xmlRoot(doc)
     querySelectorAll(doc, selector, ns, translator = translator, ...)
 }
@@ -204,13 +206,12 @@ querySelectorAll.HTMLInternalDocument <- function(doc, selector, ns = NULL,
 querySelectorAll.XMLNodeSet <- function(doc, selector, ns = NULL, ...) {
     validateSelector(selector)
     xpath <- css_to_xpath(selector, ...)
-    if (!is.null(ns))
-        ns <- formatNS(ns)
+    ns <- formatNS(ns)
     results <- lapply(doc, function(node) {
-        if (is.null(ns))
-            XML::getNodeSet(node, xpath)
-        else
+        if (length(ns))
             XML::getNodeSet(node, xpath, ns)
+        else
+            XML::getNodeSet(node, xpath)
     })
     results <- unlist(results, recursive = FALSE)
     if (is.null(results))
@@ -222,47 +223,10 @@ querySelectorAll.XMLNodeSet <- function(doc, selector, ns = NULL, ...) {
 }
 
 #' @export
-querySelectorNS.XMLInternalDocument <- function(doc, selector, ns,
-                                                prefix = "descendant-or-self::", ...) {
-    validateSelector(selector)
-    if (missing(ns) || !length(ns))
-        argumentError("A namespace must be provided.")
-    ns <- formatNS(ns)
-    prefix <- formatNSPrefix(ns, prefix)
-    querySelector(doc, selector, ns, prefix = prefix, ...)
-}
-
-#' @export
-querySelectorNS.XMLInternalNode <- querySelectorNS.XMLInternalDocument
-
-#' @export
-querySelectorNS.XMLNodeSet <- querySelectorNS.XMLInternalDocument
-
-#' @export
-querySelectorAllNS.XMLInternalDocument <- function(doc, selector, ns,
-                                                   prefix = "descendant-or-self::", ...) {
-    validateSelector(selector)
-    if (missing(ns) || !length(ns))
-        argumentError("A namespace must be provided.")
-    ns <- formatNS(ns)
-    prefix <- formatNSPrefix(ns, prefix)
-    querySelectorAll(doc, selector, ns, prefix = prefix, ...)
-}
-
-#' @export
-querySelectorAllNS.XMLInternalNode <- querySelectorAllNS.XMLInternalDocument
-
-#' @export
-querySelectorAllNS.XMLNodeSet <- querySelectorAllNS.XMLInternalDocument
-
-#' @export
 querySelector.xml_node <- function(doc, selector, ns = NULL,
                                    translator = NULL, ...) {
     validateSelector(selector)
-    if (is.null(ns))
-        ns <- xml2::xml_ns(doc)
-    else
-        ns <- formatNS(ns)
+    ns <- if (is.null(ns)) xml2::xml_ns(doc) else formatNS(ns)
     translator <- defaultTranslator(translator, doc)
     xpath <- css_to_xpath(selector, translator = translator, ...)
     result <- xml2::xml_find_first(doc, xpath, ns)
@@ -276,10 +240,7 @@ querySelector.xml_node <- function(doc, selector, ns = NULL,
 querySelectorAll.xml_node <- function(doc, selector, ns = NULL,
                                       translator = NULL, ...) {
     validateSelector(selector)
-    if (is.null(ns))
-        ns <- xml2::xml_ns(doc)
-    else
-        ns <- formatNS(ns)
+    ns <- if (is.null(ns)) xml2::xml_ns(doc) else formatNS(ns)
     translator <- defaultTranslator(translator, doc)
     xpath <- css_to_xpath(selector, translator = translator, ...)
     xml2::xml_find_all(doc, xpath, ns)
@@ -287,7 +248,6 @@ querySelectorAll.xml_node <- function(doc, selector, ns = NULL,
 
 #' @export
 querySelector.xml_nodeset <- function(doc, selector, ns = NULL, ...) {
-    validateSelector(selector)
     results <- querySelectorAll(doc, selector, ns, ...)
     if (length(results))
         results[[1]]
@@ -299,10 +259,7 @@ querySelector.xml_nodeset <- function(doc, selector, ns = NULL, ...) {
 querySelectorAll.xml_nodeset <- function(doc, selector, ns = NULL,
                                          translator = NULL, ...) {
     validateSelector(selector)
-    if (is.null(ns))
-        ns <- xml2::xml_ns(doc)
-    else
-        ns <- formatNS(ns)
+    ns <- if (is.null(ns)) xml2::xml_ns(doc) else formatNS(ns)
     translator <- defaultTranslator(translator, doc)
     xpath <- css_to_xpath(selector, translator = translator, ...)
     # xml2 evaluates the expression from each node in turn, so a relative
@@ -323,28 +280,23 @@ querySelectorAll.xml_missing <- function(doc, selector, ns = NULL, ...) {
     emptyNodeSet()
 }
 
-#' @export
-querySelectorNS.xml_node <- function(doc, selector, ns,
-                                     prefix = "descendant-or-self::", ...) {
+# The namespaced variants are the same for both packages: they filter the
+# prefix to the given namespaces and hand back to the plain generic, which
+# dispatches to the method for whichever kind of node it was given.
+querySelectorNSMethod <- function(doc, selector, ns,
+                                  prefix = "descendant-or-self::", ...) {
     validateSelector(selector)
-    if (missing(ns) || is.null(ns) || !length(ns))
+    if (missing(ns) || !length(ns))
         argumentError("A namespace must be provided.")
     ns <- formatNS(ns)
     prefix <- formatNSPrefix(ns, prefix)
     querySelector(doc, selector, ns, prefix = prefix, ...)
 }
 
-#' @export
-querySelectorNS.xml_nodeset <- querySelectorNS.xml_node
-
-#' @export
-querySelectorNS.xml_missing <- querySelectorNS.xml_node
-
-#' @export
-querySelectorAllNS.xml_node <- function(doc, selector, ns,
-                                        prefix = "descendant-or-self::", ...) {
+querySelectorAllNSMethod <- function(doc, selector, ns,
+                                     prefix = "descendant-or-self::", ...) {
     validateSelector(selector)
-    if (missing(ns) || is.null(ns) || !length(ns))
+    if (missing(ns) || !length(ns))
         argumentError("A namespace must be provided.")
     ns <- formatNS(ns)
     prefix <- formatNSPrefix(ns, prefix)
@@ -352,10 +304,40 @@ querySelectorAllNS.xml_node <- function(doc, selector, ns,
 }
 
 #' @export
-querySelectorAllNS.xml_nodeset <- querySelectorAllNS.xml_node
+querySelectorNS.XMLInternalDocument <- querySelectorNSMethod
 
 #' @export
-querySelectorAllNS.xml_missing <- querySelectorAllNS.xml_node
+querySelectorNS.XMLInternalNode <- querySelectorNSMethod
+
+#' @export
+querySelectorNS.XMLNodeSet <- querySelectorNSMethod
+
+#' @export
+querySelectorNS.xml_node <- querySelectorNSMethod
+
+#' @export
+querySelectorNS.xml_nodeset <- querySelectorNSMethod
+
+#' @export
+querySelectorNS.xml_missing <- querySelectorNSMethod
+
+#' @export
+querySelectorAllNS.XMLInternalDocument <- querySelectorAllNSMethod
+
+#' @export
+querySelectorAllNS.XMLInternalNode <- querySelectorAllNSMethod
+
+#' @export
+querySelectorAllNS.XMLNodeSet <- querySelectorAllNSMethod
+
+#' @export
+querySelectorAllNS.xml_node <- querySelectorAllNSMethod
+
+#' @export
+querySelectorAllNS.xml_nodeset <- querySelectorAllNSMethod
+
+#' @export
+querySelectorAllNS.xml_missing <- querySelectorAllNSMethod
 
 # The translator for a query on the xml2 object 'doc' that did not name one.
 # Users scraping HTML almost always want the "html" translator, so a
@@ -398,6 +380,10 @@ formatNS <- function(ns) {
         argumentError("A namespace object must be either a named list or a named character vector.")
     if (is.list(ns) && any(lengths(ns) != 1))
         argumentError("Each element in the namespace object must be a single character string.")
+    # A zero-length namespace object asks for no namespace map at all, which
+    # spares the xml2 methods the document walk xml_ns() would otherwise cost.
+    if (!length(ns))
+        return(character())
     nsNames <- names(ns)
     if (is.null(nsNames) || anyNA(nsNames) || !all(nzchar(nsNames)))
         argumentError("The namespace object is missing some or all names for each element in its collection.")

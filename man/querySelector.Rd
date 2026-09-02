@@ -25,7 +25,9 @@ character string.}
 \item{ns}{The namespace that the query will be filtered to: a named list
 or vector mapping namespace prefixes to namespace URIs. Both the
 prefixes and the URIs must be non-missing, non-empty character strings.
-Optional for the un-namespaced functions.}
+Optional for the un-namespaced functions, where the default, \code{NULL},
+uses the namespaces declared by the document itself, and a zero-length
+\code{ns} (\code{character(0)} or \code{list()}) uses none at all.}
 
 \item{...}{Parameters to be passed on to \code{\link[=css_to_xpath]{css_to_xpath()}}.}
 
@@ -71,6 +73,10 @@ e.g. \code{"svg|g"}.
 The namespace argument, \code{ns}, is passed on to \code{\link[XML:getNodeSet]{XML::getNodeSet()}} or
 \code{\link[xml2:xml_find_all]{xml2::xml_find_all()}} if it is necessary to use a namespace present
 within the document. It can be ignored for content lacking a namespace.
+For \pkg{xml2}, leaving it at \code{NULL} means the namespaces the document
+declares are collected, with \code{\link[xml2:xml_ns]{xml2::xml_ns()}}, for every query; passing a
+zero-length \code{ns} skips that walk of the document, which is worth doing in
+a loop over a large document known to be un-namespaced.
 
 Selectors are translated with the \code{generic} (XML) translator unless a
 \code{translator} argument is given to be passed on to \code{\link[=css_to_xpath]{css_to_xpath()}},
