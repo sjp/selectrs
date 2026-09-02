@@ -79,7 +79,8 @@ inherit from \code{selectrs_error}, and each carries the fields listed here:
 \itemize{
 \item \code{selectrs_parse_error} — the selector is not valid CSS. Fields
 \code{selector}, \code{index} (which element of a vectorised call failed) and
-\code{column}, the 1-based byte column the parse failed at.
+\code{column}, the 1-based column the parse failed at, counted in UTF-16
+code units.
 \item \code{selectrs_translation_error} — the selector is valid CSS but uses a
 construct that has no XPath 1.0 equivalent. Fields \code{selector},
 \code{index} and \code{construct}.

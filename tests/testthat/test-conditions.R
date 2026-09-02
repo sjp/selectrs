@@ -112,3 +112,59 @@ test_that("the Rust boundary reports a failure rather than throwing", {
     expect_equal(failure$kind, "unsupported")
     expect_type(failure$construct, "character")
 })
+
+test_that("a long selector is abbreviated so the message stays readable", {
+    selector <- paste0(paste(rep("a.b", 10000), collapse = " "), " >")
+    e <- tryCatch(css_to_xpath(selector), error = identity)
+    message <- conditionMessage(e)
+
+    # R truncates a printed error at options("warning.length"), so a
+    # message built from the whole selector would lose the caret line
+    expect_lt(nchar(message, "bytes"), getOption("warning.length"))
+    expect_match(message, "\n  | ", fixed = TRUE)
+    expect_match(message, "a.b >", fixed = TRUE)
+    # nothing is lost: the condition still carries the whole selector
+    expect_equal(e$selector, selector)
+    expect_equal(e$column, nchar(selector) + 1L)
+})
+
+test_that("an unsupported construct on a long selector does not echo it", {
+    selector <- paste0(paste(rep("a.b", 500), collapse = " "),
+                       " *:first-of-type")
+    e <- tryCatch(css_to_xpath(selector), error = identity)
+    message <- conditionMessage(e)
+
+    expect_lt(nchar(message, "bytes"), getOption("warning.length"))
+    expect_match(message, e$construct, fixed = TRUE)
+    expect_equal(e$selector, selector)
+})
+
+test_that("a detail quoting the offending token is truncated too", {
+    # the parse detail embeds the token it choked on, so a selector
+    # holding a huge identifier would otherwise produce a huge detail
+    e <- tryCatch(css_to_xpath(paste0(":nth-child(", strrep("z", 5000), ")")),
+                  error = identity)
+    expect_lt(nchar(conditionMessage(e), "bytes"), getOption("warning.length"))
+    expect_match(conditionMessage(e), "UnexpectedToken", fixed = TRUE)
+})
+
+test_that("the caret lands under the reported column", {
+    caretOffset <- function(selector) {
+        e <- tryCatch(css_to_xpath(selector), error = identity)
+        lines <- strsplit(conditionMessage(e), "\n", fixed = TRUE)[[1]]
+        # the echo and the caret share the same "  | " gutter
+        as.integer(regexpr("^", lines[[4]], fixed = TRUE)) - 5L
+    }
+    # for an ASCII selector a UTF-16 column and a character offset agree
+    expect_equal(caretOffset("div >"), 5L)
+    expect_equal(caretOffset("a["), 2L)
+    # for anything else they do not: the caret is placed by character
+    expect_equal(caretOffset("日本 !"), 3L)
+    expect_equal(caretOffset("\U0001F600!"), 1L)
+})
+
+test_that("a short selector is still quoted in full", {
+    selector <- strrep("a.b ", 40)
+    e <- tryCatch(css_to_xpath(paste0(selector, ">")), error = identity)
+    expect_match(conditionMessage(e), selector, fixed = TRUE)
+})

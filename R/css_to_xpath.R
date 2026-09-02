@@ -57,7 +57,8 @@
 #'
 #' * `selectrs_parse_error` — the selector is not valid CSS. Fields
 #'   `selector`, `index` (which element of a vectorised call failed) and
-#'   `column`, the 1-based byte column the parse failed at.
+#'   `column`, the 1-based column the parse failed at, counted in UTF-16
+#'   code units.
 #' * `selectrs_translation_error` — the selector is valid CSS but uses a
 #'   construct that has no XPath 1.0 equivalent. Fields `selector`,
 #'   `index` and `construct`.
