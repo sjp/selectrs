@@ -71,8 +71,9 @@
 #' @param selector A selector used to query `doc`. This must be a single
 #'   character string.
 #' @param ns The namespace that the query will be filtered to: a named list
-#'   or vector mapping namespace prefixes to namespace URIs. Optional for
-#'   the un-namespaced functions.
+#'   or vector mapping namespace prefixes to namespace URIs. Both the
+#'   prefixes and the URIs must be non-missing, non-empty character strings.
+#'   Optional for the un-namespaced functions.
 #' @param prefix The prefix to apply to the resulting XPath expression. The
 #'   default or `""` are most commonly used.
 #' @param ... Parameters to be passed on to [css_to_xpath()].
@@ -403,6 +404,8 @@ formatNS <- function(ns) {
     ns <- unlist(ns)
     if (!is.character(ns))
         argumentError("The values in the namespace object must be a character vector.")
+    if (anyNA(ns) || !all(nzchar(ns)))
+        argumentError("The namespace URIs must be non-missing, non-empty character strings.")
     names(ns) <- nsNames
     ns
 }

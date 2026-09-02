@@ -23,8 +23,9 @@ against.}
 character string.}
 
 \item{ns}{The namespace that the query will be filtered to: a named list
-or vector mapping namespace prefixes to namespace URIs. Optional for
-the un-namespaced functions.}
+or vector mapping namespace prefixes to namespace URIs. Both the
+prefixes and the URIs must be non-missing, non-empty character strings.
+Optional for the un-namespaced functions.}
 
 \item{...}{Parameters to be passed on to \code{\link[=css_to_xpath]{css_to_xpath()}}.}
 

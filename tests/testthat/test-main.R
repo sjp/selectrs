@@ -109,6 +109,18 @@ test_that("namespace handling works correctly", {
                  "Each element in the namespace object must be a single character string.")
     expect_equal(formatNS(list(a = "u1", b = "u3")), c(a = "u1", b = "u3"))
 
+    # a missing or empty URI would reach XML::getNodeSet()/xml2 as a namespace
+    # definition, giving a confusing error or a silent non-match
+    expect_error(formatNS(list(a = NA_character_)),
+                 "The namespace URIs must be non-missing, non-empty character strings.")
+    expect_error(formatNS(c(a = NA_character_)),
+                 "The namespace URIs must be non-missing, non-empty character strings.")
+    expect_error(formatNS(c(a = "")),
+                 "The namespace URIs must be non-missing, non-empty character strings.")
+    expect_error(formatNS(list(a = "urn:a", b = "")),
+                 "The namespace URIs must be non-missing, non-empty character strings.")
+    expect_equal(formatNS(c(a = "urn:a")), c(a = "urn:a"))
+
     # formatNSPrefix must return a pipe separated string of namespace prefixes
     expect_equal(formatNSPrefix(c(svg = "svg"), ""), "(descendant-or-self::svg:*)/")
     expect_equal(formatNSPrefix(c(svg = "svg"), "asd"), "(descendant-or-self::svg:*)/asd")
