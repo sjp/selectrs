@@ -71,6 +71,24 @@ The namespace argument, \code{ns}, is passed on to \code{\link[XML:getNodeSet]{X
 \code{\link[xml2:xml_find_all]{xml2::xml_find_all()}} if it is necessary to use a namespace present
 within the document. It can be ignored for content lacking a namespace.
 
+Selectors are translated with the \code{generic} (XML) translator unless a
+\code{translator} argument is given to be passed on to \code{\link[=css_to_xpath]{css_to_xpath()}},
+with one exception: a document parsed as HTML, by \code{\link[XML:htmlParse]{XML::htmlParse()}} or
+\code{\link[xml2:read_html]{xml2::read_html()}}, is queried with the \code{html} translator, so that
+element and attribute names are matched case-insensitively and the
+pseudo-classes that depend on HTML semantics (\verb{:checked}, \verb{:disabled},
+\verb{:link}, and \verb{:lang()} via the \code{lang} attribute) match as they do in a
+browser. Passing \code{translator} explicitly overrides this for either kind
+of document.
+
+For \pkg{xml2} the document is recognised however the query starts,
+including from a node or a set of nodes of an HTML document. The
+\pkg{XML} package, on the other hand, gives the nodes of an HTML
+document the same class as those of an XML document, so only a query
+starting from the document itself is recognised; pass
+\code{translator = "html"} when querying from an \pkg{XML} node or
+\code{XMLNodeSet}.
+
 The \verb{:scope} pseudo-class refers to \code{doc} itself, so a query can be
 anchored at the queried node: \code{querySelectorAll(node, ":scope > a")}
 returns \code{node}'s \code{a} children. When \code{doc} is a document rather than a
