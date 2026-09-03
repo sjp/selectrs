@@ -86,6 +86,12 @@ test_that("css_to_xpath handles bad arguments", {
     expect_error(css_to_xpath("a", translator = c("generic", "a")),
                  "The 'translator' argument must be one of .*, not \"a\"")
 
+    # every distinct bad value is named at once, in the order they were
+    # written, so fixing one does not just surface the next
+    expect_error(css_to_xpath(c("a", "b", "c", "d"),
+                              translator = c("xml", "json", "xml", "generic")),
+                 "not \"xml\", \"json\"$")
+
     # a long value is bounded so it cannot crowd out the rest of the message
     expect_error(css_to_xpath("a", translator = strrep("x", 100)),
                  paste0("not \"", strrep("x", 40), "\\.\\.\\.\""))
