@@ -7,6 +7,12 @@
 
 use std::{env, fs, path::Path};
 
+// Shared with the crate's test target, which is where its tests are:
+// cargo runs none in a build script.
+#[path = "src/locked_version.rs"]
+mod locked_version;
+use locked_version::locked_version;
+
 fn main() {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("cargo sets CARGO_MANIFEST_DIR");
     let lock_path = Path::new(&manifest_dir).join("Cargo.lock");
@@ -17,24 +23,4 @@ fn main() {
     let version = locked_version(&lock, "css-to-xpath")
         .unwrap_or_else(|| panic!("no css-to-xpath package in {}", lock_path.display()));
     println!("cargo::rustc-env=CSS_TO_XPATH_VERSION={version}");
-}
-
-/// The `version` of the `[[package]]` stanza naming `crate_name`.
-fn locked_version<'a>(lock: &'a str, crate_name: &str) -> Option<&'a str> {
-    let name = format!("name = \"{crate_name}\"");
-    let mut named = false;
-    for line in lock.lines().map(str::trim) {
-        if line == "[[package]]" {
-            named = false;
-        } else if line == name {
-            named = true;
-        } else if named
-            && let Some(version) = line
-                .strip_prefix("version = \"")
-                .and_then(|rest| rest.strip_suffix('"'))
-        {
-            return Some(version);
-        }
-    }
-    None
 }

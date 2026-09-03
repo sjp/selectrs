@@ -198,3 +198,98 @@ fn css_to_xpath_rust(
     }
     Ok(out.into())
 }
+
+/// The build script's lock-file reader, compiled in for its tests only:
+/// cargo runs no tests in a build script.
+#[cfg(test)]
+mod locked_version;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The error a selector that cannot be translated fails with.
+    fn failure(selector: &str) -> Error {
+        Translator::new(Mode::Generic)
+            .css_to_xpath(selector, "")
+            .expect_err("the selector should not translate")
+    }
+
+    /// A selector of exactly `bytes` bytes that fails to parse: `pad`
+    /// repeated to length, then a dangling child combinator.
+    fn padded(pad: &str, bytes: usize) -> String {
+        let selector = format!("{} >", pad.repeat((bytes - 2) / pad.len()));
+        assert_eq!(selector.len(), bytes, "the padding does not divide evenly");
+        selector
+    }
+
+    #[test]
+    fn column_of_offset_counts_from_one() {
+        assert_eq!(column_of_offset("div > p", 0), 1);
+        assert_eq!(column_of_offset("div > p", 4), 5);
+    }
+
+    #[test]
+    fn column_of_offset_counts_characters_not_bytes() {
+        // Each of the three leading characters is two bytes wide, so the
+        // sixth byte is the fourth character.
+        assert_eq!(column_of_offset("äöü > p", 6), 4);
+    }
+
+    #[test]
+    fn column_of_offset_is_one_past_the_end_at_end_of_input() {
+        // The offset the crate reports for an error at end of input.
+        assert_eq!(column_of_offset("div >", 5), 6);
+        assert_eq!(column_of_offset("äöü >", 9), 6);
+    }
+
+    #[test]
+    fn column_of_offset_is_total() {
+        // Neither an offset past the end nor one landing inside a
+        // character can come from the crate; both must still answer.
+        assert_eq!(column_of_offset("div", 99), 4);
+        assert_eq!(column_of_offset("", 0), 1);
+        assert_eq!(column_of_offset("äöü", 1), 2);
+    }
+
+    #[test]
+    fn render_message_leaves_a_quoted_selector_alone() {
+        let selector = "div >";
+        let error = failure(selector);
+        assert_eq!(render_message(&error, selector), error.message(selector));
+    }
+
+    #[test]
+    fn render_message_adds_no_note_at_the_echo_threshold() {
+        let selector = padded("a", CRATE_SELECTOR_ECHO);
+        let error = failure(&selector);
+        assert_eq!(render_message(&error, &selector), error.message(&selector));
+    }
+
+    #[test]
+    fn render_message_notes_the_selector_field_past_the_threshold() {
+        let selector = padded("a", CRATE_SELECTOR_ECHO + 1);
+        let error = failure(&selector);
+        let message = render_message(&error, &selector);
+        assert_eq!(
+            message.strip_prefix(&error.message(&selector)),
+            Some("\n  = the whole 121-character selector is the condition's `selector` field")
+        );
+    }
+
+    #[test]
+    fn render_message_counts_the_note_in_characters() {
+        // Three bytes to the character: over the byte threshold the note
+        // applies, and the count it reports is not that of bytes.
+        let selector = padded("日", CRATE_SELECTOR_ECHO + 5);
+        assert_eq!(selector.chars().count(), 43);
+        let error = failure(&selector);
+        assert!(
+            render_message(&error, &selector).ends_with(
+                "\n  = the whole 43-character selector is the condition's `selector` field"
+            ),
+            "the note should report characters, not the {} bytes",
+            selector.len()
+        );
+    }
+}
