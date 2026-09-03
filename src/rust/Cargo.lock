@@ -20,13 +20,14 @@ dependencies = [
 
 [[package]]
 name = "css-to-xpath"
-version = "0.1.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdd3954a8991a10458d7cf6f1a8c0fb74cb6146233581a6eb47ba36b88d17fda"
+checksum = "d958acd7d116f990790805ce6ea31fa55e92c903e230a32254897c01ef7cdd13"
 dependencies = [
  "cssparser",
  "precomputed-hash",
  "selectors",
+ "unicode-width",
 ]
 
 [[package]]
@@ -255,9 +256,9 @@ dependencies = [
 
 [[package]]
 name = "selectors"
-version = "0.39.0"
+version = "0.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bad7c25c97cc59c4858df8724a3789caa6ee509b628dfe6df34e8a8084c8a84e"
+checksum = "eeee001a77567bb05e71652718d3ff76d8697c151ac523e68e9513194eb2b75a"
 dependencies = [
  "bitflags",
  "cssparser",
@@ -375,3 +376,9 @@ name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
+name = "unicode-width"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4ac048d71ede7ee76d585517add45da530660ef4390e49b098733c6e897f254"
