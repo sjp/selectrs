@@ -107,13 +107,12 @@ pseudo-classes that depend on HTML semantics (\verb{:checked}, \verb{:disabled},
 browser. Passing \code{translator} explicitly overrides this for either kind
 of document.
 
-For \pkg{xml2} the document is recognised however the query starts,
-including from a node or a set of nodes of an HTML document. The
-\pkg{XML} package, on the other hand, gives the nodes of an HTML
-document the same class as those of an XML document, so only a query
-starting from the document itself is recognised; pass
-\code{translator = "html"} when querying from an \pkg{XML} node or
-\code{XMLNodeSet}.
+The document is recognised however the query starts, including from a
+node or a set of nodes of an HTML document, so a chained query keeps
+the \code{html} translator. What has no document to consult is queried with
+the \code{generic} translator: an empty set of nodes, the \code{xml_missing} of a
+failed \code{\link[xml2:xml_find_first]{xml2::xml_find_first()}}, and a node built outside any document
+by \code{\link[XML:newXMLNode]{XML::newXMLNode()}}.
 
 The \verb{:scope} pseudo-class refers to \code{doc} itself, so a query can be
 anchored at the queried node: \code{querySelectorAll(node, ":scope > a")}

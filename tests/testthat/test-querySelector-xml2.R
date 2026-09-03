@@ -114,21 +114,9 @@ test_that("the xml_missing methods validate their arguments", {
     expect_error(querySelectorNS(missing, "b"), "A namespace must be provided.")
 })
 
-test_that("nodes and node sets of an HTML document are detected", {
+test_that("a missing node has no document to inspect", {
     skip_if_not_installed("xml2")
-    # Unlike an XML node, an xml_node keeps a reference to its document, so
-    # a query starting from one still uses the html translator.
     doc <- xml2::read_html(translatorHtml())
-    node <- querySelector(doc, "div")
-    nodeset <- querySelectorAll(doc, "div")
-
-    expect_equal(length(querySelectorAll(node, "input:checked")), 1)
-    expect_false(is.null(querySelector(node, "input:checked")))
-    expect_equal(length(querySelectorAll(nodeset, "input:checked")), 1)
-    expect_false(is.null(querySelector(nodeset, "input:checked")))
-
-    # A missing node has no document to inspect, and must not error
-    xdoc <- xml2::read_xml('<a><B/></a>')
-    expect_equal(length(querySelectorAll(xml2::xml_find_first(xdoc, "//zz"),
-                                         "B")), 0)
+    expect_equal(length(querySelectorAll(xml2::xml_find_first(doc, "//zz"),
+                                         "input:checked")), 0)
 })

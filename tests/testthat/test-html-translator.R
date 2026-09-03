@@ -1,7 +1,8 @@
 # Which translator a query picks when none is named: "html" for a document
-# the backend parsed as HTML, "generic" otherwise. How each package lets a
-# node or node set be traced back to its document differs, so those tests
-# are in test-querySelector-XML.R and -xml2.R.
+# the backend parsed as HTML, "generic" otherwise. The mechanism by which
+# each package traces a node back to its document differs, so the objects
+# that have no document to trace are tested in test-querySelector-XML.R
+# and -xml2.R.
 
 forEachBackend("HTML documents use the html translator by default",
                function(backend) {
@@ -18,6 +19,28 @@ forEachBackend("HTML documents use the html translator by default",
     expect_equal(length(querySelectorAll(doc, "[HREF]")), 1)
 
     expect_false(is.null(querySelector(doc, "input:checked")))
+})
+
+forEachBackend("a query from a node of an HTML document uses it too",
+               function(backend) {
+    doc <- backend$parseHtml(translatorHtml())
+    node <- querySelector(doc, "div")
+    nodeset <- querySelectorAll(doc, "div")
+
+    expect_equal(length(querySelectorAll(node, "input:checked")), 1)
+    expect_false(is.null(querySelector(node, "input:checked")))
+    expect_equal(length(querySelectorAll(nodeset, "input:checked")), 1)
+    expect_false(is.null(querySelector(nodeset, "input:checked")))
+    expect_equal(length(querySelectorAll(node, "INPUT")), 2)
+
+    # and a chained query keeps it however deep it goes
+    expect_equal(length(querySelectorAll(querySelectorAll(nodeset, "*"),
+                                         ":link")), 1)
+
+    expect_equal(length(querySelectorAll(node, "input:checked",
+                                         translator = "generic")), 0)
+    expect_equal(length(querySelectorAll(nodeset, "input:checked",
+                                         trans = "generic")), 0)
 })
 
 forEachBackend("an explicit translator overrides the html default",

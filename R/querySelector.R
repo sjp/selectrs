@@ -1,5 +1,5 @@
 # The four querySelector* generics, their default, XML
-# (XMLInternalNode/XMLInternalDocument/HTMLInternalDocument/XMLNodeSet), and
+# (XMLInternalNode/XMLInternalDocument/XMLNodeSet), and
 # xml2 (xml_node/xml_nodeset/xml_missing) methods, plus the
 # formatNS/formatNSPrefix helpers. css_to_xpath() dispatches into the
 # Rust core.
@@ -67,13 +67,12 @@
 #' browser. Passing `translator` explicitly overrides this for either kind
 #' of document.
 #'
-#' For \pkg{xml2} the document is recognised however the query starts,
-#' including from a node or a set of nodes of an HTML document. The
-#' \pkg{XML} package, on the other hand, gives the nodes of an HTML
-#' document the same class as those of an XML document, so only a query
-#' starting from the document itself is recognised; pass
-#' `translator = "html"` when querying from an \pkg{XML} node or
-#' `XMLNodeSet`.
+#' The document is recognised however the query starts, including from a
+#' node or a set of nodes of an HTML document, so a chained query keeps
+#' the `html` translator. What has no document to consult is queried with
+#' the `generic` translator: an empty set of nodes, the `xml_missing` of a
+#' failed [xml2::xml_find_first()], and a node built outside any document
+#' by [XML::newXMLNode()].
 #'
 #' The `:scope` pseudo-class refers to `doc` itself, so a query can be
 #' anchored at the queried node: `querySelectorAll(node, ":scope > a")`
@@ -195,9 +194,11 @@ querySelector.XMLInternalNode <- querySelector.XMLInternalDocument
 querySelector.XMLNodeSet <- querySelector.XMLInternalDocument
 
 #' @export
-querySelectorAll.XMLInternalNode <- function(doc, selector, ns = NULL, ...) {
+querySelectorAll.XMLInternalNode <- function(doc, selector, ns = NULL,
+                                             translator = NULL, ...) {
     validateSelector(selector)
-    xpath <- css_to_xpath(selector, ...)
+    translator <- xmlTranslator(translator, doc)
+    xpath <- css_to_xpath(selector, translator = translator, ...)
     ns <- formatNS(ns)
     if (length(ns))
         XML::getNodeSet(doc, xpath, ns)
@@ -211,26 +212,12 @@ querySelectorAll.XMLInternalDocument <- function(doc, selector, ns = NULL, ...) 
     querySelectorAll(doc, selector, ns, ...)
 }
 
-# XML::htmlParse() gives a document the "HTMLInternalDocument" class, so an
-# HTML document is recognised by dispatch. The nodes of such a document are
-# plain XMLInternalNodes, indistinguishable from those of an XML document,
-# so a query starting from a node (or a node set) is not recognised and
-# keeps the generic translator.
-#
-# Only querySelectorAll() needs a method here: querySelector() and the two
-# namespaced functions call the generic on the document itself, so they
-# arrive back at this method.
 #' @export
-querySelectorAll.HTMLInternalDocument <- function(doc, selector, ns = NULL,
-                                                  translator = "html", ...) {
-    doc <- XML::xmlRoot(doc)
-    querySelectorAll(doc, selector, ns, translator = translator, ...)
-}
-
-#' @export
-querySelectorAll.XMLNodeSet <- function(doc, selector, ns = NULL, ...) {
+querySelectorAll.XMLNodeSet <- function(doc, selector, ns = NULL,
+                                        translator = NULL, ...) {
     validateSelector(selector)
-    xpath <- css_to_xpath(selector, ...)
+    translator <- xmlTranslator(translator, doc)
+    xpath <- css_to_xpath(selector, translator = translator, ...)
     ns <- formatNS(ns)
     results <- lapply(doc, function(node) {
         if (length(ns))
@@ -364,23 +351,45 @@ querySelectorAllNS.xml_nodeset <- querySelectorAllNSMethod
 #' @export
 querySelectorAllNS.xml_missing <- querySelectorAllNSMethod
 
-# The translator for a query on the xml2 object 'doc' that did not name one.
-# Users scraping HTML almost always want the "html" translator, so a
-# document parsed as HTML gets it; everything else keeps the "generic" (XML)
-# translator that css_to_xpath() defaults to.
+# The translator for a query that did not name one. Users scraping HTML
+# almost always want the "html" translator, so a document parsed as HTML
+# gets it; everything else keeps the "generic" (XML) translator that
+# css_to_xpath() defaults to.
 #
-# xml2 uses the same classes for HTML and XML content, so unlike the XML
-# package the kind of document cannot be found by dispatch and is instead
-# asked of libxml2 here. The document node of a document read by
-# xml2::read_html() reports its type as "html_document", which is true for
-# its nodes and node sets too. A node set may be empty, and so have no
-# document to ask, in which case the query is generic.
+# Neither package distinguishes HTML from XML content by class alone (XML
+# classes only the document, not its nodes), so libxml2 is asked instead,
+# by way of the owning document of whatever node the query starts from.
+# That keeps the translator across a chained query, where only the first
+# call sees the document. A node built outside any document, and an empty
+# node set, have nothing to ask and are queried as XML.
+#
+# The document node of a document read by xml2::read_html() reports its
+# type as "html_document", and so do its nodes and node sets.
 defaultTranslator <- function(translator, doc) {
     if (!is.null(translator))
         return(translator)
     type <- tryCatch(xml2::xml_type(xml2::xml_parent(xml2::xml_root(doc))),
                      error = function(e) NA_character_)
     if (identical(type, "html_document"))
+        "html"
+    else
+        "generic"
+}
+
+# The XML package has no equivalent of xml_root(), but the "/" step reaches
+# the owning document from any node that has one, and htmlParse() gives
+# that document node the "XMLHTMLDocumentNode" class.
+xmlTranslator <- function(translator, doc) {
+    if (!is.null(translator))
+        return(translator)
+    if (inherits(doc, "XMLNodeSet")) {
+        if (!length(doc))
+            return("generic")
+        doc <- doc[[1L]]
+    }
+    docNode <- tryCatch(XML::getNodeSet(doc, "/")[[1L]],
+                        error = function(e) NULL)
+    if (inherits(docNode, "XMLHTMLDocumentNode"))
         "html"
     else
         "generic"

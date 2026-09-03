@@ -1,7 +1,7 @@
 # What the XML package does that xml2 does not: it registers no namespace
 # for a query unless one is passed, so an unprefixed selector against a
 # document with a default namespace matches nothing and libxml2 says so;
-# and one of its nodes remembers nothing of the document it came from.
+# and it can build a node that belongs to no document at all.
 # The rest of the querySelector* contract is in test-querySelector.R.
 
 svgDoc <- function() {
@@ -64,14 +64,14 @@ test_that("a zero-length namespace leaves XML to resolve prefixes itself", {
     expect_equal(XML::xmlGetAttr(found[[1]], "id"), "1")
 })
 
-test_that("a query from a node of an HTML document is generic", {
+test_that("a node belonging to no document is queried as XML", {
     skip_if_not_installed("XML")
-    # An XML node carries no record of the document it came from, so there
-    # is nothing to tell a query that the document was parsed as HTML.
-    doc <- XML::htmlParse(translatorHtml(), asText = TRUE)
-    root <- XML::xmlRoot(doc)
+    # newXMLNode() builds a node outside any document, so the "/" step has
+    # nothing to reach and must not error.
+    orphan <- XML::newXMLNode("DIV", XML::newXMLNode("B"))
+    expect_equal(selectrs:::xmlTranslator(NULL, orphan), "generic")
 
-    expect_equal(length(querySelectorAll(root, "input:checked")), 0)
-    expect_equal(length(querySelectorAll(root, "input:checked",
-                                         translator = "html")), 1)
+    # libxml2 evaluates a relative axis from such a node against nothing,
+    # so the query has to be anchored to reach the subtree at all.
+    expect_equal(length(querySelectorAll(orphan, "B", prefix = "//")), 1)
 })
