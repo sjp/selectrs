@@ -150,7 +150,12 @@
 #'
 #' @param selector A character vector of CSS selectors.
 #' @param prefix A character vector of prefixes to apply to the resulting
-#'   XPath expressions. Not applied to selectors anchored by `:scope`.
+#'   XPath expressions. Not applied to selectors anchored by `:scope`. A
+#'   prefix is prepended verbatim and is never validated, so it has to end
+#'   in an axis such as `"descendant-or-self::"` or a step separator such
+#'   as `"//"`, or be `""`. Anything else quietly yields a different
+#'   expression: `prefix = "/html/body "` turns `"div"` into
+#'   `"/html/body div"`, which XPath reads as a division.
 #' @param translator A character vector of translators to use, each one of
 #'   `"generic"`, `"html"`, or `"xhtml"`, matched case-insensitively and
 #'   on a unique prefix. See the Translators section.

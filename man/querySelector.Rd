@@ -24,7 +24,8 @@ character string.}
 
 \item{ns}{The namespace that the query will be filtered to: a named list
 or vector mapping namespace prefixes to namespace URIs. Both the
-prefixes and the URIs must be non-missing, non-empty character strings.
+prefixes and the URIs must be non-missing, non-empty character strings,
+and each prefix must be an XML name.
 Optional for the un-namespaced functions, where the default, \code{NULL},
 uses the namespaces declared by the document itself, and a zero-length
 \code{ns} (\code{character(0)} or \code{list()}) uses none at all.}
@@ -32,7 +33,8 @@ uses the namespaces declared by the document itself, and a zero-length
 \item{...}{Parameters to be passed on to \code{\link[=css_to_xpath]{css_to_xpath()}}.}
 
 \item{prefix}{The prefix to apply to the resulting XPath expression. The
-default or \code{""} are most commonly used.}
+default or \code{""} are most commonly used. As in \code{\link[=css_to_xpath]{css_to_xpath()}}, it is
+prepended verbatim and never validated.}
 }
 \value{
 For \code{querySelector}, the first matched node, or \code{NULL} when

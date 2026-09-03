@@ -113,6 +113,7 @@ test_that("argument errors from the query functions are classed too", {
     expectArgumentError(validateSelector(c("a", "b")))
     expectArgumentError(formatNS(1))
     expectArgumentError(formatNS(c(a = "")))
+    expectArgumentError(formatNS(c("a b" = "urn:a")))
 })
 
 test_that("a failing selector reaching the query functions keeps its class", {

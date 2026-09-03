@@ -179,6 +179,25 @@ test_that("namespace handling works correctly", {
                  "The namespace URIs must be non-missing, non-empty character strings.")
     expect_equal(formatNS(c(a = "urn:a")), c(a = "urn:a"))
 
+    # a prefix that is not an XML name would splice into the generated
+    # XPath and come back as a libxml2 syntax error instead
+    expect_error(formatNS(c("a b" = "urn:a")),
+                 "The namespace prefixes must be XML names, unlike \"a b\"")
+    expect_error(formatNS(list("x:y" = "urn:a")),
+                 "The namespace prefixes must be XML names, unlike \"x:y\"")
+    expect_error(formatNS(c("1a" = "urn:a", "-b" = "urn:b")),
+                 "The namespace prefixes must be XML names, unlike \"1a\", \"-b\"")
+    expect_error(formatNS(c("a/b" = "urn:a")),
+                 "The namespace prefixes must be XML names, unlike \"a/b\"")
+    # libxml2 accepts a non-ASCII prefix, so the check must not be ASCII-only
+    expect_equal(formatNS(c("\u00e9l" = "urn:a")), c("\u00e9l" = "urn:a"))
+    # the names xml_ns() produces, and the ones a document is likely to
+    # declare, must all pass
+    expect_equal(formatNS(c(d1 = "urn:a", "svg" = "urn:b", "_x" = "urn:c",
+                           "x.y-z" = "urn:d")),
+                 c(d1 = "urn:a", svg = "urn:b", "_x" = "urn:c",
+                   "x.y-z" = "urn:d"))
+
     # formatNSPrefix must return a pipe separated string of namespace prefixes
     expect_equal(formatNSPrefix(c(svg = "svg"), ""), "(descendant-or-self::svg:*)/")
     expect_equal(formatNSPrefix(c(svg = "svg"), "asd"), "(descendant-or-self::svg:*)/asd")

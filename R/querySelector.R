@@ -93,12 +93,14 @@
 #'   character string.
 #' @param ns The namespace that the query will be filtered to: a named list
 #'   or vector mapping namespace prefixes to namespace URIs. Both the
-#'   prefixes and the URIs must be non-missing, non-empty character strings.
+#'   prefixes and the URIs must be non-missing, non-empty character strings,
+#'   and each prefix must be an XML name.
 #'   Optional for the un-namespaced functions, where the default, `NULL`,
 #'   uses the namespaces declared by the document itself, and a zero-length
 #'   `ns` (`character(0)` or `list()`) uses none at all.
 #' @param prefix The prefix to apply to the resulting XPath expression. The
-#'   default or `""` are most commonly used.
+#'   default or `""` are most commonly used. As in [css_to_xpath()], it is
+#'   prepended verbatim and never validated.
 #' @param ... Parameters to be passed on to [css_to_xpath()].
 #' @returns For `querySelector`, the first matched node, or `NULL` when
 #'   nothing matches. For `querySelectorAll`, a (possibly empty) list of
@@ -395,6 +397,13 @@ validateSelector <- function(selector) {
         argumentError("A valid selector (single character string) must be provided.")
 }
 
+# A prefix that is not an XML name splices straight into the generated
+# XPath, where it surfaces as a libxml2 syntax error over an expression the
+# caller never wrote. The pattern approximates NCName (combining and
+# extender characters are not admitted) and is deliberately Unicode-aware,
+# since libxml2 accepts a non-ASCII prefix.
+ncnamePattern <- "^[\\p{L}_][\\p{L}\\p{Nd}._-]*$"
+
 # Takes a named vector or list and gives a named vector back
 formatNS <- function(ns) {
     if (is.null(ns))
@@ -410,6 +419,12 @@ formatNS <- function(ns) {
     nsNames <- names(ns)
     if (is.null(nsNames) || anyNA(nsNames) || !all(nzchar(nsNames)))
         argumentError("The namespace object is missing some or all names for each element in its collection.")
+    badNames <- nsNames[!grepl(ncnamePattern, nsNames, perl = TRUE)]
+    if (length(badNames))
+        argumentError(paste0(
+            "The namespace prefixes must be XML names, unlike ",
+            paste0("\"", vapply(badNames, abbreviateValue, "", USE.NAMES = FALSE), "\"",
+                   collapse = ", ")))
     ns <- unlist(ns)
     if (!is.character(ns))
         argumentError("The values in the namespace object must be a character vector.")

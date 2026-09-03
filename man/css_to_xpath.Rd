@@ -10,7 +10,12 @@ css_to_xpath(selector, prefix = "descendant-or-self::", translator = "generic")
 \item{selector}{A character vector of CSS selectors.}
 
 \item{prefix}{A character vector of prefixes to apply to the resulting
-XPath expressions. Not applied to selectors anchored by \verb{:scope}.}
+XPath expressions. Not applied to selectors anchored by \verb{:scope}. A
+prefix is prepended verbatim and is never validated, so it has to end
+in an axis such as \code{"descendant-or-self::"} or a step separator such
+as \code{"//"}, or be \code{""}. Anything else quietly yields a different
+expression: \code{prefix = "/html/body "} turns \code{"div"} into
+\code{"/html/body div"}, which XPath reads as a division.}
 
 \item{translator}{A character vector of translators to use, each one of
 \code{"generic"}, \code{"html"}, or \code{"xhtml"}, matched case-insensitively and
