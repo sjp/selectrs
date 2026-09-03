@@ -56,6 +56,10 @@ Methods are provided for documents, nodes and sets of nodes from both the
 \pkg{XML} package (\code{XMLInternalDocument}/\code{XMLInternalNode}/\code{XMLNodeSet})
 and the \pkg{xml2} package (\code{xml_node}/\code{xml_nodeset}/\code{xml_missing}); the
 matching package must be installed for the corresponding method to work.
+The document has to be one XPath can search: \code{\link[XML:xmlTreeParse]{XML::xmlTreeParse()}} and
+\code{\link[XML:htmlTreeParse]{XML::htmlTreeParse()}} build a tree of R lists instead, which is rejected
+with a message naming the parsers that do — \code{\link[XML:xmlParse]{XML::xmlParse()}} and
+\code{\link[XML:htmlParse]{XML::htmlParse()}}, or \code{useInternalNodes = TRUE}.
 
 Queries may therefore be chained: a \code{querySelectorAll(doc, "table")} can
 be followed by \code{querySelectorAll(tables, "tr")}, which searches each

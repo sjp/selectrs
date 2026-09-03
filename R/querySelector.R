@@ -1,6 +1,7 @@
 # The four querySelector* generics, their default, XML
-# (XMLInternalNode/XMLInternalDocument/XMLNodeSet), and
-# xml2 (xml_node/xml_nodeset/xml_missing) methods, plus the
+# (XMLInternalNode/XMLInternalDocument/XMLNodeSet), R-level XML tree
+# (XMLDocument/XMLDocumentContent/XMLNode) and xml2
+# (xml_node/xml_nodeset/xml_missing) methods, plus the
 # formatNS/formatNSPrefix helpers. css_to_xpath() dispatches into the
 # Rust core.
 
@@ -16,6 +17,10 @@
 #' \pkg{XML} package (`XMLInternalDocument`/`XMLInternalNode`/`XMLNodeSet`)
 #' and the \pkg{xml2} package (`xml_node`/`xml_nodeset`/`xml_missing`); the
 #' matching package must be installed for the corresponding method to work.
+#' The document has to be one XPath can search: [XML::xmlTreeParse()] and
+#' [XML::htmlTreeParse()] build a tree of R lists instead, which is rejected
+#' with a message naming the parsers that do — [XML::xmlParse()] and
+#' [XML::htmlParse()], or `useInternalNodes = TRUE`.
 #'
 #' Queries may therefore be chained: a `querySelectorAll(doc, "table")` can
 #' be followed by `querySelectorAll(tables, "tr")`, which searches each
@@ -186,6 +191,66 @@ querySelectorAllNS.default <- function(doc, selector, ns,
                                     prefix = "descendant-or-self::", ...) {
     argumentError("The object given to querySelectorAllNS() is not an 'XML' or 'xml2' document or node.")
 }
+
+# XML::xmlTreeParse() and XML::htmlTreeParse() return a tree of R lists
+# rather than a libxml2 document, and XPath can only be evaluated over the
+# latter. Such a tree is an 'XML' document, so the default method's message
+# would send the reader looking for the wrong problem; point at the parsers
+# that give a searchable document instead.
+rLevelTreeError <- function(fname) {
+    argumentError(paste0(
+        "The object given to ", fname, "() is an R-level 'XML' tree, which ",
+        "cannot be searched with XPath. Re-parse the document with ",
+        "XML::xmlParse() or XML::htmlParse() (equivalently, with ",
+        "useInternalNodes = TRUE)."))
+}
+
+#' @export
+querySelector.XMLDocument <- function(doc, selector, ns = NULL, ...) {
+    rLevelTreeError("querySelector")
+}
+
+#' @export
+querySelector.XMLDocumentContent <- querySelector.XMLDocument
+
+#' @export
+querySelector.XMLNode <- querySelector.XMLDocument
+
+#' @export
+querySelectorAll.XMLDocument <- function(doc, selector, ns = NULL, ...) {
+    rLevelTreeError("querySelectorAll")
+}
+
+#' @export
+querySelectorAll.XMLDocumentContent <- querySelectorAll.XMLDocument
+
+#' @export
+querySelectorAll.XMLNode <- querySelectorAll.XMLDocument
+
+#' @export
+querySelectorNS.XMLDocument <- function(doc, selector, ns,
+                                        prefix = "descendant-or-self::", ...) {
+    rLevelTreeError("querySelectorNS")
+}
+
+#' @export
+querySelectorNS.XMLDocumentContent <- querySelectorNS.XMLDocument
+
+#' @export
+querySelectorNS.XMLNode <- querySelectorNS.XMLDocument
+
+#' @export
+querySelectorAllNS.XMLDocument <- function(doc, selector, ns,
+                                           prefix = "descendant-or-self::",
+                                           ...) {
+    rLevelTreeError("querySelectorAllNS")
+}
+
+#' @export
+querySelectorAllNS.XMLDocumentContent <- querySelectorAllNS.XMLDocument
+
+#' @export
+querySelectorAllNS.XMLNode <- querySelectorAllNS.XMLDocument
 
 #' @export
 querySelector.XMLInternalDocument <- function(doc, selector, ns = NULL, ...) {
