@@ -91,9 +91,11 @@ test_that("argument errors from css_to_xpath are selectrs_argument_errors", {
     expect_true(classed(css_to_xpath(character(0))))
     expect_true(classed(css_to_xpath("a", translator = "nosuch")))
 
-    # match.arg()'s own wording is kept, only the class and call change
+    # the message names the argument the caller wrote, not match.arg()'s
+    # own formal, and echoes the value that was rejected
     e <- tryCatch(css_to_xpath("a", translator = "nosuch"), error = identity)
-    expect_match(conditionMessage(e), "'arg' should be one of")
+    expect_match(conditionMessage(e), "The 'translator' argument must be one of")
+    expect_match(conditionMessage(e), "not \"nosuch\"", fixed = TRUE)
     expect_null(conditionCall(e))
 })
 

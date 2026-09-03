@@ -204,10 +204,11 @@ css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator =
                              paste0(zeroLengthArgs, collapse = ", ")))
     }
 
-    translator <- vapply(translator, function(tran) {
-        tryCatch(match.arg(tolower(tran), c("generic", "html", "xhtml")),
-                 error = function(e) argumentError(conditionMessage(e)))
-    }, character(1), USE.NAMES = FALSE)
+    # Matching once per distinct value: the work is identical for repeats,
+    # and a long translator vector rarely holds more than the three names.
+    distinct <- unique(unname(translator))
+    matched <- vapply(distinct, matchTranslator, character(1), USE.NAMES = FALSE)
+    translator <- matched[match(translator, distinct)]
 
     argLengths <- c(selector = length(selector), prefix = length(prefix),
                     translator = length(translator))
@@ -237,4 +238,21 @@ css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator =
     if (!is.character(xpath))
         translationError(xpath)
     xpath
+}
+
+translatorChoices <- c("generic", "html", "xhtml")
+
+# match.arg()'s semantics -- case-insensitive, a unique prefix accepted --
+# without its message, which names its own formal 'arg' rather than the
+# argument the user wrote. pmatch() returns NA for an unknown name, for an
+# ambiguous prefix and for "", which is exactly what match.arg() rejects.
+matchTranslator <- function(name) {
+    hit <- pmatch(tolower(name), translatorChoices)
+    if (is.na(hit))
+        argumentError(sprintf(
+            paste0("The 'translator' argument must be one of \"generic\", ",
+                   "\"html\" or \"xhtml\" (a unique prefix, in any case, is ",
+                   "accepted), not \"%s\""),
+            abbreviateValue(name)))
+    translatorChoices[hit]
 }

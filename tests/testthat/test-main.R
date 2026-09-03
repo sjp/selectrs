@@ -77,10 +77,18 @@ test_that("css_to_xpath handles bad arguments", {
     expect_equal(css_to_xpath("a", translator = "x"), "descendant-or-self::a")
     expect_equal(css_to_xpath("a", translator = c("g", "h", "x")), rep("descendant-or-self::a", 3))
 
-    # errors anything not matching generic, html, xhtml
-    expect_error(css_to_xpath("a", translator = ""), "'arg' should be one of.*")
-    expect_error(css_to_xpath("a", translator = "a"), "'arg' should be one of.*")
-    expect_error(css_to_xpath("a", translator = c("generic", "a")), "'arg' should be one of.*")
+    # errors anything not matching generic, html, xhtml, naming the
+    # argument and echoing the value that was rejected
+    expect_error(css_to_xpath("a", translator = ""),
+                 "The 'translator' argument must be one of .*, not \"\"")
+    expect_error(css_to_xpath("a", translator = "a"),
+                 "The 'translator' argument must be one of .*, not \"a\"")
+    expect_error(css_to_xpath("a", translator = c("generic", "a")),
+                 "The 'translator' argument must be one of .*, not \"a\"")
+
+    # a long value is bounded so it cannot crowd out the rest of the message
+    expect_error(css_to_xpath("a", translator = strrep("x", 100)),
+                 paste0("not \"", strrep("x", 40), "\\.\\.\\.\""))
 })
 
 test_that("css_to_xpath reads arguments by their characters, not their bytes", {

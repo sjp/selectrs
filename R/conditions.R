@@ -36,3 +36,13 @@ translationError <- function(failure) {
     selectrsError(failure$message, class,
                   failure[!names(failure) %in% c("kind", "message")])
 }
+
+# Bound a caller-supplied value echoed back in an error message, so that a
+# very long one cannot push the rest of the message past
+# options("warning.length"). The core bounds what it quotes from a selector
+# the same way.
+abbreviateValue <- function(value, limit = 40L) {
+    if (nchar(value, type = "chars") <= limit)
+        return(value)
+    paste0(substr(value, 1L, limit), "...")
+}
