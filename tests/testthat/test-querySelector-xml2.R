@@ -78,11 +78,16 @@ test_that("a zero-length namespace leaves xml2 with no prefix to resolve", {
     skip_if_not_installed("xml2")
     # xml_find_all() registers only the map it is handed, so with none a
     # prefixed selector is left to libxml2 to complain about.
-    doc <- xml2::read_xml('<r xmlns:s="urn:s"><s:b id="1"/></r>')
+    doc <- xml2::read_xml('<r xmlns:s="urn:s"><c><s:b id="1"/></c></r>')
     expect_warning(querySelectorAll(doc, "s|b", ns = character(0)),
                    "Undefined namespace prefix")
     expect_equal(length(suppressWarnings(querySelectorAll(doc, "s|b",
                                                           ns = character(0)))), 0L)
+
+    # the NULL default is xml_ns(), which walks the whole document, so a
+    # prefix declared above the queried node is still in reach
+    node <- xml2::xml_find_first(doc, "//c")
+    expect_equal(xml2::xml_attr(querySelectorAll(node, "s|b"), "id"), "1")
 })
 
 test_that("querying an xml_missing gives an empty result", {

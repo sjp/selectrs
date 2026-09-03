@@ -35,10 +35,19 @@
 #' The namespace argument, `ns`, is passed on to [XML::getNodeSet()] or
 #' [xml2::xml_find_all()] if it is necessary to use a namespace present
 #' within the document. It can be ignored for content lacking a namespace.
-#' For \pkg{xml2}, leaving it at `NULL` means the namespaces the document
-#' declares are collected, with [xml2::xml_ns()], for every query; passing a
-#' zero-length `ns` skips that walk of the document, which is worth doing in
-#' a loop over a large document known to be un-namespaced.
+#' The default, `NULL`, leaves each package to supply a map of its own:
+#' \pkg{xml2} collects the document's declarations with [xml2::xml_ns()]
+#' for every query, while \pkg{XML} takes [XML::getNodeSet()]'s default,
+#' the declarations carried by the element the query starts from — so a
+#' prefixed selector that resolves from a document may not resolve from a
+#' node deeper in it.
+#'
+#' A zero-length `ns` registers no namespaces at all with either package.
+#' That spares \pkg{xml2} the walk of the document, which is worth doing
+#' in a loop over a large document known to be un-namespaced, and it
+#' leaves a prefixed selector with nothing to resolve against: \pkg{xml2}
+#' warns and matches nothing, \pkg{XML} raises an error from libxml2.
+#' Passing the map yourself is the way to be sure of either.
 #'
 #' A document with a *default* namespace — one declared as
 #' `xmlns="..."`, as XHTML, SVG and Atom documents are — needs its
@@ -95,8 +104,8 @@
 #'   prefixes and the URIs must be non-missing, non-empty character strings,
 #'   and each prefix must be an XML name.
 #'   Optional for the un-namespaced functions, where the default, `NULL`,
-#'   uses the namespaces declared by the document itself, and a zero-length
-#'   `ns` (`character(0)` or `list()`) uses none at all.
+#'   uses the namespaces the queried document or node declares, and a
+#'   zero-length `ns` (`character(0)` or `list()`) uses none at all.
 #' @param prefix The prefix to apply to the resulting XPath expression. The
 #'   default or `""` are most commonly used. As in [css_to_xpath()], it is
 #'   prepended verbatim and never validated.
@@ -199,11 +208,7 @@ querySelectorAll.XMLInternalNode <- function(doc, selector, ns = NULL,
     validateSelector(selector)
     translator <- xmlTranslator(translator, doc)
     xpath <- css_to_xpath(selector, translator = translator, ...)
-    ns <- formatNS(ns)
-    if (length(ns))
-        XML::getNodeSet(doc, xpath, ns)
-    else
-        XML::getNodeSet(doc, xpath)
+    xmlMatches(doc, xpath, formatNS(ns))
 }
 
 #' @export
@@ -219,12 +224,7 @@ querySelectorAll.XMLNodeSet <- function(doc, selector, ns = NULL,
     translator <- xmlTranslator(translator, doc)
     xpath <- css_to_xpath(selector, translator = translator, ...)
     ns <- formatNS(ns)
-    results <- lapply(doc, function(node) {
-        if (length(ns))
-            XML::getNodeSet(node, xpath, ns)
-        else
-            XML::getNodeSet(node, xpath)
-    })
+    results <- lapply(doc, function(node) xmlMatches(node, xpath, ns))
     results <- unlist(results, recursive = FALSE)
     if (is.null(results))
         results <- list()
@@ -393,6 +393,19 @@ xmlTranslator <- function(translator, doc) {
         "html"
     else
         "generic"
+}
+
+# XML::getNodeSet() supplies a default `namespaces` argument of its own,
+# the declarations carried by the node it is given, so leaving the map to
+# the package has to be an absent argument rather than a NULL one. A
+# zero-length `ns`, which formatNS() gives back as an empty character
+# vector, is passed on as the empty map it is, leaving a prefixed selector
+# with nothing to resolve against.
+xmlMatches <- function(node, xpath, ns) {
+    if (is.null(ns))
+        XML::getNodeSet(node, xpath)
+    else
+        XML::getNodeSet(node, xpath, ns)
 }
 
 # xml2 does not export a constructor for an empty nodeset, but this is the

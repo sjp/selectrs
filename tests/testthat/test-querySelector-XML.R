@@ -54,14 +54,25 @@ test_that("querySelectorAll handles namespaces", {
                  p(XML::getNodeSet(doc, "//svg:circle", namespaces = svg)))
 })
 
-test_that("a zero-length namespace leaves XML to resolve prefixes itself", {
+test_that("a zero-length namespace leaves XML with no prefix to resolve", {
     skip_if_not_installed("XML")
-    # getNodeSet() called without a namespaces argument defaults to the
-    # declarations the document itself carries, so a prefixed selector
-    # still resolves — a zero-length `ns` only skips selectrs' own map.
-    doc <- XML::xmlParse('<r xmlns:s="urn:s"><s:b id="1"/></r>', asText = TRUE)
-    found <- querySelectorAll(doc, "s|b", ns = character(0))
-    expect_equal(XML::xmlGetAttr(found[[1]], "id"), "1")
+    # getNodeSet() is handed the empty map, so libxml2 cannot compile an
+    # expression naming a prefix and says so as an error of its own rather
+    # than a classed selectrs condition.
+    doc <- XML::xmlParse('<r xmlns:s="urn:s"><c><s:b id="1"/></c></r>',
+                         asText = TRUE)
+    expect_error(querySelectorAll(doc, "s|b", ns = character(0)),
+                 "error evaluating xpath expression")
+
+    # the NULL default is getNodeSet()'s own, the declarations on the
+    # element the query starts from, so a prefix declared higher up is out
+    # of reach when the query starts below it
+    node <- XML::getNodeSet(XML::xmlRoot(doc), "//c")[[1]]
+    expect_error(querySelectorAll(node, "s|b"),
+                 "error evaluating xpath expression")
+    expect_equal(XML::xmlGetAttr(querySelectorAll(node, "s|b",
+                                                  ns = c(s = "urn:s"))[[1]],
+                                 "id"), "1")
 })
 
 test_that("a node belonging to no document is queried as XML", {

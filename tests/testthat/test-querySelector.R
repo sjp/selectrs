@@ -164,6 +164,16 @@ forEachBackend("the *NS variants are scoped to the queried node", function(backe
     expect_equal(length(querySelectorAllNS(nsdoc, "s|root", ns)), 1L)
 })
 
+forEachBackend("the default namespace map is the document's own", function(backend) {
+    # ns = NULL resolves a prefixed selector against the prefixes the
+    # document declares. Only from the document: XML gives getNodeSet() a
+    # node's own declarations, which a node below the one carrying them
+    # does not have, so that case is pinned per backend.
+    doc <- backend$parse('<r xmlns:s="urn:s"><c><s:b id="1"/></c></r>')
+    expect_equal(backend$ids(querySelectorAll(doc, "s|b")), "1")
+    expect_equal(backend$ids(querySelector(doc, "s|b")), "1")
+})
+
 forEachBackend("a zero-length namespace skips the document's namespace map", function(backend) {
     doc <- backend$parse("<a><b id='1'/><c><b id='2'/></c></a>")
     node <- backend$findFirst(doc, "//c")
@@ -180,8 +190,9 @@ forEachBackend("a zero-length namespace skips the document's namespace map", fun
         expect_null(querySelector(doc, "d", ns = none))
     }
 
-    # a prefixed selector still resolves when the map is passed; what each
-    # package does *without* one differs, and is pinned per backend
+    # a prefixed selector still resolves when the map is passed; with the
+    # empty map it has nothing to resolve against, and how each package
+    # reports that is pinned per backend
     nsdoc <- backend$parse('<r xmlns:s="urn:s"><s:b id="1"/></r>')
     expect_equal(backend$ids(querySelectorAll(nsdoc, "s|b", ns = c(s = "urn:s"))),
                  "1")
