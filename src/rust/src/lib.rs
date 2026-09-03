@@ -85,43 +85,39 @@ fn render_message(error: &Error, selector: &str) -> String {
 ///
 /// The named list holds the kind of failure, its rendered message, the
 /// offending selector and its 1-based position in the vectorized call,
-/// plus the field particular to the kind: the error `column` for a parse
-/// failure, the `construct` for an unsupported one.
+/// plus whatever else the error knows: the `construct` an unsupported
+/// selector names, and the `column` it failed at. A parse failure always
+/// has a position; an unsupported construct only has one when the crate
+/// found it lexically, so the list is sized by what is actually there
+/// and a caller reads an absent field as `NULL` either way.
 fn describe_failure(error: Error, selector: &str, index: usize) -> savvy::Result<savvy::Sexp> {
-    let mut out = OwnedListSexp::new(5, true)?;
-    // Set from within the match so the value is installed in the (already
-    // protected) list rather than held as a bare SEXP across allocations.
-    let kind = match &error {
-        Error::Parse { offset, .. } => {
-            let column = column_of_offset(selector, *offset);
-            out.set_name_and_value(4, "column", OwnedIntegerSexp::try_from(column)?)?;
-            "parse"
-        }
-        Error::Unsupported { construct, .. } => {
-            out.set_name_and_value(
-                4,
-                "construct",
-                OwnedStringSexp::try_from(construct.as_str())?,
-            )?;
-            "unsupported"
+    let (kind, construct, offset) = match &error {
+        Error::Parse { offset, .. } => ("parse", None, Some(*offset)),
+        Error::Unsupported { construct, offset } => {
+            ("unsupported", Some(construct.to_string()), *offset)
         }
         // `Error` is non-exhaustive, so a variant the crate adds has to
         // reach R as an ordinary failure rather than a panic. Its
         // `Display` names the construct, which is what the field holds.
-        other => {
-            out.set_name_and_value(
-                4,
-                "construct",
-                OwnedStringSexp::try_from(other.to_string())?,
-            )?;
-            "unsupported"
-        }
+        other => ("unsupported", Some(other.to_string()), None),
     };
+
+    let extra = usize::from(construct.is_some()) + usize::from(offset.is_some());
+    let mut out = OwnedListSexp::new(4 + extra, true)?;
     out.set_name_and_value(0, "kind", OwnedStringSexp::try_from(kind)?)?;
     let message = render_message(&error, selector);
     out.set_name_and_value(1, "message", OwnedStringSexp::try_from(message)?)?;
     out.set_name_and_value(2, "selector", OwnedStringSexp::try_from(selector)?)?;
     out.set_name_and_value(3, "index", OwnedIntegerSexp::try_from(index as i32)?)?;
+    let mut slot = 4;
+    if let Some(construct) = construct {
+        out.set_name_and_value(slot, "construct", OwnedStringSexp::try_from(construct)?)?;
+        slot += 1;
+    }
+    if let Some(offset) = offset {
+        let column = column_of_offset(selector, offset);
+        out.set_name_and_value(slot, "column", OwnedIntegerSexp::try_from(column)?)?;
+    }
     Ok(out.into())
 }
 

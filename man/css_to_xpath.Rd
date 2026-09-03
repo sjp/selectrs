@@ -167,7 +167,9 @@ inherit from \code{selectrs_error}, and each carries the fields listed here:
 \code{column}, the 1-based character column the parse failed at.
 \item \code{selectrs_translation_error} — the selector is valid CSS but uses a
 construct that has no XPath 1.0 equivalent. Fields \code{selector},
-\code{index} and \code{construct}.
+\code{index}, \code{construct}, and \code{column} when the construct could be
+located in the selector. Some constructs are only recognised once
+the selector has been parsed, and those have no \code{column}.
 \item \code{selectrs_argument_error} — the arguments themselves are wrong (a
 non-character selector, an \code{NA}, a \code{"bytes"}-encoded selector or
 prefix, an unknown translator, lengths that do not recycle).

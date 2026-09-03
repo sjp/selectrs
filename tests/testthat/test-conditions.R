@@ -31,9 +31,23 @@ test_that("an unsupported construct is a selectrs_translation_error naming it", 
     expect_equal(e$selector, "*:first-of-type")
     expect_equal(e$index, 1L)
     expect_equal(e$construct, "an of-type pseudo-class on the universal selector `*`")
-    expect_null(e$column)
     expect_null(conditionCall(e))
     expect_match(conditionMessage(e), e$construct, fixed = TRUE)
+    # this one is only recognised once the selector has been parsed, so
+    # there is no position to report
+    expect_null(e$column)
+})
+
+test_that("a construct found in the selector text reports its column", {
+    e <- tryCatch(css_to_xpath("col || td"), error = identity)
+    expect_identical(class(e), c("selectrs_translation_error", "selectrs_error",
+                                 "error", "condition"))
+    expect_equal(e$construct, "the `||` column combinator")
+    expect_equal(e$column, 5L)
+
+    # counted in characters, like the parse error column
+    e <- tryCatch(css_to_xpath("日本 || td"), error = identity)
+    expect_equal(e$column, 4L)
 })
 
 test_that("the two translation failures are distinguishable from each other", {
@@ -123,6 +137,11 @@ test_that("the Rust boundary reports a failure rather than throwing", {
     failure <- selectrs:::css_to_xpath_rust("*:first-of-type", "", "generic")
     expect_equal(failure$kind, "unsupported")
     expect_type(failure$construct, "character")
+    expect_false("column" %in% names(failure))
+
+    failure <- selectrs:::css_to_xpath_rust("col || td", "", "generic")
+    expect_equal(failure$kind, "unsupported")
+    expect_equal(failure$column, 5L)
 })
 
 test_that("a long selector is abbreviated so the message stays readable", {

@@ -2,7 +2,8 @@
 # malformed selector from a valid but untranslatable one from a bad
 # argument. The base class is "selectrs_error"; the subclasses are
 # "selectrs_parse_error" (fields selector, index, column),
-# "selectrs_translation_error" (fields selector, index, construct) and
+# "selectrs_translation_error" (fields selector, index, construct, and
+# column when the construct could be located) and
 # "selectrs_argument_error".
 #
 # The call is dropped from every condition: for the querySelector*
@@ -23,8 +24,10 @@ argumentError <- function(message) {
 
 # Raise the condition for a failure the Rust core reported. The core hands
 # the failure back as a named list rather than throwing, so the kind of
-# failure, the element of a vectorised call that failed, and the parse
-# error column all survive the boundary.
+# failure, the element of a vectorised call that failed, and the position
+# it failed at all survive the boundary. The list only holds the fields
+# the failure actually has, and every one of them but the kind and the
+# message becomes a field of the condition.
 translationError <- function(failure) {
     class <- if (identical(failure$kind, "parse"))
         "selectrs_parse_error"

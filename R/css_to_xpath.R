@@ -137,7 +137,9 @@
 #'   `column`, the 1-based character column the parse failed at.
 #' * `selectrs_translation_error` — the selector is valid CSS but uses a
 #'   construct that has no XPath 1.0 equivalent. Fields `selector`,
-#'   `index` and `construct`.
+#'   `index`, `construct`, and `column` when the construct could be
+#'   located in the selector. Some constructs are only recognised once
+#'   the selector has been parsed, and those have no `column`.
 #' * `selectrs_argument_error` — the arguments themselves are wrong (a
 #'   non-character selector, an `NA`, a `"bytes"`-encoded selector or
 #'   prefix, an unknown translator, lengths that do not recycle).
