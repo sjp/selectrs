@@ -80,11 +80,15 @@ test_that("css_to_xpath handles bad arguments", {
     # errors anything not matching generic, html, xhtml, naming the
     # argument and echoing the value that was rejected
     expect_error(css_to_xpath("a", translator = ""),
-                 "The 'translator' argument must be one of .*, not \"\"")
+                 "'translator' must be one of .*, not \"\"")
     expect_error(css_to_xpath("a", translator = "a"),
-                 "The 'translator' argument must be one of .*, not \"a\"")
+                 "'translator' must be one of .*, not \"a\"")
     expect_error(css_to_xpath("a", translator = c("generic", "a")),
-                 "The 'translator' argument must be one of .*, not \"a\"")
+                 "'translator' must be one of .*, not \"a\"")
+
+    # the value is echoed as it is matched, in lower case
+    expect_error(css_to_xpath("a", translator = "XmL"),
+                 "not \"xml\"$")
 
     # every distinct bad value is named at once, in the order they were
     # written, so fixing one does not just surface the next
@@ -92,9 +96,9 @@ test_that("css_to_xpath handles bad arguments", {
                               translator = c("xml", "json", "xml", "generic")),
                  "not \"xml\", \"json\"$")
 
-    # a long value is bounded so it cannot crowd out the rest of the message
+    # the value is echoed whole, however long it is
     expect_error(css_to_xpath("a", translator = strrep("x", 100)),
-                 paste0("not \"", strrep("x", 40), "\\.\\.\\.\""))
+                 paste0("not \"", strrep("x", 100), "\""), fixed = TRUE)
 })
 
 test_that("css_to_xpath reads arguments by their characters, not their bytes", {
@@ -157,17 +161,17 @@ test_that("css_to_xpath rejects lengths that only partially recycle", {
     # a length that does not fill the result is a call-site mistake, not
     # a request to recycle
     expect_error(css_to_xpath(c("a", "b"), prefix = c("", "", "//")),
-                 "must each have length 1 or 3, but the following argument does not: selector (length 2)",
+                 "length 1 or a common length (3), which the following argument do not: selector (length 2)",
                  fixed = TRUE)
     expect_error(css_to_xpath(c("a", "b", "c"), prefix = c("", "//")),
-                 "must each have length 1 or 3, but the following argument does not: prefix (length 2)",
+                 "length 1 or a common length (3), which the following argument do not: prefix (length 2)",
                  fixed = TRUE)
     expect_error(css_to_xpath(c("a", "b", "c", "d"), translator = c("html", "generic")),
-                 "the following argument does not: translator (length 2)",
+                 "which the following argument do not: translator (length 2)",
                  fixed = TRUE)
     expect_error(css_to_xpath(c("a", "b"), prefix = c("", "//", "///"),
                               translator = c("html", "generic")),
-                 "the following arguments do not: selector (length 2), translator (length 2)",
+                 "which the following arguments do not: selector (length 2), translator (length 2)",
                  fixed = TRUE)
     expect_true(inherits(tryCatch(css_to_xpath(c("a", "b"), prefix = c("", "", "//")),
                                   error = identity),
@@ -189,11 +193,11 @@ test_that("namespace handling works correctly", {
     expect_error(formatNS(1), "A namespace object must be.*")
     expect_error(formatNS(TRUE), "A namespace object must be.*")
 
-    expect_error(formatNS("a"), "The namespace object is missing some or all names.*")
-    expect_error(formatNS(c(a = "a", "b")), "The namespace object is missing some or all names.*")
+    expect_error(formatNS("a"), "every element needs a non-empty name\\.")
+    expect_error(formatNS(c(a = "a", "b")), "every element needs a non-empty name\\.")
     tmp <- letters
     names(tmp) <- letters[1:5]
-    expect_error(formatNS(tmp), "The namespace object is missing some or all names.*")
+    expect_error(formatNS(tmp), "every element needs a non-empty name\\.")
     expect_error(formatNS(list(a = 1, b = 2)), "The values in the namespace object.*")
 
     # list elements must each be a single string: a longer (or empty)
@@ -207,32 +211,33 @@ test_that("namespace handling works correctly", {
     # an object wrong in more than one way is reported by name and by prefix
     # before it is reported by element length
     expect_error(formatNS(list(c("u1", "u2"))),
-                 "The namespace object is missing some or all names.*")
+                 "every element needs a non-empty name\\.")
     expect_error(formatNS(list("1x" = c("u1", "u2"))),
-                 "The namespace prefixes must be XML names, unlike \"1x\"")
+                 "not '1x').", fixed = TRUE)
 
     # a missing or empty URI would reach XML::getNodeSet()/xml2 as a namespace
     # definition, giving a confusing error or a silent non-match
     expect_error(formatNS(list(a = NA_character_)),
-                 "The namespace URIs must be non-missing, non-empty character strings.")
+                 "The values in the namespace object must be non-missing, non-empty strings.")
     expect_error(formatNS(c(a = NA_character_)),
-                 "The namespace URIs must be non-missing, non-empty character strings.")
+                 "The values in the namespace object must be non-missing, non-empty strings.")
     expect_error(formatNS(c(a = "")),
-                 "The namespace URIs must be non-missing, non-empty character strings.")
+                 "The values in the namespace object must be non-missing, non-empty strings.")
     expect_error(formatNS(list(a = "urn:a", b = "")),
-                 "The namespace URIs must be non-missing, non-empty character strings.")
+                 "The values in the namespace object must be non-missing, non-empty strings.")
     expect_equal(formatNS(c(a = "urn:a")), c(a = "urn:a"))
 
     # a prefix that is not an XML name would splice into the generated
     # XPath and come back as a libxml2 syntax error instead
     expect_error(formatNS(c("a b" = "urn:a")),
-                 "The namespace prefixes must be XML names, unlike \"a b\"")
+                 "not 'a b').", fixed = TRUE)
     expect_error(formatNS(list("x:y" = "urn:a")),
-                 "The namespace prefixes must be XML names, unlike \"x:y\"")
+                 "not 'x:y').", fixed = TRUE)
+    # only the first offending prefix is named, as in selectr
     expect_error(formatNS(c("1a" = "urn:a", "-b" = "urn:b")),
-                 "The namespace prefixes must be XML names, unlike \"1a\", \"-b\"")
+                 "not '1a').", fixed = TRUE)
     expect_error(formatNS(c("a/b" = "urn:a")),
-                 "The namespace prefixes must be XML names, unlike \"a/b\"")
+                 "not 'a/b').", fixed = TRUE)
     # libxml2 accepts a non-ASCII prefix, so the check must not be ASCII-only
     expect_equal(formatNS(c("\u00e9l" = "urn:a")), c("\u00e9l" = "urn:a"))
     # the names xml_ns() produces, and the ones a document is likely to

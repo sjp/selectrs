@@ -157,10 +157,15 @@
 #' fires here unchanged. The selectrs names come first, so `class(e)[1]`
 #' and the printed header still name the package that raised the error.
 #'
-#' The message text is not part of the interface. Several of these
-#' messages are worded differently from selectr's for the same failure,
-#' and a long value the message echoes back is abbreviated where selectr
-#' repeats it in full. The classes and the fields are what to match on.
+#' selectr's names for two of the fields are carried alongside the ones
+#' above, for the same reason: `pos` on any condition that has a `column`
+#' (the same number), and `feature` on a translation error (the same
+#' string as `construct`). `column`, `index` and `construct` are the
+#' primary names. Note that `feature`'s *value* is not the one selectr
+#' would give — selectr names the construct with a short token such as
+#' `":scope"`, where selectrs describes it in a phrase — so a handler
+#' that compares `feature` to a literal needs rewriting even though one
+#' that prints it does not.
 #'
 #' @param selector A character vector of CSS selectors.
 #' @param prefix A character vector of prefixes to apply to the resulting
@@ -228,14 +233,12 @@ css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator =
     # and a long translator vector rarely holds more than the three names.
     distinct <- unique(unname(translator))
     matched <- vapply(distinct, matchTranslator, character(1), USE.NAMES = FALSE)
-    bad <- distinct[is.na(matched)]
+    bad <- unique(tolower(distinct[is.na(matched)]))
     if (length(bad))
-        argumentError(sprintf(
-            paste0("The 'translator' argument must be one of \"generic\", ",
-                   "\"html\" or \"xhtml\" (a unique prefix, in any case, is ",
-                   "accepted), not %s"),
-            paste0("\"", vapply(bad, abbreviateValue, "", USE.NAMES = FALSE),
-                   "\"", collapse = ", ")))
+        argumentError(paste0("'translator' must be one of \"",
+                             paste0(translatorChoices, collapse = "\", \""),
+                             "\", not \"", paste0(bad, collapse = "\", \""),
+                             "\""))
     translator <- matched[match(translator, distinct)]
 
     argLengths <- c(selector = length(selector), prefix = length(prefix),
@@ -245,13 +248,10 @@ css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator =
     # arguments up in a way the caller is unlikely to have meant.
     badArgs <- names(argLengths)[argLengths != 1L & argLengths != maxArgLength]
     if (length(badArgs)) {
-        offenders <- if (length(badArgs) > 1)
-            "the following arguments do not"
-        else
-            "the following argument does not"
-        argumentError(paste0("The 'selector', 'prefix' and 'translator' ",
-                             "arguments must each have length 1 or ",
-                             maxArgLength, ", but ", offenders, ": ",
+        plural <- if (length(badArgs) > 1) "s" else ""
+        argumentError(paste0("Arguments must have length 1 or a common length (",
+                             maxArgLength, "), which the following argument",
+                             plural, " do not: ",
                              paste0(badArgs, " (length ", argLengths[badArgs],
                                     ")", collapse = ", ")))
     }

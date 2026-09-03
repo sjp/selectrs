@@ -6,10 +6,12 @@
 # column when the construct could be located) and
 # "selectrs_argument_error".
 #
-# Each of those is signalled under the matching selectr name as well, so
-# that a handler, an inherits() test or an expect_error(class = ) written
-# against selectr keeps working here. The selectrs names come first, so
-# class(e)[1] and the printed header still say which package raised it.
+# Each of those is signalled under the matching selectr name as well, and
+# the two fields selectr names differently are carried under both names,
+# so that a handler, an inherits() test or an expect_error(class = )
+# written against selectr keeps working here. The selectrs names come
+# first, so class(e)[1] and the printed header still say which package
+# raised it.
 #
 # The call is dropped from every condition: for the querySelector*
 # generics it would name the method rather than the function the user
@@ -41,16 +43,14 @@ translationError <- function(failure) {
         "selectrs_parse_error"
     else
         "selectrs_translation_error"
-    selectrsError(failure$message, class,
-                  failure[!names(failure) %in% c("kind", "message")])
-}
-
-# Bound a caller-supplied value echoed back in an error message, so that a
-# very long one cannot push the rest of the message past
-# options("warning.length"). The core bounds what it quotes from a selector
-# the same way.
-abbreviateValue <- function(value, limit = 40L) {
-    if (nchar(value, type = "chars") <= limit)
-        return(value)
-    paste0(substr(value, 1L, limit), "...")
+    fields <- failure[!names(failure) %in% c("kind", "message")]
+    # selectr names the same two values "pos" and "feature", so a handler
+    # reading either finds it here. "pos" is the same number as "column";
+    # "feature" holds this package's phrase for the construct rather than
+    # selectr's short descriptor, which is documented on ?css_to_xpath.
+    if (!is.null(fields$column))
+        fields$pos <- fields$column
+    if (!is.null(fields$construct))
+        fields$feature <- fields$construct
+    selectrsError(failure$message, class, fields)
 }

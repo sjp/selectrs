@@ -193,10 +193,15 @@ well - \code{selectr_parse_error}, \code{selectr_translation_error},
 fires here unchanged. The selectrs names come first, so \code{class(e)[1]}
 and the printed header still name the package that raised the error.
 
-The message text is not part of the interface. Several of these
-messages are worded differently from selectr's for the same failure,
-and a long value the message echoes back is abbreviated where selectr
-repeats it in full. The classes and the fields are what to match on.
+selectr's names for two of the fields are carried alongside the ones
+above, for the same reason: \code{pos} on any condition that has a \code{column}
+(the same number), and \code{feature} on a translation error (the same
+string as \code{construct}). \code{column}, \code{index} and \code{construct} are the
+primary names. Note that \code{feature}'s \emph{value} is not the one selectr
+would give — selectr names the construct with a short token such as
+\code{":scope"}, where selectrs describes it in a phrase — so a handler
+that compares \code{feature} to a literal needs rewriting even though one
+that prints it does not.
 }
 
 \examples{

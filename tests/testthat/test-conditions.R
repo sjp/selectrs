@@ -15,6 +15,8 @@ test_that("a syntax error is a selectrs_parse_error carrying the column", {
     expect_equal(e$column, 6L)
     expect_null(e$construct)
     expect_null(conditionCall(e))
+    # selectr's name for the column, carried so its handlers keep working
+    expect_equal(e$pos, e$column)
     # the caret block is still part of the message
     expect_match(conditionMessage(e), "Unable to parse the CSS selector \"div >\"",
                  fixed = TRUE)
@@ -43,6 +45,10 @@ test_that("an unsupported construct is a selectrs_translation_error naming it", 
     # this one is only recognised once the selector has been parsed, so
     # there is no position to report
     expect_null(e$column)
+    # selectr's names for the two fields, carried alongside; feature holds
+    # this package's phrase rather than selectr's short descriptor
+    expect_equal(e$feature, e$construct)
+    expect_null(e$pos)
 })
 
 test_that("a construct found in the selector text reports its column", {
@@ -50,6 +56,8 @@ test_that("a construct found in the selector text reports its column", {
     expect_identical(class(e), translationClass)
     expect_equal(e$construct, "the `||` column combinator")
     expect_equal(e$column, 5L)
+    expect_equal(e$pos, 5L)
+    expect_equal(e$feature, e$construct)
 
     # counted in characters, like the parse error column
     e <- tryCatch(css_to_xpath("日本 || td"), error = identity)
@@ -129,7 +137,7 @@ test_that("argument errors from css_to_xpath are selectrs_argument_errors", {
     # the message names the argument the caller wrote, not match.arg()'s
     # own formal, and echoes every value that was rejected
     e <- tryCatch(css_to_xpath("a", translator = "nosuch"), error = identity)
-    expect_match(conditionMessage(e), "The 'translator' argument must be one of")
+    expect_match(conditionMessage(e), "'translator' must be one of")
     expect_match(conditionMessage(e), "not \"nosuch\"", fixed = TRUE)
     e <- tryCatch(css_to_xpath(c("a", "b"), translator = c("nosuch", "either")),
                   error = identity)

@@ -543,20 +543,21 @@ formatNS <- function(ns) {
         return(character())
     nsNames <- names(ns)
     if (is.null(nsNames) || anyNA(nsNames) || !all(nzchar(nsNames)))
-        argumentError("The namespace object is missing some or all names for each element in its collection.")
+        argumentError(paste0("The namespace object must be a named list or ",
+                             "character vector; every element needs a ",
+                             "non-empty name."))
     badNames <- nsNames[!grepl(ncnamePattern, nsNames, perl = TRUE)]
     if (length(badNames))
-        argumentError(paste0(
-            "The namespace prefixes must be XML names, unlike ",
-            paste0("\"", vapply(badNames, abbreviateValue, "", USE.NAMES = FALSE), "\"",
-                   collapse = ", ")))
+        argumentError(paste0("Namespace prefixes must be valid XML names ",
+                             "(e.g. 'svg', not '", badNames[1], "')."))
     if (is.list(ns) && any(lengths(ns) != 1))
         argumentError("Each element in the namespace object must be a single character string.")
     ns <- unlist(ns)
     if (!is.character(ns))
         argumentError("The values in the namespace object must be a character vector.")
     if (anyNA(ns) || !all(nzchar(ns)))
-        argumentError("The namespace URIs must be non-missing, non-empty character strings.")
+        argumentError(paste0("The values in the namespace object must be ",
+                             "non-missing, non-empty strings."))
     names(ns) <- nsNames
     ns
 }
