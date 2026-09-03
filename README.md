@@ -15,7 +15,7 @@ xpath
 
 ## Installation
 
-`selectrs` is not yet on CRAN. Because the package compiles its Rust core from source, you will need a working Rust toolchain (`cargo` and `rustc` >= 1.88) in addition to the usual R build tools. See <https://www.rust-lang.org/tools/install> for installation instructions.
+`selectrs` is not yet on CRAN. It requires R >= 4.2. Because the package compiles its Rust core from source, you will need a working Rust toolchain (`cargo` and `rustc` >= 1.88) in addition to the usual R build tools. See <https://www.rust-lang.org/tools/install> for installation instructions.
 
 ### Install the development version from GitHub
 

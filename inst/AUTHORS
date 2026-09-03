@@ -4,8 +4,9 @@ Authors and copyright holders of code bundled with or ported into selectrs
 R code and tests
 ----------------
 
-The R sources (R/) and the test suites (tests/testthat/) are ports of the
-'selectr' package by Simon Potter (https://github.com/sjp/selectr,
+The R sources (R/), the manual pages (man/), the test suites
+(tests/testthat/) and the demonstration document (inst/demos/) are ports
+of the 'selectr' package by Simon Potter (https://github.com/sjp/selectr,
 BSD 3-clause). selectr is itself a translation of the Python package
 'cssselect' (https://github.com/scrapy/cssselect, BSD 3-clause) by
 Ian Bicking, Simon Sapin, and contributors, originally part of

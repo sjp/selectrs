@@ -22,37 +22,35 @@
 #' with a message naming the parsers that do — [XML::xmlParse()] and
 #' [XML::htmlParse()], or `useInternalNodes = TRUE`.
 #'
-#' Queries may therefore be chained: a `querySelectorAll(doc, "table")` can
-#' be followed by `querySelectorAll(tables, "tr")`, which searches each
-#' matched table in turn. The selector is evaluated from each node of the
-#' set, so a relative selector such as `":scope > a"` applies per node, and
-#' a node that matches from more than one node of the set is returned only
-#' once, at the position it first matched. An `xml_missing`, the result of
-#' a failed [xml2::xml_find_first()], yields no matches rather than an
-#' error.
-#'
 #' The `querySelectorNS` and `querySelectorAllNS` functions are convenience
 #' functions for working with namespaced documents. They filter out all
 #' content that does not belong within the given namespaces. Note that
 #' elements searched for in a selector must then carry a namespace prefix,
-#' e.g. `"svg|g"`.
+#' e.g. `"svg|g"`. The filter is relative to `doc`, so like the
+#' un-namespaced functions these search a node's own subtree rather than the
+#' whole document. A selector starting with `:scope` replaces the filter
+#' altogether (see below); such a selector is namespaced by its own
+#' prefixes, e.g. `":scope > svg|g"`.
 #'
 #' The namespace argument, `ns`, is passed on to [XML::getNodeSet()] or
 #' [xml2::xml_find_all()] if it is necessary to use a namespace present
-#' within the document. It can be ignored for content lacking a namespace.
-#' The default, `NULL`, leaves each package to supply a map of its own:
-#' \pkg{xml2} collects the document's declarations with [xml2::xml_ns()]
-#' for every query, while \pkg{XML} takes [XML::getNodeSet()]'s default,
-#' the declarations carried by the element the query starts from — so a
-#' prefixed selector that resolves from a document may not resolve from a
-#' node deeper in it.
+#' within the document. It can be ignored for content lacking a namespace,
+#' which is usually the case when using `querySelector` or
+#' `querySelectorAll`. The default, `NULL`, leaves each package to supply a
+#' map of its own: \pkg{xml2} collects the document's declarations with
+#' [xml2::xml_ns()] for every query, while \pkg{XML} takes
+#' [XML::getNodeSet()]'s default, the declarations carried by the element
+#' the query starts from — so a prefixed selector that resolves from a
+#' document may not resolve from a node deeper in it.
 #'
-#' A zero-length `ns` registers no namespaces at all with either package.
-#' That spares \pkg{xml2} the walk of the document, which is worth doing
-#' in a loop over a large document known to be un-namespaced, and it
-#' leaves a prefixed selector with nothing to resolve against: \pkg{xml2}
-#' warns and matches nothing, \pkg{XML} raises an error from libxml2.
-#' Passing the map yourself is the way to be sure of either.
+#' A zero-length `ns` (`character(0)` or `list()`) registers no namespaces
+#' at all with either package. That spares \pkg{xml2} the walk of the
+#' document, which is worth doing in a loop over a large document known to
+#' be un-namespaced, and it leaves a prefixed selector with nothing to
+#' resolve against: \pkg{xml2} warns and matches nothing, \pkg{XML} raises
+#' an error from libxml2. Passing the map yourself is the way to be sure of
+#' either. It is an error for `querySelectorNS` and `querySelectorAllNS`,
+#' which have nothing to filter to without a namespace.
 #'
 #' A document with a *default* namespace — one declared as
 #' `xmlns="..."`, as XHTML, SVG and Atom documents are — needs its
@@ -70,6 +68,18 @@
 #' so bare names match. The rule reaches inside `:is()`, `:where()`,
 #' `:not()`, `:has()` and `of S` as well, so `":is(p)"` finds nothing
 #' wherever `"p"` does; prefix the names there too.
+#'
+#' Queries may be chained: as well as a document or a single node, `doc`
+#' may be a set of nodes, i.e. an \pkg{xml2} `xml_nodeset` or an \pkg{XML}
+#' `XMLNodeSet`, as returned by `querySelectorAll`, so a
+#' `querySelectorAll(doc, "table")` can be followed by
+#' `querySelectorAll(tables, "tr")`. The selector is evaluated from each
+#' node of the set in turn, so a relative selector such as `":scope > a"`
+#' applies per node, and a node that matches from more than one node of the
+#' set is returned only once, at the position it first matched. An
+#' \pkg{xml2} `xml_missing`, the result of a failed
+#' [xml2::xml_find_first()], is also accepted, and yields no matches rather
+#' than an error.
 #'
 #' Selectors are translated with the `generic` (XML) translator unless a
 #' `translator` argument is given to be passed on to [css_to_xpath()],
@@ -90,15 +100,36 @@
 #'
 #' The `:scope` pseudo-class refers to `doc` itself, so a query can be
 #' anchored at the queried node: `querySelectorAll(node, ":scope > a")`
-#' returns `node`'s `a` children. When `doc` is a document rather than a
-#' node, queries are evaluated from its root element, so `:scope` matches
-#' the root element. Because `:scope` anchors the expression at the
-#' queried node, the `prefix` argument (including the namespace filter the
-#' `*NS` variants build into it) does not apply to selectors led by
-#' `:scope`.
+#' returns `node`'s `a` children, where `querySelectorAll(node, "a")`
+#' would return all of its `a` descendants. `:scope` after a combinator or
+#' within a functional pseudo-class is an error (it cannot be expressed in
+#' XPath 1.0). Because `:scope` anchors the expression at the queried
+#' node, the `prefix` argument (including the namespace filter the `*NS`
+#' variants build into it) does not apply to selectors led by `:scope`.
 #'
-#' Errors raised by these functions are classed conditions; see the Errors
-#' section of [css_to_xpath()].
+#' When `doc` is a whole document rather than a node, the queried node is
+#' taken to be the document's root element, so a bare `:scope` matches
+#' that root element and `":scope > x"` matches its `x` children. This
+#' differs from a browser's `document.querySelectorAll()`, where `:scope`
+#' on a document refers to the document itself: a bare `:scope` matches
+#' nothing there (the document is not an element), while `":scope > html"`
+#' matches the root element. To query starting from the root element
+#' itself rather than the document, pass the root node (e.g.
+#' [XML::xmlRoot()] or [xml2::xml_root()]) as `doc` instead of the
+#' document.
+#'
+#' @section Errors:
+#' These functions propagate the same `selectrs_parse_error` and
+#' `selectrs_translation_error` conditions that [css_to_xpath()] raises
+#' for a malformed or unsupported selector (see the Errors section of
+#' `?css_to_xpath` for their fields and for the selectr class names they
+#' also carry), plus `selectrs_argument_error` for a bad R-level
+#' argument: `doc` that is not an \pkg{XML} or \pkg{xml2} document, node,
+#' or node set; `selector` that is not a single non-missing character
+#' string; or `ns` that is not a named list or named character vector of
+#' non-empty strings whose names are valid XML names (or, for
+#' `querySelectorNS` and `querySelectorAllNS`, a missing or zero-length
+#' `ns`).
 #'
 #' @param doc The XML document, node, or set of nodes to be evaluated
 #'   against.
@@ -123,15 +154,68 @@
 #'   counterparts.
 #' @references CSS Selectors Level 4 <https://www.w3.org/TR/selectors-4/>,
 #'   XPath <https://www.w3.org/TR/xpath/>, querySelectorAll
-#'   <https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelectorAll>.
+#'   <https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelectorAll>
+#'   and <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>.
+#' @author Simon Potter
+#' @seealso [css_to_xpath()], whose Errors section documents the condition
+#'   classes' fields; \code{\link{selectors}} for the full selector-support reference.
 #' @examples
+#' # Every selectrs_error class (see the Errors section) propagates from
+#' # these functions; selectrs_argument_error also covers a 'doc' that is
+#' # not an XML or xml2 document, node, or node set.
+#' tryCatch(
+#'   querySelectorAll("not a document", "a"),
+#'   selectrs_argument_error = function(e) cat(conditionMessage(e), "\n")
+#' )
+#'
+#' # The XML and xml2 packages are both optional (Suggests), so each demo
+#' # below is guarded with requireNamespace() and runs only when that
+#' # package is installed.
+#'
+#' # Demo for working with the XML package
+#' if (requireNamespace("XML", quietly = TRUE)) {
+#'   exdoc <- XML::xmlParse('<a><b class="aclass"/><c id="anid"/></a>')
+#'   querySelector(exdoc, "#anid")   # Returns the matching node
+#'   querySelector(exdoc, ".aclass") # Returns the matching node
+#'   querySelector(exdoc, "b, c")    # First match from grouped selection
+#'   querySelectorAll(exdoc, "b, c") # Grouped selection
+#'   querySelectorAll(exdoc, "b")    # A list of length one
+#'   querySelector(exdoc, "d")       # No match
+#'   querySelectorAll(exdoc, "d")    # No match
+#'
+#'   # Queries can be chained, the second search running from each node
+#'   # matched by the first
+#'   querySelectorAll(querySelectorAll(exdoc, "a"), "c")
+#'
+#'   # Read in a document where two namespaces are being set:
+#'   # SVG and MathML
+#'   svgdoc <- XML::xmlParse(system.file("demos/svg-mathml.svg",
+#'                                       package = "selectrs"))
+#'   # Search for <script/> elements in the SVG namespace
+#'   querySelectorNS(svgdoc, "svg|script",
+#'                   c(svg = "http://www.w3.org/2000/svg"))
+#'   querySelectorAllNS(svgdoc, "svg|script",
+#'                      c(svg = "http://www.w3.org/2000/svg"))
+#'   # MathML content is *within* SVG content,
+#'   # search for <mtext> elements within the MathML namespace
+#'   querySelectorNS(svgdoc, "math|mtext",
+#'                   c(math = "http://www.w3.org/1998/Math/MathML"))
+#'   querySelectorAllNS(svgdoc, "math|mtext",
+#'                      c(math = "http://www.w3.org/1998/Math/MathML"))
+#'   # Search for *both* SVG and MathML content
+#'   querySelectorAllNS(svgdoc, "svg|script, math|mo",
+#'                      c(svg = "http://www.w3.org/2000/svg",
+#'                        math = "http://www.w3.org/1998/Math/MathML"))
+#' }
+#'
+#' # Demo for working with the xml2 package
 #' if (requireNamespace("xml2", quietly = TRUE)) {
 #'   exdoc <- xml2::read_xml('<a><b class="aclass"/><c id="anid"/></a>')
 #'   querySelector(exdoc, "#anid")   # Returns the matching node
 #'   querySelector(exdoc, ".aclass") # Returns the matching node
 #'   querySelector(exdoc, "b, c")    # First match from grouped selection
 #'   querySelectorAll(exdoc, "b, c") # Grouped selection
-#'   querySelectorAll(exdoc, "b")    # A list of length one
+#'   querySelectorAll(exdoc, "b")    # A nodeset of length one
 #'   querySelector(exdoc, "d")       # No match
 #'   querySelectorAll(exdoc, "d")    # No match
 #'
@@ -141,29 +225,51 @@
 #'   querySelectorAll(nsdoc, "d1|b") # The namespace xml_ns() named d1
 #'   querySelectorAll(nsdoc, "*|b")  # Any namespace
 #'
-#'   # Queries can be chained, the second running from each node matched by
-#'   # the first
+#'   # Queries can be chained, the second search running from each node
+#'   # matched by the first
 #'   querySelectorAll(querySelectorAll(exdoc, "a"), "c")
+#'
+#'   # Read in a document where two namespaces are being set:
+#'   # SVG and MathML
+#'   svgdoc <- xml2::read_xml(system.file("demos/svg-mathml.svg",
+#'                                        package = "selectrs"))
+#'   # Search for <script/> elements in the SVG namespace
+#'   querySelectorNS(svgdoc, "svg|script",
+#'                   c(svg = "http://www.w3.org/2000/svg"))
+#'   querySelectorAllNS(svgdoc, "svg|script",
+#'                      c(svg = "http://www.w3.org/2000/svg"))
+#'   # MathML content is *within* SVG content,
+#'   # search for <mtext> elements within the MathML namespace
+#'   querySelectorNS(svgdoc, "math|mtext",
+#'                   c(math = "http://www.w3.org/1998/Math/MathML"))
+#'   querySelectorAllNS(svgdoc, "math|mtext",
+#'                      c(math = "http://www.w3.org/1998/Math/MathML"))
+#'   # Search for *both* SVG and MathML content
+#'   querySelectorAllNS(svgdoc, "svg|script, math|mo",
+#'                      c(svg = "http://www.w3.org/2000/svg",
+#'                        math = "http://www.w3.org/1998/Math/MathML"))
 #' }
+#' @name querySelectorAll
+#' @rdname querySelectorAll
 #' @export
 querySelector <- function(doc, selector, ns = NULL, ...) {
     UseMethod("querySelector", doc)
 }
 
-#' @rdname querySelector
+#' @rdname querySelectorAll
 #' @export
 querySelectorAll <- function(doc, selector, ns = NULL, ...) {
     UseMethod("querySelectorAll", doc)
 }
 
-#' @rdname querySelector
+#' @rdname querySelectorAll
 #' @export
 querySelectorNS <- function(doc, selector, ns,
                             prefix = "descendant-or-self::", ...) {
     UseMethod("querySelectorNS", doc)
 }
 
-#' @rdname querySelector
+#' @rdname querySelectorAll
 #' @export
 querySelectorAllNS <- function(doc, selector, ns,
                                prefix = "descendant-or-self::", ...) {

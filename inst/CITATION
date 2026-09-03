@@ -1,0 +1,22 @@
+citHeader("To cite selectrs in publications, cite the package. The
+translation semantics it implements were introduced with selectr, whose
+technical report is the second entry below.")
+
+bibentry(
+    bibtype = "Manual",
+    title = "selectrs: Translate CSS Selectors to XPath Expressions",
+    author = person("Simon", "Potter"),
+    year = "2026",
+    note = paste("R package version", meta$Version),
+    url = "https://github.com/sjp/selectrs"
+)
+
+bibentry(
+    bibtype = "TechReport",
+    title = "Introducing the selectr Package",
+    author = person("Simon", "Potter"),
+    institution = "The University of Auckland",
+    address = "Auckland, New Zealand",
+    year = "2012",
+    url = "https://stattech.wordpress.fos.auckland.ac.nz/2012/11/27/2012-10-introducing-the-selectr-package/"
+)

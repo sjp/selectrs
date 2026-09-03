@@ -11,6 +11,10 @@ Rust by the `css-to-xpath` crate.
   documents and nodes with a CSS selector; `querySelectorNS()` and
   `querySelectorAllNS()` do the same in a namespaced document.
 
+* `?selectors` is a reference table of every combinator, attribute
+  operator and pseudo-class the package supports, with the XPath each
+  translates to.
+
 * Errors are classed conditions. Each carries both its `selectrs_*` name
   and the matching `selectr_*` one, and the fields `selectr` names `pos`
   and `feature` alongside `column` and `construct`, so a handler written

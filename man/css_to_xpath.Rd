@@ -31,6 +31,11 @@ be used to query XML documents. Selectors using constructs selectrs does
 not support raise an error naming the construct.
 }
 \details{
+See \code{\link{selectors}} for a table of every combinator, attribute operator and
+pseudo-class this function supports, along with an example translation
+for each; the rest of this section explains the reasoning behind the more
+surprising entries in that table.
+
 The three arguments are vectorised together: the result has the length
 of the longest of them, and an argument of length 1 is used for every
 element. Any other length must match that longest length exactly —
@@ -51,26 +56,18 @@ the context node's \code{a} children) and the \code{prefix} is not applied to it
 else the context node cannot be expressed in XPath 1.0, so an error is
 raised.
 
-The \verb{:empty} pseudo-class matches what browsers match: an element with
-any text content — even white space alone — is not empty, while
-comment nodes do not count as content. The Selectors Level 4 draft
-loosens \verb{:empty} to also match white-space-only elements, but no
-browser engine has shipped that change, and selectrs (like selectr)
-deliberately keeps the implemented-everywhere behaviour.
-
-The \verb{:dir()} pseudo-class never matches, in every translator: it
-selects by \emph{resolved} directionality, which requires runtime bidi
-resolution (\code{dir="auto"} first-strong-character detection, \code{bdi}
-defaults, and inheritance with invalid values skipped) that a static
-XPath expression cannot perform. An approximation walking to the
-nearest \code{dir} attribute is deliberately not attempted; selectr behaves
-the same way.
-
-The CSS Selectors Level 4 column combinator (\code{"col || td"}) and the
-grid-structural pseudo-classes \verb{:nth-col()} and \verb{:nth-last-col()} are
-not supported and raise an error: table column membership depends on
-\code{colspan}/\code{rowspan} layout arithmetic that an XPath 1.0 expression
-cannot perform.
+A type selector carrying no namespace prefix, such as \code{"p"}, becomes an
+XPath name test and so matches elements in no namespace only. That is
+true wherever the name appears in the selector, so \code{":is(p)"},
+\code{":not(p)"} and \code{":has(p)"} match exactly the elements \code{"p"} itself
+does. An element that is in a namespace, a default namespace declared
+with \code{xmlns} included, has to be selected through a prefix, as in
+\code{"d|p"}: prefixes are resolved through the namespace map supplied when
+the expression is evaluated (the \code{ns} argument of
+\code{\link[xml2:xml_find_all]{xml2::xml_find_all()}} or \code{\link[XML:getNodeSet]{XML::getNodeSet()}}), not through the prefix
+spelled in the document. Two forms need no such map: \code{"*|p"} matches
+\code{p} in any namespace, and \code{"|p"} is the explicit spelling of \code{p} in no
+namespace.
 
 The of-type pseudo-classes (\verb{:first-of-type}, \verb{:last-of-type},
 \verb{:nth-of-type()}, \verb{:nth-last-of-type()}, and \verb{:only-of-type}) need an
@@ -82,6 +79,61 @@ the matched element's own name, so these have no translation. (selectr
 has the same limitation.) Note also that an any-namespace type like
 \code{"*|p:first-of-type"} counts same-typed siblings by \code{local-name()},
 which groups same-named types from different namespaces together.
+
+The CSS Selectors Level 4 column combinator (\code{"col || td"}) and the
+grid-structural pseudo-classes \verb{:nth-col()} and \verb{:nth-last-col()} are
+not supported and raise an error: table column membership depends on
+\code{colspan}/\code{rowspan} layout arithmetic that an XPath 1.0 expression
+cannot perform.
+
+The \verb{:empty} pseudo-class matches what browsers match: an element with
+any text content — even white space alone — is not empty, while
+comment nodes do not count as content. The Selectors Level 4 draft
+loosens \verb{:empty} to also match white-space-only elements, but no
+browser engine has shipped that change, and selectrs (like selectr)
+deliberately keeps the implemented-everywhere behaviour.
+
+\verb{:lang()} ranges are matched as RFC 4647 language ranges, with a
+restriction on where the wildcard may appear: it is accepted as a
+whole range (\verb{:lang(*)}, matching any element whose content language
+is tagged at all) or as the final subtag (\verb{:lang(en-*)}, the same test
+as \verb{:lang(en)}), quoted or not. A wildcard anywhere else
+(\verb{:lang(*-CH)}, \verb{:lang(de-*-DE)}) would need RFC 4647 extended
+filtering, which is not implemented, and raises a translation error
+with every translator rather than silently mis-matching. A range
+naming a single subtag is a prefix test. Under the \code{html} and \code{xhtml}
+translators a range naming more than one subtag is approximated from
+the nearest language-attributed ancestor and may skip subtags, so
+\verb{:lang(de-DE)} matches \code{lang="de-Latn-DE"}; the generic translator has
+only XPath's \code{lang()} function, which does Selectors 3 \verb{|=}-style
+prefix matching, so there \verb{:lang(de-DE)} matches a \code{de-DE} prefix
+only.
+
+Which attribute supplies that language differs by translator: the
+\code{html} translator reads \code{lang}, while the \code{xhtml} translator reads
+\code{xml:lang} or \code{lang}, preferring \code{xml:lang} where an element carries
+both, as the HTML language determination does. The generic translator
+uses XPath's \code{lang()} function, which is defined in terms of
+\code{xml:lang} alone. With the \code{html} and \code{xhtml} translators the language
+comes from the nearest ancestor-or-self that declares one.
+
+The \verb{:dir()} pseudo-class never matches, in every translator: it
+selects by \emph{resolved} directionality, which requires runtime bidi
+resolution (\code{dir="auto"} first-strong-character detection, \code{bdi}
+defaults, and inheritance with invalid values skipped) that a static
+XPath expression cannot perform. An approximation walking to the
+nearest \code{dir} attribute is deliberately not attempted; selectr behaves
+the same way.
+
+The \code{html} and \code{xhtml} translators qualify a number of pseudo-classes
+— \verb{:checked}, \verb{:default}, \verb{:disabled}, \verb{:enabled}, \verb{:link},
+\verb{:optional}, \verb{:placeholder-shown}, \verb{:read-only}, \verb{:read-write} and
+\verb{:required} — to apply only to the relevant (X)HTML elements,
+identified by local name regardless of namespace, so that
+\code{"*|input:disabled"} and \code{"d1|input:disabled"} apply \verb{:disabled}
+exactly as \code{"input:disabled"} does on an unnamespaced HTML document.
+See \code{\link{selectors}} for exactly which elements and attributes each of
+these matches.
 }
 \section{Translators}{
 
@@ -205,5 +257,34 @@ that prints it does not.
 }
 
 \examples{
-css_to_xpath("#testid > .testclass")
+css_to_xpath(".testclass")
+css_to_xpath("#testid", prefix = "")
+css_to_xpath("#testid .testclass")
+css_to_xpath(":scope > .testclass")
+css_to_xpath(":checked", translator = "html")
+
+# Every condition is signalled under both packages' class names (see
+# the Errors section), so either handler below catches this selector.
+tryCatch(
+  css_to_xpath("div >"),
+  selectrs_parse_error = function(e) {
+    cat(conditionMessage(e), "\n")
+    cat("Column:", e$column, "\n")
+  }
+)
+tryCatch(
+  css_to_xpath("div >"),
+  selectr_parse_error = function(e) cat("Position:", e$pos, "\n")
+)
+}
+\references{
+CSS Selectors Level 4 \url{https://www.w3.org/TR/selectors-4/},
+XPath \url{https://www.w3.org/TR/xpath/}.
+}
+\seealso{
+\code{\link{selectors}} for the full selector-support reference;
+\code{\link[=querySelectorAll]{querySelectorAll()}}, which propagates the same conditions.
+}
+\author{
+Simon Potter
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
-# Regenerate inst/AUTHORS: the attribution chain for the ported R code and
-# tests, plus the authors/licenses of every vendored Rust crate (from
+# Regenerate inst/AUTHORS: the attribution chain for the ported R code,
+# manual pages, tests and demo document, plus the authors/licenses of every vendored Rust crate (from
 # `cargo metadata`, i.e. the same pinned tree that tools/vendor-crates.sh
 # archives into src/rust/vendor.tar.xz).
 #
@@ -34,8 +34,9 @@ header <- c(
     "R code and tests",
     "----------------",
     "",
-    "The R sources (R/) and the test suites (tests/testthat/) are ports of the",
-    "'selectr' package by Simon Potter (https://github.com/sjp/selectr,",
+    "The R sources (R/), the manual pages (man/), the test suites",
+    "(tests/testthat/) and the demonstration document (inst/demos/) are ports",
+    "of the 'selectr' package by Simon Potter (https://github.com/sjp/selectr,",
     "BSD 3-clause). selectr is itself a translation of the Python package",
     "'cssselect' (https://github.com/scrapy/cssselect, BSD 3-clause) by",
     "Ian Bicking, Simon Sapin, and contributors, originally part of",

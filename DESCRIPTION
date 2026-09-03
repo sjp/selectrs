@@ -20,6 +20,7 @@ License: BSD_3_clause + file LICENCE
 URL: https://github.com/sjp/selectrs
 BugReports: https://github.com/sjp/selectrs/issues
 Encoding: UTF-8
+Language: en-GB
 Roxygen: list(markdown = TRUE)
 SystemRequirements: Cargo (Rust's package manager), rustc (>= 1.88)
 Depends:

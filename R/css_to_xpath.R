@@ -4,6 +4,11 @@
 #' be used to query XML documents. Selectors using constructs selectrs does
 #' not support raise an error naming the construct.
 #'
+#' See \code{\link{selectors}} for a table of every combinator, attribute operator and
+#' pseudo-class this function supports, along with an example translation
+#' for each; the rest of this section explains the reasoning behind the more
+#' surprising entries in that table.
+#'
 #' The three arguments are vectorised together: the result has the length
 #' of the longest of them, and an argument of length 1 is used for every
 #' element. Any other length must match that longest length exactly —
@@ -24,26 +29,18 @@
 #' else the context node cannot be expressed in XPath 1.0, so an error is
 #' raised.
 #'
-#' The `:empty` pseudo-class matches what browsers match: an element with
-#' any text content — even white space alone — is not empty, while
-#' comment nodes do not count as content. The Selectors Level 4 draft
-#' loosens `:empty` to also match white-space-only elements, but no
-#' browser engine has shipped that change, and selectrs (like selectr)
-#' deliberately keeps the implemented-everywhere behaviour.
-#'
-#' The `:dir()` pseudo-class never matches, in every translator: it
-#' selects by *resolved* directionality, which requires runtime bidi
-#' resolution (`dir="auto"` first-strong-character detection, `bdi`
-#' defaults, and inheritance with invalid values skipped) that a static
-#' XPath expression cannot perform. An approximation walking to the
-#' nearest `dir` attribute is deliberately not attempted; selectr behaves
-#' the same way.
-#'
-#' The CSS Selectors Level 4 column combinator (`"col || td"`) and the
-#' grid-structural pseudo-classes `:nth-col()` and `:nth-last-col()` are
-#' not supported and raise an error: table column membership depends on
-#' `colspan`/`rowspan` layout arithmetic that an XPath 1.0 expression
-#' cannot perform.
+#' A type selector carrying no namespace prefix, such as `"p"`, becomes an
+#' XPath name test and so matches elements in no namespace only. That is
+#' true wherever the name appears in the selector, so `":is(p)"`,
+#' `":not(p)"` and `":has(p)"` match exactly the elements `"p"` itself
+#' does. An element that is in a namespace, a default namespace declared
+#' with `xmlns` included, has to be selected through a prefix, as in
+#' `"d|p"`: prefixes are resolved through the namespace map supplied when
+#' the expression is evaluated (the `ns` argument of
+#' [xml2::xml_find_all()] or [XML::getNodeSet()]), not through the prefix
+#' spelled in the document. Two forms need no such map: `"*|p"` matches
+#' `p` in any namespace, and `"|p"` is the explicit spelling of `p` in no
+#' namespace.
 #'
 #' The of-type pseudo-classes (`:first-of-type`, `:last-of-type`,
 #' `:nth-of-type()`, `:nth-last-of-type()`, and `:only-of-type`) need an
@@ -55,6 +52,61 @@
 #' has the same limitation.) Note also that an any-namespace type like
 #' `"*|p:first-of-type"` counts same-typed siblings by `local-name()`,
 #' which groups same-named types from different namespaces together.
+#'
+#' The CSS Selectors Level 4 column combinator (`"col || td"`) and the
+#' grid-structural pseudo-classes `:nth-col()` and `:nth-last-col()` are
+#' not supported and raise an error: table column membership depends on
+#' `colspan`/`rowspan` layout arithmetic that an XPath 1.0 expression
+#' cannot perform.
+#'
+#' The `:empty` pseudo-class matches what browsers match: an element with
+#' any text content — even white space alone — is not empty, while
+#' comment nodes do not count as content. The Selectors Level 4 draft
+#' loosens `:empty` to also match white-space-only elements, but no
+#' browser engine has shipped that change, and selectrs (like selectr)
+#' deliberately keeps the implemented-everywhere behaviour.
+#'
+#' `:lang()` ranges are matched as RFC 4647 language ranges, with a
+#' restriction on where the wildcard may appear: it is accepted as a
+#' whole range (`:lang(*)`, matching any element whose content language
+#' is tagged at all) or as the final subtag (`:lang(en-*)`, the same test
+#' as `:lang(en)`), quoted or not. A wildcard anywhere else
+#' (`:lang(*-CH)`, `:lang(de-*-DE)`) would need RFC 4647 extended
+#' filtering, which is not implemented, and raises a translation error
+#' with every translator rather than silently mis-matching. A range
+#' naming a single subtag is a prefix test. Under the `html` and `xhtml`
+#' translators a range naming more than one subtag is approximated from
+#' the nearest language-attributed ancestor and may skip subtags, so
+#' `:lang(de-DE)` matches `lang="de-Latn-DE"`; the generic translator has
+#' only XPath's `lang()` function, which does Selectors 3 `|=`-style
+#' prefix matching, so there `:lang(de-DE)` matches a `de-DE` prefix
+#' only.
+#'
+#' Which attribute supplies that language differs by translator: the
+#' `html` translator reads `lang`, while the `xhtml` translator reads
+#' `xml:lang` or `lang`, preferring `xml:lang` where an element carries
+#' both, as the HTML language determination does. The generic translator
+#' uses XPath's `lang()` function, which is defined in terms of
+#' `xml:lang` alone. With the `html` and `xhtml` translators the language
+#' comes from the nearest ancestor-or-self that declares one.
+#'
+#' The `:dir()` pseudo-class never matches, in every translator: it
+#' selects by *resolved* directionality, which requires runtime bidi
+#' resolution (`dir="auto"` first-strong-character detection, `bdi`
+#' defaults, and inheritance with invalid values skipped) that a static
+#' XPath expression cannot perform. An approximation walking to the
+#' nearest `dir` attribute is deliberately not attempted; selectr behaves
+#' the same way.
+#'
+#' The `html` and `xhtml` translators qualify a number of pseudo-classes
+#' — `:checked`, `:default`, `:disabled`, `:enabled`, `:link`,
+#' `:optional`, `:placeholder-shown`, `:read-only`, `:read-write` and
+#' `:required` — to apply only to the relevant (X)HTML elements,
+#' identified by local name regardless of namespace, so that
+#' `"*|input:disabled"` and `"d1|input:disabled"` apply `:disabled`
+#' exactly as `"input:disabled"` does on an unnamespaced HTML document.
+#' See \code{\link{selectors}} for exactly which elements and attributes each of
+#' these matches.
 #'
 #' @section Translators:
 #' The `translator` argument chooses how names, and the pseudo-classes
@@ -180,8 +232,31 @@
 #'   on a unique prefix. See the Translators section.
 #' @returns A character vector of XPath expressions, one per element of
 #'   the recycled arguments.
+#' @references CSS Selectors Level 4 <https://www.w3.org/TR/selectors-4/>,
+#'   XPath <https://www.w3.org/TR/xpath/>.
+#' @author Simon Potter
+#' @seealso \code{\link{selectors}} for the full selector-support reference;
+#'   [querySelectorAll()], which propagates the same conditions.
 #' @examples
-#' css_to_xpath("#testid > .testclass")
+#' css_to_xpath(".testclass")
+#' css_to_xpath("#testid", prefix = "")
+#' css_to_xpath("#testid .testclass")
+#' css_to_xpath(":scope > .testclass")
+#' css_to_xpath(":checked", translator = "html")
+#'
+#' # Every condition is signalled under both packages' class names (see
+#' # the Errors section), so either handler below catches this selector.
+#' tryCatch(
+#'   css_to_xpath("div >"),
+#'   selectrs_parse_error = function(e) {
+#'     cat(conditionMessage(e), "\n")
+#'     cat("Column:", e$column, "\n")
+#'   }
+#' )
+#' tryCatch(
+#'   css_to_xpath("div >"),
+#'   selectr_parse_error = function(e) cat("Position:", e$pos, "\n")
+#' )
 #' @export
 css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator = "generic") {
     if (missing(selector) || is.null(selector))

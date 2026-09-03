@@ -4,12 +4,12 @@ it bundles is under other licences, which this file summarises; the
 authoritative list, with the version, licence, authors and repository of
 every component, is inst/AUTHORS.
 
-R code and tests
-----------------
+R code, documentation and tests
+------------------------------
 
-R/ and tests/testthat/ are ports of the selectr package, itself a
-translation of the Python package cssselect. Both are 3-clause BSD, the
-same licence as this package.
+R/, man/, tests/testthat/ and inst/demos/ are ports of the selectr
+package, itself a translation of the Python package cssselect. Both are
+3-clause BSD, the same licence as this package.
 
 Vendored Rust crates
 --------------------
