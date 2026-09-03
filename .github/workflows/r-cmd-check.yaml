@@ -55,10 +55,11 @@ jobs:
           extra-packages: any::rcmdcheck
           needs: check
 
+      # There are no vignettes, so the template's --compact-vignettes is
+      # dropped along with its Ghostscript/qpdf expectations.
       - uses: r-lib/actions/check-r-package@v2
         with:
-          upload-snapshots: true
-          build_args: 'c("--no-manual", "--compact-vignettes=gs+qpdf")'
+          build_args: 'c("--no-manual")'
 
   # The job above builds from crates.io, because src/rust/vendor.tar.xz is
   # not in the repository. CRAN builds the other half of src/Makevars.in:
