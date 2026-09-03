@@ -30,10 +30,10 @@ cc 1.3.0
   Authors: Alex Crichton <alex@alexcrichton.com>
   Repository: https://github.com/rust-lang/cc-rs
 
-css-to-xpath 0.1.0
+css-to-xpath 0.3.0
   License: MIT
   Authors: (not stated; see repository)
-  Repository: (no repository listed)
+  Repository: https://github.com/sjp/css-to-xpath
 
 cssparser 0.37.0
   License: MPL-2.0
@@ -160,7 +160,7 @@ savvy-macro 0.10.2
   Authors: Hiroaki Yutani
   Repository: https://github.com/yutannihilation/savvy/
 
-selectors 0.39.0
+selectors 0.40.0
   License: MPL-2.0
   Authors: The Servo Project Developers
   Repository: https://github.com/servo/stylo
@@ -224,3 +224,8 @@ unicode-ident 1.0.24
   License: (MIT OR Apache-2.0) AND Unicode-3.0
   Authors: David Tolnay <dtolnay@gmail.com>
   Repository: https://github.com/dtolnay/unicode-ident
+
+unicode-width 0.2.2
+  License: MIT OR Apache-2.0
+  Authors: kwantam <kwantam@gmail.com>, Manish Goregaokar <manishsmail@gmail.com>
+  Repository: https://github.com/unicode-rs/unicode-width

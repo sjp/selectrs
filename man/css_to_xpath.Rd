@@ -81,11 +81,19 @@ whose meaning depends on document semantics, are translated:
 names are matched case-sensitively, and no pseudo-class carries an
 HTML-specific meaning.
 \item \code{"html"} — lower-cases element and attribute names, as HTML parsing
-does, and gives \verb{:link}, \verb{:any-link}, \verb{:checked}, \verb{:enabled},
+does, compares the values of the attributes HTML makes
+case-insensitive (\code{type}, \code{rel}, \code{lang}, …) without regard to case,
+and gives \verb{:link}, \verb{:any-link}, \verb{:checked}, \verb{:default}, \verb{:enabled},
 \verb{:disabled} (including HTML's \code{fieldset}/\code{legend} carve-out),
-\verb{:required}, \verb{:optional} and \verb{:lang()} their static HTML meaning.
+\verb{:required}, \verb{:optional}, \verb{:read-write}, \verb{:read-only},
+\verb{:placeholder-shown} and \verb{:lang()} their static HTML meaning. Most
+of them are confined to the elements HTML defines them over, so a
+selector naming any other element never matches: \code{"a:enabled"}
+translates to \code{"a[0]"}. The exceptions are \verb{:lang()} and the
+\verb{:read-write}/\verb{:read-only} pair, which every element answers.
 \item \code{"xhtml"} — the same pseudo-class meanings as \code{"html"}, but names
-keep their case, XHTML being XML.
+and attribute values keep their case, XHTML being XML, and \verb{:lang()}
+reads \code{xml:lang} in preference to \code{lang}.
 }
 
 The argument is matched case-insensitively and on a unique prefix, so
@@ -121,8 +129,9 @@ translating to the always-false predicate \verb{[0]}: \verb{:hover}, \verb{:acti
 \verb{:focus}, \verb{:focus-within}, \verb{:focus-visible}, \verb{:visited}, \verb{:target},
 \verb{:target-within}, \verb{:local-link} and \verb{:dir()}, plus — under the
 \code{"generic"} translator, which has no HTML semantics to give them —
-\verb{:link}, \verb{:any-link}, \verb{:checked}, \verb{:enabled}, \verb{:disabled},
-\verb{:required} and \verb{:optional}.
+\verb{:link}, \verb{:any-link}, \verb{:checked}, \verb{:default}, \verb{:enabled},
+\verb{:disabled}, \verb{:required}, \verb{:optional}, \verb{:read-write}, \verb{:read-only}
+and \verb{:placeholder-shown}.
 
 Everything else is an error rather than an approximation:
 \itemize{
@@ -132,8 +141,9 @@ of-type pseudo-classes without an element type to count with, as
 described above.
 \item The non-standard \verb{[attr!=value]} and \verb{:contains()}.
 \item Any other pseudo-class, including the form pseudo-classes \verb{:valid},
-\verb{:read-only} and \verb{:placeholder-shown}, so that a typo stays loud
-instead of silently matching nothing.
+\verb{:in-range} and \verb{:indeterminate}, whose meaning no static
+translation can reach, so that a typo stays loud instead of
+silently matching nothing.
 \item \verb{:host}, the \code{&} nesting selector, and a \verb{:has()} nested inside
 another \verb{:has()}.
 \item \verb{:scope} outside the leftmost compound, or inside a functional
@@ -149,8 +159,7 @@ inherit from \code{selectrs_error}, and each carries the fields listed here:
 \itemize{
 \item \code{selectrs_parse_error} — the selector is not valid CSS. Fields
 \code{selector}, \code{index} (which element of a vectorised call failed) and
-\code{column}, the 1-based column the parse failed at, counted in UTF-16
-code units.
+\code{column}, the 1-based character column the parse failed at.
 \item \code{selectrs_translation_error} — the selector is valid CSS but uses a
 construct that has no XPath 1.0 equivalent. Fields \code{selector},
 \code{index} and \code{construct}.

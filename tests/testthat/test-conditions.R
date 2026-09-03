@@ -142,10 +142,12 @@ test_that("an unsupported construct on a long selector does not echo it", {
 test_that("a detail quoting the offending token is truncated too", {
     # the parse detail embeds the token it choked on, so a selector
     # holding a huge identifier would otherwise produce a huge detail
-    e <- tryCatch(css_to_xpath(paste0(":nth-child(", strrep("z", 5000), ")")),
+    token <- strrep("z", 5000)
+    e <- tryCatch(css_to_xpath(paste0(":nth-child(", token, ")")),
                   error = identity)
     expect_lt(nchar(conditionMessage(e), "bytes"), getOption("warning.length"))
-    expect_match(conditionMessage(e), "UnexpectedToken", fixed = TRUE)
+    expect_match(conditionMessage(e), "unexpected `zz", fixed = TRUE)
+    expect_false(grepl(token, conditionMessage(e), fixed = TRUE))
 })
 
 test_that("the caret lands under the reported column", {
@@ -155,16 +157,21 @@ test_that("the caret lands under the reported column", {
         # the echo and the caret share the same "  | " gutter
         as.integer(regexpr("^", lines[[4]], fixed = TRUE)) - 5L
     }
-    # for an ASCII selector a UTF-16 column and a character offset agree
     expect_equal(caretOffset("div >"), 5L)
     expect_equal(caretOffset("a["), 2L)
-    # for anything else they do not: the caret is placed by character
-    expect_equal(caretOffset("日本 !"), 3L)
-    expect_equal(caretOffset("\U0001F600!"), 1L)
+    # the caret is placed by display width, so a character two columns
+    # wide moves it by two
+    expect_equal(caretOffset("日本 !"), 5L)
+    expect_equal(caretOffset("\U0001F600!"), 2L)
+    # a tab is echoed as the single space it is aligned as
+    expect_equal(caretOffset("\tdiv >"), 6L)
+    # only the line the failure is on is echoed, so a selector written
+    # over several lines does not break the gutter apart
+    expect_equal(caretOffset("a,\nb >"), 3L)
 })
 
 test_that("a short selector is still quoted in full", {
-    selector <- strrep("a.b ", 40)
+    selector <- strrep("a.b ", 25)
     e <- tryCatch(css_to_xpath(paste0(selector, ">")), error = identity)
     expect_match(conditionMessage(e), selector, fixed = TRUE)
 })

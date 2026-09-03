@@ -53,10 +53,9 @@
 #' (`ns = c(x = "http://www.w3.org/1999/xhtml")`, then `"x|p"`). A
 #' document read as HTML, by [XML::htmlParse()] or [xml2::read_html()],
 #' is not affected: libxml2's HTML parser puts elements in no namespace,
-#' so bare names match. Prefer an explicit prefix to relying on the
-#' arguments of `:is()`, `:where()`, `:not()`, `:has()` and `of S`, whose
-#' names currently do match a default namespace, so that `":is(p)"`
-#' matches where `"p"` does not.
+#' so bare names match. The rule reaches inside `:is()`, `:where()`,
+#' `:not()`, `:has()` and `of S` as well, so `":is(p)"` finds nothing
+#' wherever `"p"` does; prefix the names there too.
 #'
 #' Selectors are translated with the `generic` (XML) translator unless a
 #' `translator` argument is given to be passed on to [css_to_xpath()],

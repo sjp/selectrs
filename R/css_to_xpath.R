@@ -58,11 +58,19 @@
 #'   names are matched case-sensitively, and no pseudo-class carries an
 #'   HTML-specific meaning.
 #' * `"html"` — lower-cases element and attribute names, as HTML parsing
-#'   does, and gives `:link`, `:any-link`, `:checked`, `:enabled`,
+#'   does, compares the values of the attributes HTML makes
+#'   case-insensitive (`type`, `rel`, `lang`, …) without regard to case,
+#'   and gives `:link`, `:any-link`, `:checked`, `:default`, `:enabled`,
 #'   `:disabled` (including HTML's `fieldset`/`legend` carve-out),
-#'   `:required`, `:optional` and `:lang()` their static HTML meaning.
+#'   `:required`, `:optional`, `:read-write`, `:read-only`,
+#'   `:placeholder-shown` and `:lang()` their static HTML meaning. Most
+#'   of them are confined to the elements HTML defines them over, so a
+#'   selector naming any other element never matches: `"a:enabled"`
+#'   translates to `"a[0]"`. The exceptions are `:lang()` and the
+#'   `:read-write`/`:read-only` pair, which every element answers.
 #' * `"xhtml"` — the same pseudo-class meanings as `"html"`, but names
-#'   keep their case, XHTML being XML.
+#'   and attribute values keep their case, XHTML being XML, and `:lang()`
+#'   reads `xml:lang` in preference to `lang`.
 #'
 #' The argument is matched case-insensitively and on a unique prefix, so
 #' `"g"`, `"H"` and `"xh"` name the `"generic"`, `"html"` and `"xhtml"`
@@ -94,8 +102,9 @@
 #' `:focus`, `:focus-within`, `:focus-visible`, `:visited`, `:target`,
 #' `:target-within`, `:local-link` and `:dir()`, plus — under the
 #' `"generic"` translator, which has no HTML semantics to give them —
-#' `:link`, `:any-link`, `:checked`, `:enabled`, `:disabled`,
-#' `:required` and `:optional`.
+#' `:link`, `:any-link`, `:checked`, `:default`, `:enabled`,
+#' `:disabled`, `:required`, `:optional`, `:read-write`, `:read-only`
+#' and `:placeholder-shown`.
 #'
 #' Everything else is an error rather than an approximation:
 #'
@@ -105,8 +114,9 @@
 #'   described above.
 #' * The non-standard `[attr!=value]` and `:contains()`.
 #' * Any other pseudo-class, including the form pseudo-classes `:valid`,
-#'   `:read-only` and `:placeholder-shown`, so that a typo stays loud
-#'   instead of silently matching nothing.
+#'   `:in-range` and `:indeterminate`, whose meaning no static
+#'   translation can reach, so that a typo stays loud instead of
+#'   silently matching nothing.
 #' * `:host`, the `&` nesting selector, and a `:has()` nested inside
 #'   another `:has()`.
 #' * `:scope` outside the leftmost compound, or inside a functional
@@ -119,8 +129,7 @@
 #'
 #' * `selectrs_parse_error` — the selector is not valid CSS. Fields
 #'   `selector`, `index` (which element of a vectorised call failed) and
-#'   `column`, the 1-based column the parse failed at, counted in UTF-16
-#'   code units.
+#'   `column`, the 1-based character column the parse failed at.
 #' * `selectrs_translation_error` — the selector is valid CSS but uses a
 #'   construct that has no XPath 1.0 equivalent. Fields `selector`,
 #'   `index` and `construct`.

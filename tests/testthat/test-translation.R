@@ -9,13 +9,13 @@ test_that("translation of CSS to XPath occurs and threads through its arguments"
     expect_equal(xpath("e"), "e")
     expect_equal(xpath('e[foo="bar"]'), "e[@foo = 'bar']")
     expect_equal(xpath("e.warning"),
-                 "e[@class and contains(concat(' ', normalize-space(@class), ' '), ' warning ')]")
+                 "e[contains(concat(' ', normalize-space(@class), ' '), ' warning ')]")
     expect_equal(xpath("e#myid"), "e[@id = 'myid']")
     expect_equal(xpath("e > f"), "e/f")
     expect_equal(xpath("e:first-child"),
                  "e[count(preceding-sibling::*) = 0]")
-    expect_equal(xpath("div:has(p)"), "div[.//*[name() = 'p']]")
-    expect_equal(xpath("div:is(p, span)"), "div[name() = 'p' or name() = 'span']")
+    expect_equal(xpath("div:has(p)"), "div[.//p]")
+    expect_equal(xpath("div:is(p, span)"), "div[self::p or self::span]")
     expect_equal(xpath("*|e"), "*[local-name() = 'e']")
 
     # 'prefix' threads through
@@ -23,8 +23,9 @@ test_that("translation of CSS to XPath occurs and threads through its arguments"
     expect_equal(css_to_xpath("a b", prefix = ""), "a//b")
 
     # 'translator' threads through
-    expect_equal(css_to_xpath("a:checked", prefix = ""), "a[0]")
-    expect_false(identical(css_to_xpath("a:checked", prefix = "", translator = "html"), "a[0]"))
+    expect_equal(css_to_xpath("input:checked", prefix = ""), "input[0]")
+    expect_false(identical(css_to_xpath("input:checked", prefix = "", translator = "html"),
+                           "input[0]"))
 
     # invalid selectors propagate as R errors
     expect_error(css_to_xpath("div > "))

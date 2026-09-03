@@ -29,10 +29,9 @@ test_that("css_to_xpath vectorises arguments", {
     # the html and xhtml translators.
     t_lc <- paste0("translate(@type, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', ",
                    "'abcdefghijklmnopqrstuvwxyz')")
-    checked_html <- paste0("a[(@selected and name(.) = 'option') or ",
-                           "(@checked and (name(.) = 'input' or name(.) = 'command')",
-                           "and (", t_lc, " = 'checkbox' or ", t_lc, " = 'radio'))]")
-    expect_equal(css_to_xpath("a:checked", prefix = "", translator = c("generic", "html", "xhtml")), c("a[0]", checked_html, checked_html))
+    checked_html <- paste0("input[@checked and (", t_lc, " = 'checkbox' or ",
+                           t_lc, " = 'radio')]")
+    expect_equal(css_to_xpath("input:checked", prefix = "", translator = c("generic", "html", "xhtml")), c("input[0]", checked_html, checked_html))
     expect_equal(css_to_xpath(c("a b", "b c"), prefix = ""), c("a//b", "b//c"))
 
     # repeated selectors translate once and reuse the result; a repeat is

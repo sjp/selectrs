@@ -91,10 +91,9 @@ each default namespace \code{d1}, \code{d2}, and so on, so \code{"d1|p"} selects
 (\code{ns = c(x = "http://www.w3.org/1999/xhtml")}, then \code{"x|p"}). A
 document read as HTML, by \code{\link[XML:htmlParse]{XML::htmlParse()}} or \code{\link[xml2:read_html]{xml2::read_html()}},
 is not affected: libxml2's HTML parser puts elements in no namespace,
-so bare names match. Prefer an explicit prefix to relying on the
-arguments of \verb{:is()}, \verb{:where()}, \verb{:not()}, \verb{:has()} and \verb{of S}, whose
-names currently do match a default namespace, so that \code{":is(p)"}
-matches where \code{"p"} does not.
+so bare names match. The rule reaches inside \verb{:is()}, \verb{:where()},
+\verb{:not()}, \verb{:has()} and \verb{of S} as well, so \code{":is(p)"} finds nothing
+wherever \code{"p"} does; prefix the names there too.
 
 Selectors are translated with the \code{generic} (XML) translator unless a
 \code{translator} argument is given to be passed on to \code{\link[=css_to_xpath]{css_to_xpath()}},
