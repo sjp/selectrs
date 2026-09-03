@@ -32,6 +32,11 @@ element. Any other length must match that longest length exactly —
 unlike base R's arithmetic, a length that only partially fills the
 result is an error rather than a silent partial recycle.
 
+\code{selector} and \code{prefix} are translated to UTF-8 before they are used,
+so a string in any other encoding is read by its characters rather
+than by its bytes. A string marked \code{"bytes"} cannot be translated and
+is an error.
+
 The \verb{:scope} pseudo-class refers to the node the resulting XPath
 expression is evaluated from: a selector starting with \verb{:scope} is
 anchored on the \verb{self::} axis (\code{":scope > a"} becomes \code{"self::*/a"},
@@ -164,9 +169,13 @@ inherit from \code{selectrs_error}, and each carries the fields listed here:
 construct that has no XPath 1.0 equivalent. Fields \code{selector},
 \code{index} and \code{construct}.
 \item \code{selectrs_argument_error} — the arguments themselves are wrong (a
-non-character selector, an \code{NA}, an unknown translator, lengths that
-do not recycle).
+non-character selector, an \code{NA}, a \code{"bytes"}-encoded selector or
+prefix, an unknown translator, lengths that do not recycle).
 }
+
+The \code{selector} field holds the UTF-8 translation of the element that
+failed, which is the string that was actually translated, not the
+caller's original object.
 }
 
 \examples{

@@ -83,6 +83,31 @@ test_that("css_to_xpath handles bad arguments", {
     expect_error(css_to_xpath("a", translator = c("generic", "a")), "'arg' should be one of.*")
 })
 
+test_that("css_to_xpath reads arguments by their characters, not their bytes", {
+    latin1 <- iconv('[title="café"]', "UTF-8", "latin1")
+    expect_equal(Encoding(latin1), "latin1")
+    expect_equal(css_to_xpath(latin1, prefix = ""), "*[@title = 'café']")
+
+    # the prefix is translated as well, and both come back as UTF-8
+    prefix <- iconv("//café//", "UTF-8", "latin1")
+    xpath <- css_to_xpath("a", prefix = prefix)
+    expect_equal(xpath, "//café//a")
+    expect_equal(Encoding(xpath), "UTF-8")
+
+    # a "bytes" string has no characters to translate, so it is refused
+    # rather than losing its non-ASCII bytes
+    bytes <- latin1
+    Encoding(bytes) <- "bytes"
+    expect_error(css_to_xpath(bytes),
+                 "Strings marked as \"bytes\" are not allowed in the 'selector' argument",
+                 fixed = TRUE)
+    expect_error(css_to_xpath("a", prefix = bytes),
+                 "Strings marked as \"bytes\" are not allowed in the 'prefix' argument",
+                 fixed = TRUE)
+    expect_true(inherits(tryCatch(css_to_xpath(bytes), error = identity),
+                         "selectrs_argument_error"))
+})
+
 test_that("css_to_xpath rejects lengths that only partially recycle", {
     # a length that does not fill the result is a call-site mistake, not
     # a request to recycle

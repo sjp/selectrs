@@ -12,6 +12,18 @@ test_that("a syntax error is a selectrs_parse_error carrying the column", {
                  fixed = TRUE)
 })
 
+test_that("the reported column counts characters, in any encoding", {
+    e <- tryCatch(css_to_xpath("日本 >"), error = identity)
+    expect_equal(e$column, 5L)
+
+    e <- tryCatch(css_to_xpath(iconv("café >", "UTF-8", "latin1")),
+                  error = identity)
+    expect_equal(e$column, 7L)
+    # the field holds the UTF-8 translation that was parsed
+    expect_equal(e$selector, "café >")
+    expect_equal(Encoding(e$selector), "UTF-8")
+})
+
 test_that("an unsupported construct is a selectrs_translation_error naming it", {
     e <- tryCatch(css_to_xpath("*:first-of-type"), error = identity)
     expect_identical(class(e), c("selectrs_translation_error", "selectrs_error",
