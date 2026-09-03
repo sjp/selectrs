@@ -18,8 +18,11 @@ PKG_LIBS = -L$(LIBDIR) -lselectrs -lws2_32 -ladvapi32 -luserenv -lbcrypt -lntdll
 CARGOTMP = $(CURDIR)/.cargo
 VENDOR_DIR = $(CURDIR)/rust/vendor
 
-# CRAN allows at most two cores; cargo runs from ./rust (see the recipe).
-CARGO_BUILD_ARGS = --lib -j 2 --profile $(PROFILE) $(FEATURE_FLAGS) --manifest-path Cargo.toml --target-dir $(TARGET_DIR)
+# CRAN allows at most two cores, hence the default of 2; set
+# SELECTRS_CARGO_JOBS to build with more outside CRAN. cargo runs from
+# ./rust (see the recipe).
+CARGO_JOBS = $(or $(SELECTRS_CARGO_JOBS),2)
+CARGO_BUILD_ARGS = --lib -j $(CARGO_JOBS) --profile $(PROFILE) $(FEATURE_FLAGS) --manifest-path Cargo.toml --target-dir $(TARGET_DIR)
 
 # Rtools doesn't have the linker in the location that cargo expects, so we need
 # to overwrite it via configuration.
@@ -29,7 +32,10 @@ all: $(SHLIB) clean_intermediate
 
 $(SHLIB): $(STATLIB)
 
-$(STATLIB):
+# FORCE, because with no prerequisites make would skip cargo entirely once
+# the archive exists, happily linking a stale one. Letting cargo decide is
+# cheap: it does nothing when nothing changed.
+$(STATLIB): FORCE
 	# When the GNU toolchain is used (i.e. on CRAN), -lgcc_eh is specified for
 	# building proc-macro2, but Rtools doesn't contain libgcc_eh. This isn't used
 	# in actual, but we need this tweak to please the compiler.
@@ -56,7 +62,7 @@ $(STATLIB):
 	  export RUSTFLAGS="$(RUSTFLAGS)" && \
 	  cd ./rust && \
 	  if [ -f ./vendor.tar.xz ]; then \
-	    cargo build --offline --target $(TARGET) $(CARGO_BUILD_ARGS); \
+	    cargo build --offline --locked --target $(TARGET) $(CARGO_BUILD_ARGS); \
 	  else \
 	    cargo build --target $(TARGET) $(CARGO_BUILD_ARGS); \
 	  fi
@@ -70,4 +76,6 @@ clean_intermediate: $(SHLIB)
 clean:
 	rm -Rf $(SHLIB) $(OBJECTS) $(STATLIB) $(CARGOTMP) $(VENDOR_DIR) ./rust/target
 
-.PHONY: all clean_intermediate clean
+FORCE:
+
+.PHONY: all clean_intermediate clean FORCE
