@@ -42,8 +42,9 @@ fn selectrs_panic_test() -> savvy::Result<savvy::Sexp> {
 /// quotes in full. Past it the message shows the caret window rather
 /// than the whole selector, so the condition's own copy is worth
 /// pointing at. The crate keeps this threshold to itself, so the value
-/// is mirrored here; should the two drift, the note is added a little
-/// early or late and nothing else changes.
+/// is mirrored here and a test holds the mirror against the messages the
+/// crate actually renders; should the crate move its threshold, that
+/// test fails rather than the note being added a little early or late.
 const CRATE_SELECTOR_ECHO: usize = 120;
 
 /// 1-based character column for the crate's 0-indexed byte offset.
@@ -250,6 +251,25 @@ mod tests {
         assert_eq!(column_of_offset("div", 99), 4);
         assert_eq!(column_of_offset("", 0), 1);
         assert_eq!(column_of_offset("äöü", 1), 2);
+    }
+
+    #[test]
+    fn crate_selector_echo_is_where_the_crate_stops_quoting() {
+        // The mirrored threshold, checked against the only thing the
+        // crate exposes of it: whether a message quotes the selector
+        // whole. At the threshold it does, one byte over it does not.
+        let quoted = |selector: &str| {
+            let message = failure(selector).message(selector);
+            message.contains(&format!("{selector:?}"))
+        };
+        assert!(
+            quoted(&padded("a", CRATE_SELECTOR_ECHO)),
+            "the crate elides below {CRATE_SELECTOR_ECHO} bytes"
+        );
+        assert!(
+            !quoted(&padded("a", CRATE_SELECTOR_ECHO + 1)),
+            "the crate still quotes whole past {CRATE_SELECTOR_ECHO} bytes"
+        );
     }
 
     #[test]
