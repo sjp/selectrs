@@ -498,8 +498,6 @@ formatNS <- function(ns) {
         return(NULL)
     if (!is.list(ns) && !is.character(ns))
         argumentError("A namespace object must be either a named list or a named character vector.")
-    if (is.list(ns) && any(lengths(ns) != 1))
-        argumentError("Each element in the namespace object must be a single character string.")
     # A zero-length namespace object asks for no namespace map at all, which
     # spares the xml2 methods the document walk xml_ns() would otherwise cost.
     if (!length(ns))
@@ -513,6 +511,8 @@ formatNS <- function(ns) {
             "The namespace prefixes must be XML names, unlike ",
             paste0("\"", vapply(badNames, abbreviateValue, "", USE.NAMES = FALSE), "\"",
                    collapse = ", ")))
+    if (is.list(ns) && any(lengths(ns) != 1))
+        argumentError("Each element in the namespace object must be a single character string.")
     ns <- unlist(ns)
     if (!is.character(ns))
         argumentError("The values in the namespace object must be a character vector.")

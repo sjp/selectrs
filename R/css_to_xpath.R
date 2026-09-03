@@ -150,6 +150,11 @@
 #' failed, which is the string that was actually translated, not the
 #' caller's original object.
 #'
+#' The message text is not part of the interface. Several of these
+#' messages are worded differently from selectr's for the same failure,
+#' and a long value the message echoes back is abbreviated where selectr
+#' repeats it in full. The classes and the fields are what to match on.
+#'
 #' @param selector A character vector of CSS selectors.
 #' @param prefix A character vector of prefixes to apply to the resulting
 #'   XPath expressions. Not applied to selectors anchored by `:scope`. A

@@ -204,6 +204,13 @@ test_that("namespace handling works correctly", {
                  "Each element in the namespace object must be a single character string.")
     expect_equal(formatNS(list(a = "u1", b = "u3")), c(a = "u1", b = "u3"))
 
+    # an object wrong in more than one way is reported by name and by prefix
+    # before it is reported by element length
+    expect_error(formatNS(list(c("u1", "u2"))),
+                 "The namespace object is missing some or all names.*")
+    expect_error(formatNS(list("1x" = c("u1", "u2"))),
+                 "The namespace prefixes must be XML names, unlike \"1x\"")
+
     # a missing or empty URI would reach XML::getNodeSet()/xml2 as a namespace
     # definition, giving a confusing error or a silent non-match
     expect_error(formatNS(list(a = NA_character_)),
