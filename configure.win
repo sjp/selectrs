@@ -21,6 +21,55 @@ RUSTC_VERSION="$(rustc --version || true)"
 echo "using Rust package manager: '${CARGO_VERSION}'"
 echo "using Rust compiler: '${RUSTC_VERSION}'"
 
+# The target has to match the architecture of the R that will load the shared
+# library rather than that of the shell running this script, because an x86_64
+# Rtools can be run under emulation on an ARM64 machine. Ask R, and fall back
+# to the shell only when that fails.
+#
+# Rtools ships MinGW-w64 GCC for x86_64 but clang with MinGW-w64 for aarch64,
+# hence the -gnu and -gnullvm triples. Neither the aarch64 target nor its
+# linker name has been exercised here; set SELECTRS_CARGO_LINKER to override
+# the linker.
+R_ARCH_NAME="$("${R_HOME}/bin/Rscript" --vanilla -e 'cat(R.version$arch)' 2>/dev/null || true)"
+if [ -z "${R_ARCH_NAME}" ]; then
+  R_ARCH_NAME="$(uname -m 2>/dev/null || true)"
+fi
+
+case "${R_ARCH_NAME}" in
+  x86_64 | amd64 | AMD64)
+    TARGET="x86_64-pc-windows-gnu"
+    CARGO_LINKER_ENV="CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER"
+    CARGO_LINKER="x86_64-w64-mingw32.static.posix-gcc.exe"
+    ;;
+  aarch64 | arm64 | ARM64)
+    TARGET="aarch64-pc-windows-gnullvm"
+    CARGO_LINKER_ENV="CARGO_TARGET_AARCH64_PC_WINDOWS_GNULLVM_LINKER"
+    CARGO_LINKER="aarch64-w64-mingw32-clang.exe"
+    ;;
+  *)
+    echo "-------------- ERROR: CONFIGURATION FAILED --------------------"
+    echo ""
+    echo "selectrs could not work out which Rust target to build for."
+    if [ -z "${R_ARCH_NAME}" ]; then
+      echo "The architecture of this machine could not be determined."
+    else
+      echo "This machine reports its architecture as '${R_ARCH_NAME}',"
+      echo "which is neither x86_64 nor aarch64."
+    fi
+    echo ""
+    echo "---------------------------------------------------------------"
+
+    exit 1
+    ;;
+esac
+
+if [ -n "${SELECTRS_CARGO_LINKER}" ]; then
+  CARGO_LINKER="${SELECTRS_CARGO_LINKER}"
+fi
+
+echo "using Rust target: '${TARGET}'"
+echo "using linker: '${CARGO_LINKER}'"
+
 # Enforce the minimum supported Rust version (set by savvy 0.10.2, the
 # newest rust-version requirement in the pinned dependency tree; declared
 # as rust-version in src/rust/Cargo.toml). When rustc's version cannot be
@@ -45,9 +94,9 @@ if [ -n "${RUSTC_VERSION_NUMBER}" ]; then
     echo ""
     echo "    rustup update"
     echo ""
-    echo "and make sure the Windows GNU target is installed:"
+    echo "and make sure the Windows target is installed:"
     echo ""
-    echo "    rustup target add x86_64-pc-windows-gnu"
+    echo "    rustup target add ${TARGET}"
     echo ""
     echo "---------------------------------------------------------------"
 
@@ -71,7 +120,9 @@ if [ -n "${SAVVY_FEATURES}" ]; then
 fi
 
 sed \
-  -e "s/@TARGET@/x86_64-pc-windows-gnu/" \
+  -e "s/@TARGET@/${TARGET}/" \
   -e "s/@PROFILE@/${PROFILE}/" \
   -e "s/@FEATURE_FLAGS@/${FEATURE_FLAGS}/" \
+  -e "s/@CARGO_LINKER_ENV@/${CARGO_LINKER_ENV}/" \
+  -e "s|@CARGO_LINKER@|${CARGO_LINKER}|" \
   src/Makevars.win.in > src/Makevars.win

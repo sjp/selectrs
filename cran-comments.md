@@ -50,6 +50,14 @@ policy for such packages:
 
 * Cargo is limited to two parallel jobs, as the policy requires.
 
+* On Windows the Rust target and linker are chosen from the
+  architecture R reports: `x86_64-pc-windows-gnu` with the MinGW-w64
+  GCC that Rtools provides, which is the path CRAN's three Windows
+  flavours take, and `aarch64-pc-windows-gnullvm` with Rtools' clang
+  otherwise. The aarch64 branch is there for users building from source
+  under the experimental ARM64 Rtools; it is untested, as no CRAN
+  flavour, win-builder machine or CI runner covers that platform.
+
 * The crate authors are credited as copyright holders in `Authors@R`.
   `inst/AUTHORS` lists every vendored crate with its version, licence,
   authors and repository, and `LICENSE.note` summarises the licences

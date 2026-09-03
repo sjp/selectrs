@@ -25,8 +25,10 @@ CARGO_JOBS = $(or $(SELECTRS_CARGO_JOBS),2)
 CARGO_BUILD_ARGS = --lib -j $(CARGO_JOBS) --profile $(PROFILE) $(FEATURE_FLAGS) --manifest-path Cargo.toml --target-dir $(TARGET_DIR)
 
 # Rtools doesn't have the linker in the location that cargo expects, so we need
-# to overwrite it via configuration.
-CARGO_LINKER = x86_64-w64-mingw32.static.posix-gcc.exe
+# to overwrite it via configuration. Both the linker and the name of the cargo
+# variable that selects it depend on the target, so configure.win fills them in.
+CARGO_LINKER = @CARGO_LINKER@
+CARGO_LINKER_ENV = @CARGO_LINKER_ENV@
 
 all: $(SHLIB) clean_intermediate
 
@@ -55,7 +57,7 @@ $(STATLIB): FORCE
 	if [ -f ./rust/vendor.tar.xz ]; then \
 	  export CARGO_HOME="$(CARGOTMP)"; \
 	fi && \
-	  export CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER="$(CARGO_LINKER)" && \
+	  export $(CARGO_LINKER_ENV)="$(CARGO_LINKER)" && \
 	  export LIBRARY_PATH="$${LIBRARY_PATH};$(LIBDIR)/libgcc_mock" && \
 	  export CC="$(CC)" && \
 	  export CFLAGS="$(CFLAGS)" && \
