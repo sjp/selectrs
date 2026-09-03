@@ -275,7 +275,7 @@ dependencies = [
 
 [[package]]
 name = "selectrs"
-version = "0.0.0-9000"
+version = "0.1.0"
 dependencies = [
  "css-to-xpath",
  "savvy",

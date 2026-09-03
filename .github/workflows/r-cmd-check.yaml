@@ -154,6 +154,26 @@ jobs:
               exit 1
           fi
 
+      # The minimum Rust version is stated in four places: rust-version in
+      # Cargo.toml, MIN_RUST_VERSION in the two configure scripts, and
+      # SystemRequirements in DESCRIPTION. A dependency bump that raises
+      # the floor has to move all four.
+      - name: Check the minimum Rust version is stated consistently
+        run: |
+          minor() { echo "$1" | cut -d. -f1,2; }
+          want=$(minor "$(sed -n 's/^rust-version = "\(.*\)"/\1/p' src/rust/Cargo.toml)")
+          fail=0
+          check() {
+              if [ "$(minor "$2")" != "$want" ]; then
+                  echo "$1 states \"$2\", Cargo.toml states $want" >&2
+                  fail=1
+              fi
+          }
+          check configure "$(sed -n 's/^MIN_RUST_VERSION="\(.*\)"/\1/p' configure)"
+          check configure.win "$(sed -n 's/^MIN_RUST_VERSION="\(.*\)"/\1/p' configure.win)"
+          check DESCRIPTION "$(sed -n 's/^SystemRequirements:.*rustc (>= \([0-9.]*\)).*/\1/p' DESCRIPTION)"
+          [ "$fail" = 0 ]
+
       # cargo metadata resolves the pinned tree tools/generate-authors.R
       # reads; no Rust code is compiled by this job.
       - uses: dtolnay/rust-toolchain@stable

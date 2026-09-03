@@ -2,9 +2,9 @@
 name = "selectrs"
 # Kept in lockstep with the R package version (DESCRIPTION) — bump both
 # together. Cargo requires three-component semver, so R's fourth
-# (development) component rides as a pre-release suffix: 0.0.0.9000 here
-# is 0.0.0-9000.
-version = "0.0.0-9000"
+# (development) component rides as a pre-release suffix: 0.1.0.9000
+# would be 0.1.0-9000.
+version = "0.1.0"
 edition = "2024"
 # The floor is set by savvy 0.10.2 (rust-version 1.88), the newest
 # requirement in the pinned dependency tree; configure enforces the same

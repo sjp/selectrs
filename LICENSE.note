@@ -1,0 +1,31 @@
+The selectrs package as a whole is distributed under the 3-clause BSD
+licence recorded in DESCRIPTION and the file LICENCE. Some of the code
+it bundles is under other licences, which this file summarises; the
+authoritative list, with the version, licence, authors and repository of
+every component, is inst/AUTHORS.
+
+R code and tests
+----------------
+
+R/ and tests/testthat/ are ports of the selectr package, itself a
+translation of the Python package cssselect. Both are 3-clause BSD, the
+same licence as this package.
+
+Vendored Rust crates
+--------------------
+
+The Rust core is statically linked from the crates vendored in the
+source tarball as src/rust/vendor.tar.xz, at the versions pinned in
+src/rust/Cargo.lock. Most are MIT, Apache-2.0, or dual MIT OR
+Apache-2.0. The exceptions are:
+
+  cssparser, cssparser-macros, dtoa-short, selectors
+      Mozilla Public License 2.0. The MPL requires that the source of
+      these files be available: it is, in src/rust/vendor.tar.xz, at the
+      versions the shipped object is built from.
+
+  unicode-ident
+      (MIT OR Apache-2.0) AND Unicode-3.0, the latter covering the
+      Unicode character tables the crate embeds.
+
+Licence texts are in each crate's directory inside the vendored archive.
