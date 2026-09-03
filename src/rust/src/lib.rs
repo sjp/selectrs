@@ -109,7 +109,11 @@ fn describe_failure(error: Error, selector: &str, index: usize) -> savvy::Result
         // reach R as an ordinary failure rather than a panic. Its
         // `Display` names the construct, which is what the field holds.
         other => {
-            out.set_name_and_value(4, "construct", OwnedStringSexp::try_from(other.to_string())?)?;
+            out.set_name_and_value(
+                4,
+                "construct",
+                OwnedStringSexp::try_from(other.to_string())?,
+            )?;
             "unsupported"
         }
     };
