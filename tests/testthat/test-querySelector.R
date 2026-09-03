@@ -20,6 +20,19 @@ forEachBackend("querySelector returns a single node or NULL", function(backend) 
     expect_null(querySelector(root, "d"))
 })
 
+forEachBackend("querySelector returns the first match in document order",
+               function(backend) {
+    doc <- backend$parse('<a><b id="1"/><c id="2"/><b id="3"/></a>')
+    root <- backend$findFirst(doc, "/*")
+
+    # The node is the first of the whole result, not of the first branch of
+    # a grouped selector.
+    expect_equal(backend$ids(querySelector(doc, "c, b")), "1")
+    expect_equal(backend$ids(querySelector(doc, "c, b")),
+                 backend$ids(querySelectorAll(doc, "c, b"))[1])
+    expect_equal(backend$ids(querySelector(root, "c, b")), "1")
+})
+
 forEachBackend("querySelectorAll returns expected nodes", function(backend) {
     doc <- backend$parse('<a><b id="#test"/><c class="ex"/><c class="xmp"/></a>')
     root <- backend$findFirst(doc, "/*")

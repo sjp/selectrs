@@ -40,6 +40,22 @@ forEachBackend(":scope on a node set is applied per node", function(backend) {
     expect_equal(backend$ids(querySelectorAll(kids, "b")), c("1", "2", "3"))
 })
 
+forEachBackend("querySelector on a node set takes the first node that matches",
+               function(backend) {
+    doc <- backend$parse(
+        '<r><x/><y><b id="1"/><b id="2"/></y><z><b id="3"/></z></r>')
+    nodes <- querySelectorAll(doc, "x, y, z")
+    expect_equal(length(nodes), 3)
+
+    # The first node of the set matches nothing, so the search carries on.
+    expect_equal(backend$ids(querySelector(nodes, "b")), "1")
+    expect_equal(backend$ids(querySelector(nodes, "b")),
+                 backend$ids(querySelectorAll(nodes, "b"))[1])
+    # A relative selector is still evaluated from each node in turn.
+    expect_equal(backend$ids(querySelector(nodes, ":scope > b")), "1")
+    expect_null(querySelector(nodes, "nosuchelement"))
+})
+
 forEachBackend("querying an empty node set gives an empty node set",
                function(backend) {
     doc <- backend$parse(chainDoc)

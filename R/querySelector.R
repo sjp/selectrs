@@ -253,27 +253,37 @@ querySelectorAllNS.XMLDocumentContent <- querySelectorAllNS.XMLDocument
 querySelectorAllNS.XMLNode <- querySelectorAllNS.XMLDocument
 
 #' @export
-querySelector.XMLInternalDocument <- function(doc, selector, ns = NULL, ...) {
-    results <- querySelectorAll(doc, selector, ns, ...)
-    if (length(results))
-        results[[1]]
-    else
-        NULL
+querySelector.XMLInternalNode <- function(doc, selector, ns = NULL,
+                                          translator = NULL, ...) {
+    query <- xmlQuery(doc, selector, ns, translator, ...)
+    xmlFirstMatch(doc, query$xpath, query$ns)
 }
 
 #' @export
-querySelector.XMLInternalNode <- querySelector.XMLInternalDocument
+querySelector.XMLInternalDocument <- function(doc, selector, ns = NULL, ...) {
+    doc <- XML::xmlRoot(doc)
+    querySelector(doc, selector, ns, ...)
+}
 
+# Each node of the set is queried in turn and the first match ends the
+# search, which is the node querySelectorAll() would return first.
 #' @export
-querySelector.XMLNodeSet <- querySelector.XMLInternalDocument
+querySelector.XMLNodeSet <- function(doc, selector, ns = NULL,
+                                     translator = NULL, ...) {
+    query <- xmlQuery(doc, selector, ns, translator, ...)
+    for (i in seq_along(doc)) {
+        result <- xmlFirstMatch(doc[[i]], query$xpath, query$ns)
+        if (!is.null(result))
+            return(result)
+    }
+    NULL
+}
 
 #' @export
 querySelectorAll.XMLInternalNode <- function(doc, selector, ns = NULL,
                                              translator = NULL, ...) {
-    validateSelector(selector)
-    translator <- xmlTranslator(translator, doc)
-    xpath <- css_to_xpath(selector, translator = translator, ...)
-    xmlMatches(doc, xpath, formatNS(ns))
+    query <- xmlQuery(doc, selector, ns, translator, ...)
+    xmlMatches(doc, query$xpath, query$ns)
 }
 
 #' @export
@@ -285,11 +295,8 @@ querySelectorAll.XMLInternalDocument <- function(doc, selector, ns = NULL, ...) 
 #' @export
 querySelectorAll.XMLNodeSet <- function(doc, selector, ns = NULL,
                                         translator = NULL, ...) {
-    validateSelector(selector)
-    translator <- xmlTranslator(translator, doc)
-    xpath <- css_to_xpath(selector, translator = translator, ...)
-    ns <- formatNS(ns)
-    results <- lapply(doc, function(node) xmlMatches(node, xpath, ns))
+    query <- xmlQuery(doc, selector, ns, translator, ...)
+    results <- lapply(doc, xmlMatches, query$xpath, query$ns)
     results <- unlist(results, recursive = FALSE)
     if (is.null(results))
         results <- list()
@@ -299,14 +306,14 @@ querySelectorAll.XMLNodeSet <- function(doc, selector, ns = NULL,
     structure(unique(results), class = "XMLNodeSet")
 }
 
+# xml2::xml_find_first() stops at the first match, which is the shortcut the
+# XML methods above get from a parenthesised expression and a [1] predicate;
+# neither has to find every match to return one.
 #' @export
 querySelector.xml_node <- function(doc, selector, ns = NULL,
                                    translator = NULL, ...) {
-    validateSelector(selector)
-    ns <- if (is.null(ns)) xml2::xml_ns(doc) else formatNS(ns)
-    translator <- defaultTranslator(translator, doc)
-    xpath <- css_to_xpath(selector, translator = translator, ...)
-    result <- xml2::xml_find_first(doc, xpath, ns)
+    query <- xml2Query(doc, selector, ns, translator, ...)
+    result <- xml2::xml_find_first(doc, query$xpath, query$ns)
     if (length(result))
         result
     else
@@ -316,33 +323,32 @@ querySelector.xml_node <- function(doc, selector, ns = NULL,
 #' @export
 querySelectorAll.xml_node <- function(doc, selector, ns = NULL,
                                       translator = NULL, ...) {
-    validateSelector(selector)
-    ns <- if (is.null(ns)) xml2::xml_ns(doc) else formatNS(ns)
-    translator <- defaultTranslator(translator, doc)
-    xpath <- css_to_xpath(selector, translator = translator, ...)
-    xml2::xml_find_all(doc, xpath, ns)
+    query <- xml2Query(doc, selector, ns, translator, ...)
+    xml2::xml_find_all(doc, query$xpath, query$ns)
 }
 
+# As for XMLNodeSet above, the nodes are queried in turn and the first match
+# ends the search.
 #' @export
-querySelector.xml_nodeset <- function(doc, selector, ns = NULL, ...) {
-    results <- querySelectorAll(doc, selector, ns, ...)
-    if (length(results))
-        results[[1]]
-    else
-        NULL
+querySelector.xml_nodeset <- function(doc, selector, ns = NULL,
+                                      translator = NULL, ...) {
+    query <- xml2Query(doc, selector, ns, translator, ...)
+    for (i in seq_along(doc)) {
+        result <- xml2::xml_find_first(doc[[i]], query$xpath, query$ns)
+        if (length(result))
+            return(result)
+    }
+    NULL
 }
 
 #' @export
 querySelectorAll.xml_nodeset <- function(doc, selector, ns = NULL,
                                          translator = NULL, ...) {
-    validateSelector(selector)
-    ns <- if (is.null(ns)) xml2::xml_ns(doc) else formatNS(ns)
-    translator <- defaultTranslator(translator, doc)
-    xpath <- css_to_xpath(selector, translator = translator, ...)
+    query <- xml2Query(doc, selector, ns, translator, ...)
     # xml2 evaluates the expression from each node in turn, so a relative
     # selector (e.g. ":scope > a") applies per node, and a node matched more
     # than once is returned only once.
-    xml2::xml_find_all(doc, xpath, ns)
+    xml2::xml_find_all(doc, query$xpath, query$ns)
 }
 
 #' @export
@@ -430,7 +436,7 @@ querySelectorAllNS.xml_missing <- querySelectorAllNSMethod
 #
 # The document node of a document read by xml2::read_html() reports its
 # type as "html_document", and so do its nodes and node sets.
-defaultTranslator <- function(translator, doc) {
+xml2Translator <- function(translator, doc) {
     if (!is.null(translator))
         return(translator)
     type <- tryCatch(xml2::xml_type(xml2::xml_parent(xml2::xml_root(doc))),
@@ -460,6 +466,26 @@ xmlTranslator <- function(translator, doc) {
         "generic"
 }
 
+# The first step shared by the xml2 methods: xml2 wants the namespaces as an
+# argument to every query, and takes the document's own when the caller named
+# none.
+xml2Query <- function(doc, selector, ns, translator, ...) {
+    validateSelector(selector)
+    translator <- xml2Translator(translator, doc)
+    list(xpath = css_to_xpath(selector, translator = translator, ...),
+         ns = if (is.null(ns)) xml2::xml_ns(doc) else formatNS(ns))
+}
+
+# The same for the XML methods. querySelector() and querySelectorAll() differ
+# only in what they then ask libxml2 for, so a query over a node set
+# translates the selector once for the whole set rather than once per node.
+xmlQuery <- function(doc, selector, ns, translator, ...) {
+    validateSelector(selector)
+    translator <- xmlTranslator(translator, doc)
+    list(xpath = css_to_xpath(selector, translator = translator, ...),
+         ns = formatNS(ns))
+}
+
 # XML::getNodeSet() supplies a default `namespaces` argument of its own,
 # the declarations carried by the node it is given, so leaving the map to
 # the package has to be an absent argument rather than a NULL one. A
@@ -471,6 +497,19 @@ xmlMatches <- function(node, xpath, ns) {
         XML::getNodeSet(node, xpath)
     else
         XML::getNodeSet(node, xpath, ns)
+}
+
+# The first node the expression matches, or NULL. A positional predicate
+# applies to a node set in document order, so parenthesising the whole
+# expression and taking [1] picks out the same node as the first of the full
+# result, without the XML package wrapping each of the other matches in an R
+# object on the way to discarding it.
+xmlFirstMatch <- function(node, xpath, ns) {
+    results <- xmlMatches(node, paste0("(", xpath, ")[1]"), ns)
+    if (length(results))
+        results[[1]]
+    else
+        NULL
 }
 
 # xml2 does not export a constructor for an empty nodeset, but this is the
