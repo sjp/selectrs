@@ -5,7 +5,8 @@
 # against, and reading a node's name, attributes and serialised form.
 #
 # Everything here is namespaced (XML::/xml2::) rather than attached, so a
-# test body sees only the selectrs API and the backend it was handed.
+# test body sees only the selectrs API and the backend it was handed;
+# test-zzz-attached-packages.R enforces that.
 
 # XML has no single class for "some nodes": a query gives back an
 # XMLNodeSet, a single match an XMLInternalNode, and no match a NULL.
@@ -32,6 +33,7 @@ backends <- list(
         name = "XML",
         parse = function(text) XML::xmlParse(text, asText = TRUE),
         parseHtml = function(text) XML::htmlParse(text, asText = TRUE),
+        nodesetClass = "XMLNodeSet",
         # A query on an XML document is evaluated from its root element.
         root = function(doc) XML::xmlRoot(doc),
         findAll = xmlFindAll,
@@ -55,6 +57,7 @@ backends <- list(
         name = "xml2",
         parse = function(text) xml2::read_xml(text),
         parseHtml = function(text) xml2::read_html(text),
+        nodesetClass = "xml_nodeset",
         # xml2 evaluates a document query from the root element too, but
         # takes the document itself as the context node.
         root = function(doc) doc,
@@ -99,6 +102,19 @@ forEachBackend <- function(desc, code) {
             code(backend)
         })
     }
+}
+
+# The small HTML document the translator tests query: an element whose name
+# and attributes need case-insensitive matching, and the states the html
+# translator's pseudo-classes look for. Shared by test-html-translator.R and
+# the per-package files.
+translatorHtml <- function() {
+    paste0('<html><head><title>t</title></head><body>',
+           '<DIV class="wrap" lang="en">',
+           '<input type="checkbox" checked>',
+           '<input type="text" disabled>',
+           '<a href="u">l</a>',
+           '</DIV></body></html>')
 }
 
 # The XHTML document the shakespeare tests query, shared by both backends.

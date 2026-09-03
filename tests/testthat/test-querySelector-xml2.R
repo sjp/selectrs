@@ -1,8 +1,9 @@
 # What xml2 does that the XML package does not: with no `ns` argument it
 # collects the document's own namespace declarations with xml_ns(), so an
 # unprefixed selector resolves against the default namespace without a
-# warning. The rest of the querySelector* contract is in
-# test-querySelector.R.
+# warning; it has an xml_missing class for "no match"; and its nodes know
+# the document they came from. The rest of the querySelector* contract is
+# in test-querySelector.R.
 
 svgDoc <- function() {
     xml2::read_xml(paste0(
@@ -82,4 +83,52 @@ test_that("a zero-length namespace leaves xml2 with no prefix to resolve", {
                    "Undefined namespace prefix")
     expect_equal(length(suppressWarnings(querySelectorAll(doc, "s|b",
                                                           ns = character(0)))), 0L)
+})
+
+test_that("querying an xml_missing gives an empty result", {
+    skip_if_not_installed("xml2")
+    doc <- xml2::read_xml("<a><b/></a>")
+    missing <- xml2::xml_find_first(doc, "//nosuchelement")
+    expect_true(inherits(missing, "xml_missing"))
+
+    res <- querySelectorAll(missing, "b")
+    expect_true(inherits(res, "xml_nodeset"))
+    expect_equal(length(res), 0)
+    expect_null(querySelector(missing, "b"))
+
+    # The namespaced variants are equally quiet
+    svg <- c(svg = "http://www.w3.org/2000/svg")
+    expect_equal(length(querySelectorAllNS(missing, "svg|circle", svg)), 0)
+    expect_null(querySelectorNS(missing, "svg|circle", svg))
+})
+
+test_that("the xml_missing methods validate their arguments", {
+    skip_if_not_installed("xml2")
+    doc <- xml2::read_xml("<a><b/></a>")
+    missing <- xml2::xml_find_first(doc, "//nosuchelement")
+
+    expect_error(querySelectorAll(missing, c("b", "c")),
+                 "A valid selector .*must be provided")
+    expect_error(querySelectorAllNS(missing, "b"),
+                 "A namespace must be provided.")
+    expect_error(querySelectorNS(missing, "b"), "A namespace must be provided.")
+})
+
+test_that("nodes and node sets of an HTML document are detected", {
+    skip_if_not_installed("xml2")
+    # Unlike an XML node, an xml_node keeps a reference to its document, so
+    # a query starting from one still uses the html translator.
+    doc <- xml2::read_html(translatorHtml())
+    node <- querySelector(doc, "div")
+    nodeset <- querySelectorAll(doc, "div")
+
+    expect_equal(length(querySelectorAll(node, "input:checked")), 1)
+    expect_false(is.null(querySelector(node, "input:checked")))
+    expect_equal(length(querySelectorAll(nodeset, "input:checked")), 1)
+    expect_false(is.null(querySelector(nodeset, "input:checked")))
+
+    # A missing node has no document to inspect, and must not error
+    xdoc <- xml2::read_xml('<a><B/></a>')
+    expect_equal(length(querySelectorAll(xml2::xml_find_first(xdoc, "//zz"),
+                                         "B")), 0)
 })

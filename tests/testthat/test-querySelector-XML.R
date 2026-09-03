@@ -1,6 +1,7 @@
 # What the XML package does that xml2 does not: it registers no namespace
 # for a query unless one is passed, so an unprefixed selector against a
-# document with a default namespace matches nothing and libxml2 says so.
+# document with a default namespace matches nothing and libxml2 says so;
+# and one of its nodes remembers nothing of the document it came from.
 # The rest of the querySelector* contract is in test-querySelector.R.
 
 svgDoc <- function() {
@@ -61,4 +62,16 @@ test_that("a zero-length namespace leaves XML to resolve prefixes itself", {
     doc <- XML::xmlParse('<r xmlns:s="urn:s"><s:b id="1"/></r>', asText = TRUE)
     found <- querySelectorAll(doc, "s|b", ns = character(0))
     expect_equal(XML::xmlGetAttr(found[[1]], "id"), "1")
+})
+
+test_that("a query from a node of an HTML document is generic", {
+    skip_if_not_installed("XML")
+    # An XML node carries no record of the document it came from, so there
+    # is nothing to tell a query that the document was parsed as HTML.
+    doc <- XML::htmlParse(translatorHtml(), asText = TRUE)
+    root <- XML::xmlRoot(doc)
+
+    expect_equal(length(querySelectorAll(root, "input:checked")), 0)
+    expect_equal(length(querySelectorAll(root, "input:checked",
+                                         translator = "html")), 1)
 })

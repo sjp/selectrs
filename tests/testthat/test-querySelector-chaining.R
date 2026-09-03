@@ -1,172 +1,82 @@
+# Querying the result of a query: a node set is a valid starting point, and
+# the selector is applied to each of its nodes in turn. What only one
+# package offers — an xml_missing to query — is in
+# test-querySelector-xml2.R.
+
 chainDoc <- '<html><body>
   <table id="t1"><tr><td class="a">1</td><td>2</td></tr><tr><td>3</td></tr></table>
   <table id="t2"><tr><td class="a">4</td></tr></table>
   <p><td>outside</td></p>
 </body></html>'
 
-test_that("xml2 nodesets can be queried", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml(chainDoc)
-    p <- function(x) lapply(x, as.character)
+forEachBackend("node sets can be queried", function(backend) {
+    doc <- backend$parse(chainDoc)
 
     tables <- querySelectorAll(doc, "table")
+    expect_true(inherits(tables, backend$nodesetClass))
     expect_equal(length(tables), 2)
 
     cells <- querySelectorAll(tables, "td")
-    expect_equal(p(cells), p(xml_find_all(doc, "//table//td")))
+    expect_true(inherits(cells, backend$nodesetClass))
+    expect_equal(backend$text(cells),
+                 backend$text(backend$findAll(doc, "//table//td")))
 
     # A node matched from more than one node in the set appears once
-    expect_equal(length(querySelectorAll(querySelectorAll(doc, "table, tr"), "td")), 4)
+    expect_equal(length(querySelectorAll(querySelectorAll(doc, "table, tr"),
+                                         "td")), 4)
 
     # querySelector() gives back the first match across the whole set
-    expect_equal(as.character(querySelector(tables, "td")),
-                 as.character(xml_find_first(doc, "//table//td")))
-    expect_equal(querySelector(tables, "div"), NULL)
+    expect_equal(backend$text(querySelector(tables, "td")),
+                 backend$text(backend$findFirst(doc, "//table//td")))
+    expect_null(querySelector(tables, "div"))
 })
 
-test_that(":scope on an xml2 nodeset is applied per node", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml('<a><x><b id="1"/><c><b id="2"/></c></x><y><b id="3"/></y></a>')
-    ids <- function(x) xml_attr(x, "id")
+forEachBackend(":scope on a node set is applied per node", function(backend) {
+    doc <- backend$parse('<a><x><b id="1"/><c><b id="2"/></c></x><y><b id="3"/></y></a>')
 
     kids <- querySelectorAll(doc, "x, y")
-    expect_equal(ids(querySelectorAll(kids, ":scope > b")), c("1", "3"))
-    expect_equal(ids(querySelectorAll(kids, "b")), c("1", "2", "3"))
+    expect_equal(backend$ids(querySelectorAll(kids, ":scope > b")),
+                 c("1", "3"))
+    expect_equal(backend$ids(querySelectorAll(kids, "b")), c("1", "2", "3"))
 })
 
-test_that("querying an empty xml2 nodeset gives an empty nodeset", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml(chainDoc)
+forEachBackend("querying an empty node set gives an empty node set",
+               function(backend) {
+    doc <- backend$parse(chainDoc)
     empty <- querySelectorAll(doc, "nosuchelement")
     expect_equal(length(empty), 0)
 
     res <- querySelectorAll(empty, "td")
-    expect_true(inherits(res, "xml_nodeset"))
+    expect_true(inherits(res, backend$nodesetClass))
     expect_equal(length(res), 0)
-    expect_equal(querySelector(empty, "td"), NULL)
+    expect_null(querySelector(empty, "td"))
 })
 
-test_that("querying an xml_missing gives an empty result", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml(chainDoc)
-    missing <- xml_find_first(doc, "//nosuchelement")
-    expect_true(inherits(missing, "xml_missing"))
-
-    res <- querySelectorAll(missing, "td")
-    expect_true(inherits(res, "xml_nodeset"))
-    expect_equal(length(res), 0)
-    expect_equal(querySelector(missing, "td"), NULL)
-
-    # The namespaced variants are equally quiet
+forEachBackend("namespaced queries work on node sets", function(backend) {
     svg <- c(svg = "http://www.w3.org/2000/svg")
-    expect_equal(length(querySelectorAllNS(missing, "svg|circle", svg)), 0)
-    expect_equal(querySelectorNS(missing, "svg|circle", svg), NULL)
-})
-
-test_that("xml2 nodeset and missing methods validate their arguments", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml(chainDoc)
-    tables <- querySelectorAll(doc, "table")
-    missing <- xml_find_first(doc, "//nosuchelement")
-
-    expect_error(querySelectorAll(tables, c("td", "tr")),
-                 "A valid selector .*must be provided")
-    expect_error(querySelectorAll(missing, c("td", "tr")),
-                 "A valid selector .*must be provided")
-    expect_error(querySelectorNS(tables, "td"), "A namespace must be provided.")
-    expect_error(querySelectorAllNS(missing, "td"), "A namespace must be provided.")
-})
-
-test_that("namespaced queries work on xml2 nodesets", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    svg <- c(svg = "http://www.w3.org/2000/svg")
-    doc <- read_xml('<svg xmlns="http://www.w3.org/2000/svg"><g><circle id="1"/></g><g><circle id="2"/></g></svg>')
-    gs <- querySelectorAllNS(doc, "svg|g", svg)
-    expect_equal(length(gs), 2)
-
-    circles <- querySelectorAll(gs, "svg|circle", ns = svg)
-    expect_equal(xml_attr(circles, "id"), c("1", "2"))
-    expect_equal(xml_attr(querySelector(gs, "svg|circle", ns = svg), "id"), "1")
-
-    expect_equal(xml_attr(querySelectorAllNS(gs, "svg|circle", svg), "id"), c("1", "2"))
-    expect_equal(xml_attr(querySelectorNS(gs, "svg|circle", svg), "id"), "1")
-})
-
-test_that("XML nodesets can be queried", {
-    skip_if_not_installed("XML")
-    library(XML)
-    doc <- xmlParse(chainDoc)
-    p <- function(x) sapply(x, xmlValue)
-
-    tables <- querySelectorAll(doc, "table")
-    expect_true(inherits(tables, "XMLNodeSet"))
-    expect_equal(length(tables), 2)
-
-    cells <- querySelectorAll(tables, "td")
-    expect_true(inherits(cells, "XMLNodeSet"))
-    expect_equal(p(cells), p(getNodeSet(doc, "//table//td")))
-
-    # A node matched from more than one node in the set appears once
-    expect_equal(length(querySelectorAll(querySelectorAll(doc, "table, tr"), "td")), 4)
-
-    expect_equal(xmlValue(querySelector(tables, "td")), "1")
-    expect_equal(querySelector(tables, "div"), NULL)
-})
-
-test_that(":scope on an XML nodeset is applied per node", {
-    skip_if_not_installed("XML")
-    library(XML)
-    doc <- xmlParse('<a><x><b id="1"/><c><b id="2"/></c></x><y><b id="3"/></y></a>')
-    ids <- function(x) as.character(sapply(x, xmlGetAttr, "id"))
-
-    kids <- querySelectorAll(doc, "x, y")
-    expect_equal(ids(querySelectorAll(kids, ":scope > b")), c("1", "3"))
-    expect_equal(ids(querySelectorAll(kids, "b")), c("1", "2", "3"))
-})
-
-test_that("querying an empty XML nodeset gives an empty nodeset", {
-    skip_if_not_installed("XML")
-    library(XML)
-    doc <- xmlParse(chainDoc)
-    empty <- querySelectorAll(doc, "nosuchelement")
-    expect_equal(length(empty), 0)
-
-    res <- querySelectorAll(empty, "td")
-    expect_true(inherits(res, "XMLNodeSet"))
-    expect_equal(length(res), 0)
-    expect_equal(querySelector(empty, "td"), NULL)
-})
-
-test_that("namespaced queries work on XML nodesets", {
-    skip_if_not_installed("XML")
-    library(XML)
-    svg <- c(svg = "http://www.w3.org/2000/svg")
-    doc <- xmlParse('<svg xmlns="http://www.w3.org/2000/svg"><g><circle id="1"/></g><g><circle id="2"/></g></svg>')
-    ids <- function(x) as.character(sapply(x, xmlGetAttr, "id"))
+    doc <- backend$parse(paste0(
+        '<svg xmlns="http://www.w3.org/2000/svg">',
+        '<g><circle id="1"/></g><g><circle id="2"/></g>',
+        '</svg>'))
 
     gs <- querySelectorAllNS(doc, "svg|g", svg)
     expect_equal(length(gs), 2)
 
-    expect_equal(ids(querySelectorAll(gs, "svg|circle", ns = svg)), c("1", "2"))
-    expect_equal(xmlGetAttr(querySelector(gs, "svg|circle", ns = svg), "id"), "1")
-    expect_equal(ids(querySelectorAllNS(gs, "svg|circle", svg)), c("1", "2"))
-    expect_equal(xmlGetAttr(querySelectorNS(gs, "svg|circle", svg), "id"), "1")
+    expect_equal(backend$ids(querySelectorAll(gs, "svg|circle", ns = svg)),
+                 c("1", "2"))
+    expect_equal(backend$ids(querySelector(gs, "svg|circle", ns = svg)), "1")
+    expect_equal(backend$ids(querySelectorAllNS(gs, "svg|circle", svg)),
+                 c("1", "2"))
+    expect_equal(backend$ids(querySelectorNS(gs, "svg|circle", svg)), "1")
 })
 
-test_that("XML nodeset methods validate their arguments", {
-    skip_if_not_installed("XML")
-    library(XML)
-    doc <- xmlParse(chainDoc)
+forEachBackend("node set methods validate their arguments", function(backend) {
+    doc <- backend$parse(chainDoc)
     tables <- querySelectorAll(doc, "table")
 
     expect_error(querySelectorAll(tables, c("td", "tr")),
                  "A valid selector .*must be provided")
     expect_error(querySelectorNS(tables, "td"), "A namespace must be provided.")
-    expect_error(querySelectorAllNS(tables, "td"), "A namespace must be provided.")
+    expect_error(querySelectorAllNS(tables, "td"),
+                 "A namespace must be provided.")
 })

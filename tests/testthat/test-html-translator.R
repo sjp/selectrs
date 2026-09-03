@@ -1,14 +1,11 @@
-htmlText <- paste0('<html><head><title>t</title></head><body>',
-                   '<DIV class="wrap" lang="en">',
-                   '<input type="checkbox" checked>',
-                   '<input type="text" disabled>',
-                   '<a href="u">l</a>',
-                   '</DIV></body></html>')
+# Which translator a query picks when none is named: "html" for a document
+# the backend parsed as HTML, "generic" otherwise. How each package lets a
+# node or node set be traced back to its document differs, so those tests
+# are in test-querySelector-XML.R and -xml2.R.
 
-test_that("XML HTML documents use the html translator by default", {
-    skip_if_not_installed("XML")
-    library(XML)
-    doc <- htmlParse(htmlText, asText = TRUE)
+forEachBackend("HTML documents use the html translator by default",
+               function(backend) {
+    doc <- backend$parseHtml(translatorHtml())
 
     # Pseudo-classes that only the html translator implements
     expect_equal(length(querySelectorAll(doc, "input:checked")), 1)
@@ -23,82 +20,21 @@ test_that("XML HTML documents use the html translator by default", {
     expect_false(is.null(querySelector(doc, "input:checked")))
 })
 
-test_that("an explicit translator overrides the html default", {
-    skip_if_not_installed("XML")
-    library(XML)
-    doc <- htmlParse(htmlText, asText = TRUE)
+forEachBackend("an explicit translator overrides the html default",
+               function(backend) {
+    doc <- backend$parseHtml(translatorHtml())
 
     expect_equal(length(querySelectorAll(doc, "input:checked",
                                          translator = "generic")), 0)
-    expect_equal(querySelector(doc, "input:checked", translator = "generic"),
-                 NULL)
+    expect_null(querySelector(doc, "input:checked", translator = "generic"))
     # css_to_xpath()'s arguments are matched partially, so an abbreviated
     # argument counts as explicit too
     expect_equal(length(querySelectorAll(doc, "input:checked",
                                          trans = "generic")), 0)
 })
 
-test_that("XML documents and nodes keep the generic translator", {
-    skip_if_not_installed("XML")
-    library(XML)
-    doc <- xmlParse('<a><B/><input type="checkbox" checked="checked"/></a>')
-    expect_equal(length(querySelectorAll(doc, "B")), 1)
-    expect_equal(length(querySelectorAll(doc, "b")), 0)
-    expect_equal(length(querySelectorAll(doc, "input:checked")), 0)
-
-    # An XML node carries no record of the document it came from, so a query
-    # starting from a node of an HTML document is generic
-    hdoc <- htmlParse(htmlText, asText = TRUE)
-    expect_equal(length(querySelectorAll(xmlRoot(hdoc), "input:checked")), 0)
-    expect_equal(length(querySelectorAll(xmlRoot(hdoc), "input:checked",
-                                         translator = "html")), 1)
-})
-
-test_that("namespaced queries on an XML HTML document use the html translator", {
-    skip_if_not_installed("XML")
-    library(XML)
-    doc <- htmlParse(htmlText, asText = TRUE)
-    ns <- c(x = "http://www.w3.org/1999/xhtml")
-    # htmlParse() does not put the document in a namespace, so these match
-    # nothing; the point is that the translator still applies
-    expect_equal(length(querySelectorAllNS(doc, "x|input:checked", ns)), 0)
-    expect_equal(querySelectorNS(doc, "x|input:checked", ns), NULL)
-})
-
-test_that("xml2 HTML documents use the html translator by default", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_html(htmlText)
-
-    expect_equal(length(querySelectorAll(doc, "input:checked")), 1)
-    expect_equal(length(querySelectorAll(doc, ":disabled")), 1)
-    expect_equal(length(querySelectorAll(doc, ":link")), 1)
-    expect_equal(length(querySelectorAll(doc, ":lang(en)")), 4)
-    expect_equal(length(querySelectorAll(doc, "DIV")), 1)
-    expect_equal(length(querySelectorAll(doc, "[HREF]")), 1)
-    expect_false(is.null(querySelector(doc, "input:checked")))
-
-    expect_equal(length(querySelectorAll(doc, "input:checked",
-                                         translator = "generic")), 0)
-})
-
-test_that("xml2 nodes and node sets of an HTML document are detected", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_html(htmlText)
-    node <- querySelector(doc, "div")
-    nodeset <- querySelectorAll(doc, "div")
-
-    expect_equal(length(querySelectorAll(node, "input:checked")), 1)
-    expect_false(is.null(querySelector(node, "input:checked")))
-    expect_equal(length(querySelectorAll(nodeset, "input:checked")), 1)
-    expect_false(is.null(querySelector(nodeset, "input:checked")))
-})
-
-test_that("xml2 XML documents keep the generic translator", {
-    skip_if_not_installed("xml2")
-    library(xml2)
-    doc <- read_xml('<a><B/><input type="checkbox" checked="checked"/></a>')
+forEachBackend("XML documents keep the generic translator", function(backend) {
+    doc <- backend$parse('<a><B/><input type="checkbox" checked="checked"/></a>')
     expect_equal(length(querySelectorAll(doc, "B")), 1)
     expect_equal(length(querySelectorAll(doc, "b")), 0)
     expect_equal(length(querySelectorAll(doc, "input:checked")), 0)
@@ -106,10 +42,18 @@ test_that("xml2 XML documents keep the generic translator", {
     node <- querySelector(doc, "a")
     expect_equal(length(querySelectorAll(node, "B")), 1)
 
-    # An empty node set and a missing node have no document to inspect, and
-    # must not error
+    # An empty node set has no document to inspect, and must not error
     expect_equal(length(querySelectorAll(querySelectorAll(doc, "zz"), "B")), 0)
-    expect_equal(length(querySelectorAll(xml_find_first(doc, "//zz"), "B")), 0)
+})
+
+forEachBackend("namespaced queries on an HTML document use the html translator",
+               function(backend) {
+    doc <- backend$parseHtml(translatorHtml())
+    ns <- c(x = "http://www.w3.org/1999/xhtml")
+    # Neither package puts an HTML document in a namespace, so these match
+    # nothing; the point is that the translator still applies
+    expect_equal(length(querySelectorAllNS(doc, "x|input:checked", ns)), 0)
+    expect_null(querySelectorNS(doc, "x|input:checked", ns))
 })
 
 test_that("css_to_xpath() still defaults to the generic translator", {
