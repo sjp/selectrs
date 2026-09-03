@@ -89,7 +89,7 @@
 #' @param doc The XML document, node, or set of nodes to be evaluated
 #'   against.
 #' @param selector A selector used to query `doc`. This must be a single
-#'   character string.
+#'   non-missing character string.
 #' @param ns The namespace that the query will be filtered to: a named list
 #'   or vector mapping namespace prefixes to namespace URIs. Both the
 #'   prefixes and the URIs must be non-missing, non-empty character strings,
@@ -402,7 +402,8 @@ emptyNodeSet <- function() {
 }
 
 validateSelector <- function(selector) {
-    if (missing(selector) || !is.character(selector) || length(selector) != 1L)
+    if (missing(selector) || !is.character(selector) || length(selector) != 1L ||
+        is.na(selector))
         argumentError("A valid selector (single character string) must be provided.")
 }
 

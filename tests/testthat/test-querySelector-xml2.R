@@ -109,6 +109,16 @@ test_that("the xml_missing methods validate their arguments", {
 
     expect_error(querySelectorAll(missing, c("b", "c")),
                  "A valid selector .*must be provided")
+    # these methods return without translating, so the selector check here is
+    # the only thing standing between an NA selector and an empty result
+    expect_error(querySelector(missing, NA_character_),
+                 "A valid selector .*must be provided")
+    expect_error(querySelectorAll(missing, NA_character_),
+                 "A valid selector .*must be provided")
+    expect_error(querySelectorNS(missing, NA_character_, c(a = "urn:a")),
+                 "A valid selector .*must be provided")
+    expect_error(querySelectorAllNS(missing, NA_character_, c(a = "urn:a")),
+                 "A valid selector .*must be provided")
     expect_error(querySelectorAllNS(missing, "b"),
                  "A namespace must be provided.")
     expect_error(querySelectorNS(missing, "b"), "A namespace must be provided.")

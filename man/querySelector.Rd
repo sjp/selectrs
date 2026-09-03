@@ -20,7 +20,7 @@ querySelectorAllNS(doc, selector, ns, prefix = "descendant-or-self::", ...)
 against.}
 
 \item{selector}{A selector used to query \code{doc}. This must be a single
-character string.}
+non-missing character string.}
 
 \item{ns}{The namespace that the query will be filtered to: a named list
 or vector mapping namespace prefixes to namespace URIs. Both the

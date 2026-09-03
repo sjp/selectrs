@@ -61,6 +61,21 @@ forEachBackend("querySelector methods handle invalid arguments", function(backen
     expect_error(querySelectorAll(doc, 1), selector_error, fixed = TRUE)
     expect_error(querySelectorAll(doc, NULL), selector_error, fixed = TRUE)
 
+    # a missing selector is a malformed selector, not something to translate
+    node <- backend$findFirst(doc, "//b")
+    nodes <- backend$findAll(doc, "//c")
+    for (context in list(doc, node, nodes)) {
+        expect_error(querySelector(context, NA_character_), selector_error,
+                     fixed = TRUE)
+        expect_error(querySelectorAll(context, NA_character_), selector_error,
+                     fixed = TRUE)
+        expect_error(querySelectorNS(context, NA_character_, svg),
+                     selector_error, fixed = TRUE)
+        expect_error(querySelectorAllNS(context, NA_character_, svg),
+                     selector_error, fixed = TRUE)
+        expect_error(querySelectorAll(context, NA), selector_error, fixed = TRUE)
+    }
+
     namespace_error <- "A namespace must be provided."
     expect_error(querySelectorNS(doc, "a"), namespace_error, fixed = TRUE)
     expect_error(querySelectorNS(doc, "a", NULL), namespace_error, fixed = TRUE)
