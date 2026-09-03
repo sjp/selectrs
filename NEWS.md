@@ -10,3 +10,7 @@ Rust by the `css-to-xpath` crate.
 * `querySelector()` and `querySelectorAll()` query `XML` and `xml2`
   documents and nodes with a CSS selector; `querySelectorNS()` and
   `querySelectorAllNS()` do the same in a namespaced document.
+
+* Errors are classed conditions. Each carries both its `selectrs_*` name
+  and the matching `selectr_*` one, so a handler written against
+  `selectr` fires unchanged.

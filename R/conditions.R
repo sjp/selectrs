@@ -6,14 +6,22 @@
 # column when the construct could be located) and
 # "selectrs_argument_error".
 #
+# Each of those is signalled under the matching selectr name as well, so
+# that a handler, an inherits() test or an expect_error(class = ) written
+# against selectr keeps working here. The selectrs names come first, so
+# class(e)[1] and the printed header still say which package raised it.
+#
 # The call is dropped from every condition: for the querySelector*
 # generics it would name the method rather than the function the user
 # wrote, and for a translation failure the useful context is the selector,
 # which the condition carries as a field.
 
 selectrsError <- function(message, class, fields = list()) {
+    alias <- sub("^selectrs_", "selectr_", class)
     stop(do.call(errorCondition,
-                 c(list(message, class = c(class, "selectrs_error"),
+                 c(list(message,
+                        class = c(class, alias, "selectrs_error",
+                                  "selectr_error"),
                         call = NULL),
                    fields)))
 }

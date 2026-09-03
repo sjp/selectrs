@@ -1,7 +1,15 @@
+# The three condition classes, each carried under its selectr name too so
+# that a handler written against selectr fires here.
+parseClass <- c("selectrs_parse_error", "selectr_parse_error",
+                "selectrs_error", "selectr_error", "error", "condition")
+translationClass <- c("selectrs_translation_error", "selectr_translation_error",
+                      "selectrs_error", "selectr_error", "error", "condition")
+argumentClass <- c("selectrs_argument_error", "selectr_argument_error",
+                   "selectrs_error", "selectr_error", "error", "condition")
+
 test_that("a syntax error is a selectrs_parse_error carrying the column", {
     e <- tryCatch(css_to_xpath("div >"), error = identity)
-    expect_identical(class(e), c("selectrs_parse_error", "selectrs_error",
-                                 "error", "condition"))
+    expect_identical(class(e), parseClass)
     expect_equal(e$selector, "div >")
     expect_equal(e$index, 1L)
     expect_equal(e$column, 6L)
@@ -26,8 +34,7 @@ test_that("the reported column counts characters, in any encoding", {
 
 test_that("an unsupported construct is a selectrs_translation_error naming it", {
     e <- tryCatch(css_to_xpath("*:first-of-type"), error = identity)
-    expect_identical(class(e), c("selectrs_translation_error", "selectrs_error",
-                                 "error", "condition"))
+    expect_identical(class(e), translationClass)
     expect_equal(e$selector, "*:first-of-type")
     expect_equal(e$index, 1L)
     expect_equal(e$construct, "an of-type pseudo-class on the universal selector `*`")
@@ -40,8 +47,7 @@ test_that("an unsupported construct is a selectrs_translation_error naming it", 
 
 test_that("a construct found in the selector text reports its column", {
     e <- tryCatch(css_to_xpath("col || td"), error = identity)
-    expect_identical(class(e), c("selectrs_translation_error", "selectrs_error",
-                                 "error", "condition"))
+    expect_identical(class(e), translationClass)
     expect_equal(e$construct, "the `||` column combinator")
     expect_equal(e$column, 5L)
 
@@ -63,6 +69,34 @@ test_that("the two translation failures are distinguishable from each other", {
     expect_equal(kind(NA_character_), "argument")
 })
 
+test_that("handlers written for selectr's class names fire", {
+    kind <- function(selector) {
+        tryCatch(css_to_xpath(selector),
+                 selectr_parse_error = function(e) "parse",
+                 selectr_translation_error = function(e) "translation",
+                 selectr_argument_error = function(e) "argument",
+                 error = function(e) "plain")
+    }
+    expect_equal(kind("div >"), "parse")
+    expect_equal(kind("*:first-of-type"), "translation")
+    expect_equal(kind(NA_character_), "argument")
+
+    family <- function(selector) {
+        tryCatch(css_to_xpath(selector),
+                 selectr_error = function(e) "selectr",
+                 error = function(e) "plain")
+    }
+    expect_equal(family("div >"), "selectr")
+    expect_equal(family("*:first-of-type"), "selectr")
+    expect_equal(family(NA_character_), "selectr")
+
+    e <- tryCatch(css_to_xpath("div >"), error = identity)
+    expect_s3_class(e, "selectr_parse_error")
+    expect_s3_class(e, "selectr_error")
+    # selectrs' own name is still the one the condition prints under
+    expect_identical(class(e)[1L], "selectrs_parse_error")
+})
+
 test_that("a vectorised call reports which element failed", {
     e <- tryCatch(css_to_xpath(c("a", "div >", "b")), error = identity)
     expect_equal(e$index, 2L)
@@ -79,8 +113,7 @@ test_that("a vectorised call reports which element failed", {
 test_that("argument errors from css_to_xpath are selectrs_argument_errors", {
     classed <- function(expr) {
         e <- tryCatch(expr, error = identity)
-        identical(class(e), c("selectrs_argument_error", "selectrs_error",
-                              "error", "condition"))
+        identical(class(e), argumentClass)
     }
     expect_true(classed(css_to_xpath()))
     expect_true(classed(css_to_xpath(NULL)))
@@ -105,8 +138,6 @@ test_that("argument errors from css_to_xpath are selectrs_argument_errors", {
 })
 
 test_that("argument errors from the query functions are classed too", {
-    argumentClass <- c("selectrs_argument_error", "selectrs_error", "error",
-                       "condition")
     expectArgumentError <- function(expr) {
         e <- tryCatch(expr, error = identity)
         expect_identical(class(e), argumentClass)
@@ -125,11 +156,9 @@ test_that("a failing selector reaching the query functions keeps its class", {
     skip_if_not_installed("xml2")
     doc <- xml2::read_xml("<a><b/></a>")
     e <- tryCatch(querySelector(doc, "div >"), error = identity)
-    expect_identical(class(e), c("selectrs_parse_error", "selectrs_error",
-                                 "error", "condition"))
+    expect_identical(class(e), parseClass)
     e <- tryCatch(querySelectorAll(doc, "*:first-of-type"), error = identity)
-    expect_identical(class(e), c("selectrs_translation_error", "selectrs_error",
-                                 "error", "condition"))
+    expect_identical(class(e), translationClass)
 })
 
 test_that("the Rust boundary reports a failure rather than throwing", {

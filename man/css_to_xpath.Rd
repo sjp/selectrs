@@ -186,6 +186,13 @@ The \code{selector} field holds the UTF-8 translation of the element that
 failed, which is the string that was actually translated, not the
 caller's original object.
 
+Every one of these classes is signalled under its selectr name as
+well - \code{selectr_parse_error}, \code{selectr_translation_error},
+\code{selectr_argument_error} and \code{selectr_error} - so a handler,
+\code{inherits()} test or \code{expect_error(class = )} written against selectr
+fires here unchanged. The selectrs names come first, so \code{class(e)[1]}
+and the printed header still name the package that raised the error.
+
 The message text is not part of the interface. Several of these
 messages are worded differently from selectr's for the same failure,
 and a long value the message echoes back is abbreviated where selectr

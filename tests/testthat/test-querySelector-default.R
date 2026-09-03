@@ -25,8 +25,10 @@ test_that("an R-level XML tree is reported as one", {
     for (tree in trees) {
         for (fname in names(calls)) {
             e <- tryCatch(calls[[fname]](tree), error = identity)
-            expect_identical(class(e), c("selectrs_argument_error",
-                                         "selectrs_error", "error", "condition"))
+            expect_identical(class(e),
+                             c("selectrs_argument_error", "selectr_argument_error",
+                               "selectrs_error", "selectr_error", "error",
+                               "condition"))
             expect_equal(conditionMessage(e), paste0(
                 "The object given to ", fname, "() is an R-level 'XML' tree, ",
                 "which cannot be searched with XPath. Re-parse the document ",

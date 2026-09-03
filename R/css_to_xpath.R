@@ -150,6 +150,13 @@
 #' failed, which is the string that was actually translated, not the
 #' caller's original object.
 #'
+#' Every one of these classes is signalled under its selectr name as
+#' well - `selectr_parse_error`, `selectr_translation_error`,
+#' `selectr_argument_error` and `selectr_error` - so a handler,
+#' `inherits()` test or `expect_error(class = )` written against selectr
+#' fires here unchanged. The selectrs names come first, so `class(e)[1]`
+#' and the printed header still name the package that raised the error.
+#'
 #' The message text is not part of the interface. Several of these
 #' messages are worded differently from selectr's for the same failure,
 #' and a long value the message echoes back is abbreviated where selectr
