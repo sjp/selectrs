@@ -12,8 +12,9 @@
 #'
 #' `selector` and `prefix` are translated to UTF-8 before they are used,
 #' so a string in any other encoding is read by its characters rather
-#' than by its bytes. A string marked `"bytes"` cannot be translated and
-#' is an error.
+#' than by its bytes. Bytes that are not valid in the encoding the string
+#' claims cannot be translated, and are an error rather than a selector
+#' that silently loses them.
 #'
 #' The `:scope` pseudo-class refers to the node the resulting XPath
 #' expression is evaluated from: a selector starting with `:scope` is
@@ -141,8 +142,9 @@
 #'   located in the selector. Some constructs are only recognised once
 #'   the selector has been parsed, and those have no `column`.
 #' * `selectrs_argument_error` — the arguments themselves are wrong (a
-#'   non-character selector, an `NA`, a `"bytes"`-encoded selector or
-#'   prefix, an unknown translator, lengths that do not recycle).
+#'   non-character selector, an `NA`, a selector or prefix that is not
+#'   valid in its declared encoding, an unknown translator, lengths that
+#'   do not recycle).
 #'
 #' The `selector` field holds the UTF-8 translation of the element that
 #' failed, which is the string that was actually translated, not the
@@ -184,15 +186,16 @@ css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator =
 
     # The core reads a string as raw bytes and requires UTF-8, so a
     # latin1-marked selector would otherwise reach it as "". Translating
-    # here makes the caller's encoding mark irrelevant. A "bytes" string
-    # has no characters to translate, so it is rejected rather than
-    # quietly losing its non-ASCII bytes.
-    if (any(Encoding(selector) == "bytes"))
-        argumentError("Strings marked as \"bytes\" are not allowed in the 'selector' argument")
-    if (any(Encoding(prefix) == "bytes"))
-        argumentError("Strings marked as \"bytes\" are not allowed in the 'prefix' argument")
+    # here makes the caller's encoding mark irrelevant. What enc2utf8()
+    # cannot fix is a string whose bytes are invalid in the encoding it
+    # claims: it is passed through untouched and would reach the core as
+    # "", so it is rejected instead.
     selector <- enc2utf8(selector)
     prefix <- enc2utf8(prefix)
+    if (!all(validUTF8(selector)))
+        argumentError("The 'selector' argument contains invalid or non-convertible bytes")
+    if (!all(validUTF8(prefix)))
+        argumentError("The 'prefix' argument contains invalid or non-convertible bytes")
 
     zeroLengthArgs <- character(0)
     if (!length(selector))

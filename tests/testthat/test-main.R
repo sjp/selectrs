@@ -102,18 +102,49 @@ test_that("css_to_xpath reads arguments by their characters, not their bytes", {
     expect_equal(xpath, "//café//a")
     expect_equal(Encoding(xpath), "UTF-8")
 
-    # a "bytes" string has no characters to translate, so it is refused
-    # rather than losing its non-ASCII bytes
-    bytes <- latin1
+    # a "bytes" string carries no encoding to translate from, but its
+    # bytes are read as UTF-8 and are unambiguous when they are valid
+    bytes <- '[title="café"]'
     Encoding(bytes) <- "bytes"
-    expect_error(css_to_xpath(bytes),
-                 "Strings marked as \"bytes\" are not allowed in the 'selector' argument",
+    expect_equal(css_to_xpath(bytes, prefix = ""), "*[@title = 'café']")
+})
+
+test_that("css_to_xpath rejects bytes that are invalid in their encoding", {
+    # in a non-UTF-8 locale enc2utf8() translates the unmarked strings
+    # below from the native encoding, and they are valid there
+    skip_if_not(l10n_info()[["UTF-8"]])
+
+    invalid <- '[title="\xff\xfe"]'
+    expect_equal(Encoding(invalid), "unknown")
+    expect_error(css_to_xpath(invalid),
+                 "The 'selector' argument contains invalid or non-convertible bytes",
                  fixed = TRUE)
-    expect_error(css_to_xpath("a", prefix = bytes),
-                 "Strings marked as \"bytes\" are not allowed in the 'prefix' argument",
-                 fixed = TRUE)
-    expect_true(inherits(tryCatch(css_to_xpath(bytes), error = identity),
+    expect_true(inherits(tryCatch(css_to_xpath(invalid), error = identity),
                          "selectrs_argument_error"))
+
+    # a mark that the bytes do not live up to is caught as well: enc2utf8()
+    # believes it and passes the string through untouched
+    lying <- invalid
+    Encoding(lying) <- "UTF-8"
+    expect_error(css_to_xpath(lying),
+                 "The 'selector' argument contains invalid or non-convertible bytes",
+                 fixed = TRUE)
+    marked <- invalid
+    Encoding(marked) <- "bytes"
+    expect_error(css_to_xpath(marked),
+                 "The 'selector' argument contains invalid or non-convertible bytes",
+                 fixed = TRUE)
+
+    # only one element of a vectorised argument need be invalid
+    expect_error(css_to_xpath(c("a", invalid)),
+                 "The 'selector' argument contains invalid or non-convertible bytes",
+                 fixed = TRUE)
+
+    # an invalid prefix would otherwise vanish, leaving a plausible
+    # expression that means something else
+    expect_error(css_to_xpath("a", prefix = "pre\xff::"),
+                 "The 'prefix' argument contains invalid or non-convertible bytes",
+                 fixed = TRUE)
 })
 
 test_that("css_to_xpath rejects lengths that only partially recycle", {

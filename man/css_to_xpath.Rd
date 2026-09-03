@@ -39,8 +39,9 @@ result is an error rather than a silent partial recycle.
 
 \code{selector} and \code{prefix} are translated to UTF-8 before they are used,
 so a string in any other encoding is read by its characters rather
-than by its bytes. A string marked \code{"bytes"} cannot be translated and
-is an error.
+than by its bytes. Bytes that are not valid in the encoding the string
+claims cannot be translated, and are an error rather than a selector
+that silently loses them.
 
 The \verb{:scope} pseudo-class refers to the node the resulting XPath
 expression is evaluated from: a selector starting with \verb{:scope} is
@@ -176,8 +177,9 @@ construct that has no XPath 1.0 equivalent. Fields \code{selector},
 located in the selector. Some constructs are only recognised once
 the selector has been parsed, and those have no \code{column}.
 \item \code{selectrs_argument_error} — the arguments themselves are wrong (a
-non-character selector, an \code{NA}, a \code{"bytes"}-encoded selector or
-prefix, an unknown translator, lengths that do not recycle).
+non-character selector, an \code{NA}, a selector or prefix that is not
+valid in its declared encoding, an unknown translator, lengths that
+do not recycle).
 }
 
 The \code{selector} field holds the UTF-8 translation of the element that
