@@ -337,13 +337,6 @@ validateSelector <- function(selector) {
         argumentError("A valid selector (single character string) must be provided.")
 }
 
-# A prefix that is not an XML name splices straight into the generated
-# XPath, where it surfaces as a libxml2 syntax error over an expression the
-# caller never wrote. The pattern approximates NCName (combining and
-# extender characters are not admitted) and is deliberately Unicode-aware,
-# since libxml2 accepts a non-ASCII prefix.
-ncnamePattern <- "^[\\p{L}_][\\p{L}\\p{Nd}._-]*$"
-
 # Takes a named vector or list and gives a named vector back
 formatNS <- function(ns) {
     if (is.null(ns))
@@ -359,10 +352,25 @@ formatNS <- function(ns) {
         argumentError(paste0("The namespace object must be a named list or ",
                              "character vector; every element needs a ",
                              "non-empty name."))
-    badNames <- nsNames[!grepl(ncnamePattern, nsNames, perl = TRUE)]
+    # A prefix that is not an XML name splices straight into the generated
+    # XPath, where it surfaces as a libxml2 syntax error over an expression
+    # the caller never wrote, so the core judges these names by the rule it
+    # applies to a prefix written in a selector. It reads a string as raw
+    # bytes and requires UTF-8: a latin1-marked prefix would otherwise reach
+    # it as "", and one whose declared bytes enc2utf8() cannot convert is no
+    # more an XML name than what it was written as.
+    nsNames <- enc2utf8(nsNames)
+    valid <- validUTF8(nsNames)
+    valid[valid] <- valid_ns_prefixes_rust(nsNames[valid])
+    badNames <- nsNames[!valid]
+    # Bytes that are not valid UTF-8 would travel into the message, where
+    # they break the printing and matching of the condition carrying them;
+    # iconv() writes them as <e9>-style escapes instead.
     if (length(badNames))
         argumentError(paste0("Namespace prefixes must be valid XML names ",
-                             "(e.g. 'svg', not '", badNames[1], "')."))
+                             "(e.g. 'svg', not '",
+                             iconv(badNames[1], "UTF-8", "UTF-8", sub = "byte"),
+                             "')."))
     if (is.list(ns) && any(lengths(ns) != 1))
         argumentError("Each element in the namespace object must be a single character string.")
     ns <- unlist(ns)

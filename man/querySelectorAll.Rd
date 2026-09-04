@@ -33,7 +33,8 @@ querySelectorAllNS(doc, selector, ns,
     The namespace that the query will be filtered to: a named list or
     vector mapping namespace prefixes to namespace URIs. Both the
     prefixes and the URIs must be non-missing, non-empty character
-    strings, and each prefix must be an XML name. Optional for the
+    strings, and each prefix must be an XML name — the same names a
+    namespace prefix may take in a selector. Optional for the
     un-namespaced functions, where the default, \code{NULL}, uses the
     namespaces the queried document or node declares, and a zero-length
     \code{ns} (\code{character(0)} or \code{list()}) uses none at all.

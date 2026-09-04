@@ -86,4 +86,19 @@ NULL
   .Call(savvy_selectrs_panic_test__impl)
 }
 
+#' Which namespace prefixes can be written into an XPath expression
+#'
+#' The R layer splices the names of the `ns` map into the XPath it
+#' builds around a translated selector, where a name that is not an XML
+#' name comes back from libxml2 as a syntax error over an expression
+#' the caller never wrote. Asking the core decides an `ns` name by the
+#' same rule as a prefix written in a selector, so `svg|rect` and
+#' `ns = c(svg = ...)` cannot disagree about what a prefix may be.
+#'
+#' @param prefixes A character vector of namespace prefixes.
+#' @returns A logical vector, one element per prefix.
+#' @noRd
+`valid_ns_prefixes_rust` <- function(`prefixes`) {
+  .Call(savvy_valid_ns_prefixes_rust__impl, `prefixes`)
+}
 

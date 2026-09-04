@@ -1,8 +1,12 @@
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::str::FromStr;
 
 use savvy::savvy;
-use savvy::{NotAvailableValue, OwnedIntegerSexp, OwnedListSexp, OwnedStringSexp, StringSexp};
+use savvy::{
+    NotAvailableValue, OwnedIntegerSexp, OwnedListSexp, OwnedLogicalSexp, OwnedStringSexp,
+    StringSexp,
+};
 
 use css_to_xpath::{Error, Mode, ParseErrorKind, Translator};
 
@@ -386,6 +390,62 @@ fn css_to_xpath_rust(
     Ok(out.into())
 }
 
+/// Whether `prefix` can be written into an XPath expression as a
+/// namespace prefix, which is to say whether it is an XML `NCName`.
+///
+/// The crate asks this of every prefix written in a selector but keeps
+/// the predicate to itself, so it is put to the translator instead,
+/// which is the one way it is exported: the prefix is translated as the
+/// selector `<prefix>|a`, whose only way to fail is that test.
+///
+/// The escaping is what makes the answer the crate's own. A prefix
+/// written literally would be read as selector syntax — `*` as the
+/// universal namespace, a space as a descendant combinator, a leading
+/// digit as a malformed selector — and answer a different question,
+/// whereas the parser rebuilds an escaped name exactly as given.
+fn is_ncname(prefix: &str) -> bool {
+    // Nothing to escape leaves `|a`, the selector for `a` in no
+    // namespace at all, which translates happily.
+    if prefix.is_empty() {
+        return false;
+    }
+    let mut selector = String::with_capacity(prefix.len() * 4 + 2);
+    for c in prefix.chars() {
+        // A hex escape runs to the first character that cannot continue
+        // it, so each one ends in the space that the parser consumes:
+        // without it `\61 b` would be the single escape `\61b`.
+        let _ = write!(selector, "\\{:x} ", c as u32);
+    }
+    selector.push_str("|a");
+    Translator::new(Mode::Generic)
+        .css_to_xpath(&selector, "")
+        .is_ok()
+}
+
+/// Which namespace prefixes can be written into an XPath expression
+///
+/// The R layer splices the names of the `ns` map into the XPath it
+/// builds around a translated selector, where a name that is not an XML
+/// name comes back from libxml2 as a syntax error over an expression
+/// the caller never wrote. Asking the core decides an `ns` name by the
+/// same rule as a prefix written in a selector, so `svg|rect` and
+/// `ns = c(svg = ...)` cannot disagree about what a prefix may be.
+///
+/// @param prefixes A character vector of namespace prefixes.
+/// @returns A logical vector, one element per prefix.
+/// @noRd
+#[savvy]
+fn valid_ns_prefixes_rust(prefixes: StringSexp) -> savvy::Result<savvy::Sexp> {
+    let mut out = OwnedLogicalSexp::new(prefixes.len())?;
+    for (i, prefix) in prefixes.iter().enumerate() {
+        if prefix.is_na() {
+            return Err(savvy::Error::new("`prefixes` must not contain NA values"));
+        }
+        out.set_elt(i, is_ncname(prefix))?;
+    }
+    Ok(out.into())
+}
+
 /// The build script's lock-file reader, compiled in for its tests only:
 /// cargo runs no tests in a build script.
 #[cfg(test)]
@@ -653,5 +713,44 @@ mod tests {
             "the note should report characters, not the {} bytes",
             selector.len()
         );
+    }
+
+    #[test]
+    fn ascii_prefixes_are_names_on_the_same_terms_as_xml() {
+        assert!(is_ncname("svg"));
+        assert!(is_ncname("_x"));
+        assert!(is_ncname("x.y-z"));
+        assert!(!is_ncname(""));
+        assert!(!is_ncname("1a"));
+        assert!(!is_ncname("-a"));
+        assert!(!is_ncname("x:y"));
+        assert!(!is_ncname("a/b"));
+    }
+
+    #[test]
+    fn a_prefix_is_judged_as_written_not_as_selector_syntax() {
+        // Each of these means something else when it is parsed as a
+        // selector rather than as one escaped name: `*|a` is the
+        // universal namespace, `a b|a` a descendant combinator.
+        assert!(!is_ncname("*"));
+        assert!(!is_ncname("a b"));
+        assert!(!is_ncname("|"));
+        assert!(!is_ncname("a\\b"));
+    }
+
+    #[test]
+    fn non_ascii_prefixes_follow_the_xml_1_0_tables() {
+        assert!(is_ncname("\u{e9}l"));
+        assert!(is_ncname("\u{65e5}\u{672c}"));
+        // U+00B7 MIDDLE DOT and the combining marks may follow the
+        // first character of a name but cannot be it.
+        assert!(is_ncname("a\u{b7}b"));
+        assert!(!is_ncname("\u{b7}a"));
+        assert!(is_ncname("a\u{300}"));
+        assert!(!is_ncname("\u{300}a"));
+        // U+00AA is a letter to Unicode but not to XML 1.0, and this is
+        // the row the check exists for: libxml2 refuses it, so an `ns`
+        // name that reached the query would fail there instead.
+        assert!(!is_ncname("\u{aa}"));
     }
 }

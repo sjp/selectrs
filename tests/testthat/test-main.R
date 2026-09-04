@@ -240,6 +240,43 @@ test_that("namespace handling works correctly", {
                  "not 'a/b').", fixed = TRUE)
     # libxml2 accepts a non-ASCII prefix, so the check must not be ASCII-only
     expect_equal(formatNS(c("\u00e9l" = "urn:a")), c("\u00e9l" = "urn:a"))
+    expect_equal(formatNS(c("\u65e5\u672c" = "urn:a")),
+                 c("\u65e5\u672c" = "urn:a"))
+    # a middle dot and a combining mark may follow the first character of
+    # an XML name, though neither may be it
+    expect_equal(formatNS(c("a\u00b7b" = "urn:a")), c("a\u00b7b" = "urn:a"))
+    expect_equal(formatNS(c("a\u0301" = "urn:a")), c("a\u0301" = "urn:a"))
+    expect_error(formatNS(c("\u00b7a" = "urn:a")), "not '\u00b7a').", fixed = TRUE)
+    # U+00AA is a letter to Unicode but not to XML 1.0, and libxml2 goes
+    # by XML 1.0: an argument error here, rather than a syntax error from
+    # inside a query, is the whole point of asking the core
+    expect_error(formatNS(c("\u00aa" = "urn:a")), "not '\u00aa').", fixed = TRUE)
+
+    # `ns` names and the prefixes written in a selector are judged by one
+    # rule, so a prefix the map admits is one a query can then use
+    prefixes <- c("svg", "_x", "\u00e9l", "\u65e5\u672c", "a\u00b7b", "a\u0301",
+                  "\u2126", "\u00aa", "\u01c5", "\u0242", "\uff21", "1a")
+    admitted <- vapply(prefixes, function(prefix) {
+        ns <- structure("urn:a", names = prefix)
+        !inherits(tryCatch(formatNS(ns), error = identity), "error")
+    }, logical(1))
+    translated <- vapply(prefixes, function(prefix) {
+        selector <- paste0(prefix, "|a")
+        !inherits(tryCatch(css_to_xpath(selector), error = identity), "error")
+    }, logical(1))
+    expect_equal(admitted, translated)
+    expect_true(admitted[["svg"]])
+    expect_false(admitted[["\u00aa"]])
+
+    # a prefix marked latin1 reaches the core as UTF-8, not as the ""
+    # its bytes would otherwise become; one whose declared bytes cannot
+    # be converted at all is no more a name than what it was written as
+    latin1 <- "\xe9l"
+    Encoding(latin1) <- "latin1"
+    expect_equal(unname(formatNS(structure("urn:a", names = latin1))), "urn:a")
+    expect_equal(names(formatNS(structure("urn:a", names = latin1))), "\u00e9l")
+    expect_error(formatNS(structure("urn:a", names = "\xe9l")),
+                 "not '<e9>l').", fixed = TRUE)
     # the names xml_ns() produces, and the ones a document is likely to
     # declare, must all pass
     expect_equal(formatNS(c(d1 = "urn:a", "svg" = "urn:b", "_x" = "urn:c",
