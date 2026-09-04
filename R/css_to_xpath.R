@@ -180,6 +180,21 @@
 #' * `:scope` outside the leftmost compound, or inside a functional
 #'   pseudo-class such as `":is(:scope)"`.
 #'
+#' Three fixed limits apply to selectors that are otherwise
+#' translatable, and exceeding one raises a translation error naming it.
+#' Functional pseudo-classes — `:is()`, `:not()`, `:where()`, `:has()`
+#' and the `of S` argument of the nth family — may nest 32 levels deep;
+#' an `An+B of S` list may nest 8 levels deep; and one `of S` list may
+#' translate to at most 1 MiB of XPath. The `of S` limits are the
+#' tighter pair because XPath 1.0 has no variables: `S` has to be
+#' written out once to filter the siblings being counted and again to
+#' constrain the element matched, so the output doubles per level. No
+#' hand-written selector comes near any of the three, but a generated
+#' one — a `:not()` per excluded class, say — can. selectr has no fixed
+#' limit of this kind: it recurses in R, so how deep a selector it
+#' accepts depends on `getOption("expressions")` and on the stack the
+#' call is made from.
+#'
 #' @section Errors:
 #' Errors raised by selectrs are classed conditions, so callers can tell
 #' the kinds of failure apart without matching on the message. All of them
@@ -201,6 +216,24 @@
 #' The `selector` field holds the UTF-8 translation of the element that
 #' failed, which is the string that was actually translated, not the
 #' caller's original object.
+#'
+#' Which of the first two classes a given failure raises follows the
+#' parser: a selector is a parse error when the CSS grammar, as this
+#' package's parser implements it, cannot read it, and a translation
+#' error only when it parses and then has no XPath. That line falls in a
+#' different place from selectr's. The parser here knows the
+#' pseudo-classes and pseudo-elements it supports by name, so an unknown
+#' or unsupported one is malformed input: a misspelling such as
+#' `"a:first_child"`, an unrecognised name such as `"e:frobnicate"`, any
+#' pseudo-element (`"::before"`), and `":contains()"`, `":nth-col()"`,
+#' `":nth-last-col()"` and `":host"` are all parse errors, where selectr
+#' parses any `:name` and reports it as a translation error. Two
+#' constructs go the other way, and are translation errors here where
+#' selectr calls them parse errors: the column combinator
+#' (`"col || td"`) and the `&` nesting selector, both well-formed CSS
+#' that this package finds no XPath for rather than input its grammar
+#' refuses. A caller that catches `selectrs_error`, or that treats the
+#' two subclasses alike, sees no difference.
 #'
 #' Every one of these classes is signalled under its selectr name as
 #' well - `selectr_parse_error`, `selectr_translation_error`,

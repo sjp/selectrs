@@ -77,6 +77,56 @@ test_that("the two translation failures are distinguishable from each other", {
     expect_equal(kind(NA_character_), "argument")
 })
 
+test_that("the parse/translation line falls where the documentation says", {
+    kind <- function(selector) {
+        tryCatch(css_to_xpath(selector),
+                 selectrs_parse_error = function(e) "parse",
+                 selectrs_translation_error = function(e) "translation",
+                 error = function(e) "plain")
+    }
+    # An unknown or unsupported pseudo-class or pseudo-element is
+    # malformed input to this parser, where selectr parses any `:name`
+    # and rejects it when translating.
+    for (selector in c("e:frobnicate", "a:first_child", "::before",
+                       "a::first-line", "a:contains(x)", "td:nth-col(2)",
+                       ":nth-last-col(2)", ":host"))
+        expect_equal(kind(selector), "parse", info = selector)
+
+    # These two are well-formed CSS with no XPath, and go the other way.
+    expect_equal(kind("col || td"), "translation")
+    expect_equal(kind("& a"), "translation")
+})
+
+test_that("the documented translation limits are the ones enforced", {
+    nested <- function(depth) paste0(strrep(":not(", depth), "a",
+                                     strrep(")", depth))
+    expect_type(css_to_xpath(nested(32)), "character")
+    e <- tryCatch(css_to_xpath(nested(33)), error = identity)
+    expect_identical(class(e), translationClass)
+    expect_equal(e$construct,
+                 "functional pseudo-classes nested more than 32 levels deep")
+
+    ofNested <- function(depth, alternatives = 1L) {
+        s <- paste0(sprintf(".c%d", seq_len(alternatives)), collapse = ",")
+        for (i in seq_len(depth))
+            s <- paste0("p:nth-child(2n of ", s, ")")
+        s
+    }
+    expect_type(css_to_xpath(ofNested(8)), "character")
+    e <- tryCatch(css_to_xpath(ofNested(9)), error = identity)
+    expect_identical(class(e), translationClass)
+    expect_equal(e$construct,
+                 "`An+B of S` selector lists nested more than 8 levels deep")
+
+    # The size cap behind the `of S` depth limit: each level writes the
+    # list out twice, so a wide enough list reaches it from within the
+    # permitted depth.
+    e <- tryCatch(css_to_xpath(ofNested(7, 400)), error = identity)
+    expect_identical(class(e), translationClass)
+    expect_equal(e$construct,
+                 "an `An+B of S` selector list translating to more than 1048576 bytes")
+})
+
 test_that("handlers written for selectr's class names fire", {
     kind <- function(selector) {
         tryCatch(css_to_xpath(selector),

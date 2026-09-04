@@ -212,6 +212,21 @@ another \verb{:has()}.
 \item \verb{:scope} outside the leftmost compound, or inside a functional
 pseudo-class such as \code{":is(:scope)"}.
 }
+
+Three fixed limits apply to selectors that are otherwise
+translatable, and exceeding one raises a translation error naming it.
+Functional pseudo-classes — \verb{:is()}, \verb{:not()}, \verb{:where()}, \verb{:has()}
+and the \verb{of S} argument of the nth family — may nest 32 levels deep;
+an \verb{An+B of S} list may nest 8 levels deep; and one \verb{of S} list may
+translate to at most 1 MiB of XPath. The \verb{of S} limits are the
+tighter pair because XPath 1.0 has no variables: \code{S} has to be
+written out once to filter the siblings being counted and again to
+constrain the element matched, so the output doubles per level. No
+hand-written selector comes near any of the three, but a generated
+one — a \verb{:not()} per excluded class, say — can. selectr has no fixed
+limit of this kind: it recurses in R, so how deep a selector it
+accepts depends on \code{getOption("expressions")} and on the stack the
+call is made from.
 }
 
 \section{Errors}{
@@ -237,6 +252,24 @@ do not recycle).
 The \code{selector} field holds the UTF-8 translation of the element that
 failed, which is the string that was actually translated, not the
 caller's original object.
+
+Which of the first two classes a given failure raises follows the
+parser: a selector is a parse error when the CSS grammar, as this
+package's parser implements it, cannot read it, and a translation
+error only when it parses and then has no XPath. That line falls in a
+different place from selectr's. The parser here knows the
+pseudo-classes and pseudo-elements it supports by name, so an unknown
+or unsupported one is malformed input: a misspelling such as
+\code{"a:first_child"}, an unrecognised name such as \code{"e:frobnicate"}, any
+pseudo-element (\code{"::before"}), and \code{":contains()"}, \code{":nth-col()"},
+\code{":nth-last-col()"} and \code{":host"} are all parse errors, where selectr
+parses any \verb{:name} and reports it as a translation error. Two
+constructs go the other way, and are translation errors here where
+selectr calls them parse errors: the column combinator
+(\code{"col || td"}) and the \code{&} nesting selector, both well-formed CSS
+that this package finds no XPath for rather than input its grammar
+refuses. A caller that catches \code{selectrs_error}, or that treats the
+two subclasses alike, sees no difference.
 
 Every one of these classes is signalled under its selectr name as
 well - \code{selectr_parse_error}, \code{selectr_translation_error},
