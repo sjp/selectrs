@@ -125,9 +125,11 @@ jobs:
           path: check
 
   # Files that are generated from something else in the repository:
-  # NAMESPACE and man/ from the roxygen comments, inst/AUTHORS from
-  # Cargo.lock, and the crate version from DESCRIPTION. Regenerate each
-  # and fail if the committed copy differs.
+  # inst/AUTHORS from Cargo.lock, and the crate version from DESCRIPTION.
+  # Regenerate each and fail if the committed copy differs. NAMESPACE and
+  # man/ are hand-written source, so nothing here regenerates them; R CMD
+  # check compares \usage{} against the formals and reports undocumented
+  # arguments and exports.
   document-check:
     runs-on: ubuntu-latest
 
@@ -184,15 +186,10 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::roxygen2, any::jsonlite
-
-      # load_code = "source" sidesteps compiling the Rust core: roxygen
-      # only needs the R sources to regenerate NAMESPACE and man/.
-      - name: Regenerate NAMESPACE and man/
-        run: Rscript -e 'roxygen2::roxygenise(load_code = "source")'
+          extra-packages: any::jsonlite
 
       - name: Regenerate inst/AUTHORS
         run: Rscript tools/generate-authors.R
 
       - name: Fail on drift
-        run: git diff --exit-code NAMESPACE man/ inst/AUTHORS
+        run: git diff --exit-code inst/AUTHORS

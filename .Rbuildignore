@@ -8,3 +8,11 @@
 ^src/\.cargo$
 ^BENCHMARKS\.md$
 ^cran-comments\.md$
+^Makefile$
+^\.lintr$
+^\.gitattributes$
+^\.gitignore$
+^\.Rproj\.user$
+^.*\.Rproj$
+^.*\.Rcheck$
+^selectrs_.*\.tar\.gz$
