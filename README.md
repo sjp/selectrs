@@ -10,7 +10,7 @@ It is a standalone, API-compatible port of the [selectr](https://github.com/sjp/
 library(selectrs)
 xpath <- css_to_xpath("#selectrs")
 xpath
-#> [1] "descendant-or-self::*[(@id = 'selectrs')]"
+#> [1] "descendant-or-self::*[@id = 'selectrs']"
 ```
 
 ## Installation
