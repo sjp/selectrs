@@ -45,12 +45,14 @@ translationError <- function(failure) {
         "selectrs_translation_error"
     fields <- failure[!names(failure) %in% c("kind", "message")]
     # selectr names the same two values "pos" and "feature", so a handler
-    # reading either finds it here. "pos" is the same number as "column";
-    # "feature" holds this package's phrase for the construct rather than
-    # selectr's short descriptor, which is documented on ?css_to_xpath.
+    # reading either finds it here. "pos" is "column" as the double
+    # selectr's is, so identical() against a literal holds. The core
+    # supplies "feature" wherever selectr has a short token for the
+    # construct; where it has none, the phrase the message reads as
+    # stands in.
     if (!is.null(fields$column))
-        fields$pos <- fields$column
-    if (!is.null(fields$construct))
+        fields$pos <- as.double(fields$column)
+    if (is.null(fields$feature) && !is.null(fields$construct))
         fields$feature <- fields$construct
     selectrsError(failure$message, class, fields)
 }

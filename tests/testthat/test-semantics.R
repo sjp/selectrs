@@ -130,5 +130,6 @@ test_that("a parse failure is described in prose, not a dependency's Debug outpu
     expect_equal(detail("div >"), "a combinator with nothing after it")
     expect_equal(detail("a["), "the selector ends unexpectedly")
     expect_match(detail(":nth-child(zzz)"), "unexpected `zzz`", fixed = TRUE)
-    expect_equal(detail("::before"), detail("::before"))
+    expect_match(detail("::slotted(x)"),
+                 "not a supported pseudo-class or pseudo-element", fixed = TRUE)
 })

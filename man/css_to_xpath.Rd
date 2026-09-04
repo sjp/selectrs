@@ -276,24 +276,21 @@ css_to_xpath(selector,
   that failed, which is the string that was actually translated, not the
   caller's original object.
 
-  Which of the first two classes a given failure raises follows the
-  parser: a selector is a parse error when the CSS grammar, as this
-  package's parser implements it, cannot read it, and a translation
-  error only when it parses and then has no XPath. That line falls in a
-  different place from selectr's. The parser here knows the
-  pseudo-classes and pseudo-elements it supports by name, so an unknown
-  or unsupported one is malformed input: a misspelling such as
-  \code{"a:first_child"}, an unrecognised name such as
-  \code{"e:frobnicate"}, any pseudo-element (\code{"::before"}), and
-  \code{":contains()"}, \code{":nth-col()"}, \code{":nth-last-col()"}
-  and \code{":host"} are all parse errors, where selectr parses any
-  \code{:name} and reports it as a translation error. Two constructs go
-  the other way, and are translation errors here where selectr calls
-  them parse errors: the column combinator (\code{"col || td"}) and the
-  \code{&} nesting selector, both well-formed CSS that this package
-  finds no XPath for rather than input its grammar refuses. A caller
-  that catches \code{selectrs_error}, or that treats the two subclasses
-  alike, sees no difference.
+  Which of the first two classes a given failure raises follows the CSS
+  grammar: a selector is a parse error when the grammar cannot read it,
+  and a translation error when it parses and then has no XPath. An
+  unknown or unsupported pseudo-class or pseudo-element is a translation
+  error — a misspelling such as \code{"a:first_child"}, an unrecognised
+  name such as \code{"e:frobnicate"}, a pseudo-element
+  (\code{"::before"}), and \code{":contains()"}, \code{":nth-col()"},
+  \code{":nth-last-col()"} and \code{":host"} — even though this
+  package's parser, unlike selectr's, knows the supported names and
+  stops there. A \emph{functional} pseudo-element (\code{"::slotted(x)"},
+  \code{"a::part(b)"}, and the legacy single-colon \code{"a:before(x)"})
+  is the exception, and a parse error: no grammar admits it. So are the
+  column combinator (\code{"col || td"}) and the \code{&} nesting
+  selector. A caller that catches \code{selectrs_error}, or that treats
+  the two subclasses alike, sees no difference.
 
   Every one of these classes is signalled under its selectr name as well
   - \code{selectr_parse_error}, \code{selectr_translation_error},
@@ -305,14 +302,16 @@ css_to_xpath(selector,
 
   selectr's names for two of the fields are carried alongside the ones
   above, for the same reason: \code{pos} on any condition that has a
-  \code{column} (the same number), and \code{feature} on a translation
-  error (the same string as \code{construct}). \code{column},
-  \code{index} and \code{construct} are the primary names. Note that
-  \code{feature}'s \emph{value} is not the one selectr would give —
-  selectr names the construct with a short token such as
-  \code{":scope"}, where selectrs describes it in a phrase — so a
-  handler that compares \code{feature} to a literal needs rewriting even
-  though one that prints it does not.
+  \code{column} (the same number, as the double selectr's is), and
+  \code{feature} on a translation error. \code{column}, \code{index}
+  and \code{construct} are the primary names. \code{feature} holds
+  selectr's short token for the construct — \code{":frobnicate"},
+  \code{"::before"}, \code{":lang()"}, \code{":scope"},
+  \code{"*:first-of-type"} — so a handler that switches on it keeps
+  working; \code{construct} holds the longer phrase the message reads
+  as. A construct selectr has no token for, such as one of the three
+  translation limits above, has no token here either, and its
+  \code{feature} is the phrase.
 }
 \references{
   CSS Selectors Level 4 \url{https://www.w3.org/TR/selectors-4/}, XPath

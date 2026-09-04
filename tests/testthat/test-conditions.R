@@ -15,8 +15,9 @@ test_that("a syntax error is a selectrs_parse_error carrying the column", {
     expect_equal(e$column, 6L)
     expect_null(e$construct)
     expect_null(conditionCall(e))
-    # selectr's name for the column, carried so its handlers keep working
-    expect_equal(e$pos, e$column)
+    # selectr's name for the column, carried so its handlers keep working,
+    # as the double selectr's own is
+    expect_identical(e$pos, 6)
     # the caret block is still part of the message
     expect_match(conditionMessage(e), "Unable to parse the CSS selector \"div >\"",
                  fixed = TRUE)
@@ -45,19 +46,20 @@ test_that("an unsupported construct is a selectrs_translation_error naming it", 
     # this one is only recognised once the selector has been parsed, so
     # there is no position to report
     expect_null(e$column)
-    # selectr's names for the two fields, carried alongside; feature holds
-    # this package's phrase rather than selectr's short descriptor
-    expect_equal(e$feature, e$construct)
+    # selectr's names for the two fields, carried alongside; feature is
+    # selectr's short token for the construct, which the phrase here does
+    # not name on its own
+    expect_identical(e$feature, "*:first-of-type")
     expect_null(e$pos)
 })
 
 test_that("a construct found in the selector text reports its column", {
-    e <- tryCatch(css_to_xpath("col || td"), error = identity)
+    e <- tryCatch(css_to_xpath("a:contains(x)"), error = identity)
     expect_identical(class(e), translationClass)
-    expect_equal(e$construct, "the `||` column combinator")
-    expect_equal(e$column, 5L)
-    expect_equal(e$pos, 5L)
-    expect_equal(e$feature, e$construct)
+    expect_equal(e$construct, "the `:contains()` pseudo-class")
+    expect_equal(e$column, 2L)
+    expect_identical(e$pos, 2)
+    expect_identical(e$feature, ":contains()")
 
     # counted in characters, like the parse error column
     e <- tryCatch(css_to_xpath("日本 || td"), error = identity)
@@ -84,17 +86,46 @@ test_that("the parse/translation line falls where the documentation says", {
                  selectrs_translation_error = function(e) "translation",
                  error = function(e) "plain")
     }
-    # An unknown or unsupported pseudo-class or pseudo-element is
-    # malformed input to this parser, where selectr parses any `:name`
-    # and rejects it when translating.
+    # An unknown or unsupported pseudo-class or pseudo-element parses as
+    # a pseudo and fails to translate, the line selectr draws, even
+    # though this package's parser knows the supported names.
     for (selector in c("e:frobnicate", "a:first_child", "::before",
                        "a::first-line", "a:contains(x)", "td:nth-col(2)",
-                       ":nth-last-col(2)", ":host"))
+                       ":nth-last-col(2)", ":host", "input:indeterminate",
+                       "a:lang(1)"))
+        expect_equal(kind(selector), "translation", info = selector)
+
+    # A functional pseudo-element is the exception: `::name(` is not in
+    # the grammar at all, whichever colon count spelled the name.
+    for (selector in c("::slotted(x)", "a::part(b)", "a:before(x)"))
         expect_equal(kind(selector), "parse", info = selector)
 
-    # These two are well-formed CSS with no XPath, and go the other way.
-    expect_equal(kind("col || td"), "translation")
-    expect_equal(kind("& a"), "translation")
+    # These two have no production either, so they are parse errors too.
+    expect_equal(kind("col || td"), "parse")
+    expect_equal(kind("& a"), "parse")
+})
+
+test_that("feature holds selectr's short name for the construct", {
+    feature <- function(selector)
+        tryCatch(css_to_xpath(selector), error = identity)$feature
+    expect_identical(feature("e:frobnicate"), ":frobnicate")
+    expect_identical(feature("a:contains(x)"), ":contains()")
+    # a pseudo-element takes two colons however it was written, and the
+    # name is lower-cased
+    expect_identical(feature("a:BEFORE"), "::before")
+    expect_identical(feature("a::before"), "::before")
+    expect_identical(feature(":host"), ":host")
+    expect_identical(feature(":host(x)"), ":host()")
+    expect_identical(feature("a > :scope"), ":scope")
+    expect_identical(feature(":is(:scope)"), ":scope")
+    expect_identical(feature(":lang(*-CH)"), ":lang()")
+    expect_identical(feature("*:nth-of-type(2)"), "*:nth-of-type()")
+    expect_identical(feature("*:only-of-type"), "*:only-of-type")
+    # a construct selectr has no token for keeps the phrase the message
+    # reads as
+    nested <- paste0(strrep(":not(", 33), "a", strrep(")", 33))
+    expect_identical(feature(nested),
+                     "functional pseudo-classes nested more than 32 levels deep")
 })
 
 test_that("the documented translation limits are the ones enforced", {
@@ -235,8 +266,15 @@ test_that("the Rust boundary reports a failure rather than throwing", {
     expect_false("column" %in% names(failure))
 
     failure <- selectrs:::css_to_xpath_rust("col || td", "", "generic")
-    expect_equal(failure$kind, "unsupported")
+    expect_equal(failure$kind, "parse")
     expect_equal(failure$column, 5L)
+
+    # the core supplies selectr's token itself, so the R layer only has
+    # to fall back to the phrase when it does not
+    failure <- selectrs:::css_to_xpath_rust("e:frobnicate", "", "generic")
+    expect_equal(failure$kind, "unsupported")
+    expect_equal(failure$feature, ":frobnicate")
+    expect_equal(failure$construct, "the `:frobnicate` pseudo-class")
 })
 
 test_that("a long selector is abbreviated so the message stays readable", {
