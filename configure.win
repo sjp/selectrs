@@ -29,7 +29,8 @@ echo "using Rust compiler: '${RUSTC_VERSION}'"
 # Rtools ships MinGW-w64 GCC for x86_64 but clang with MinGW-w64 for aarch64,
 # hence the -gnu and -gnullvm triples. Neither the aarch64 target nor its
 # linker name has been exercised here; set SELECTRS_CARGO_LINKER to override
-# the linker.
+# the linker. Both compiler names are Rtools42-and-later spellings, i.e. the
+# UCRT toolchain, which is where DESCRIPTION's R (>= 4.2) floor comes from.
 R_ARCH_NAME="$("${R_HOME}/bin/Rscript" --vanilla -e 'cat(R.version$arch)' 2>/dev/null || true)"
 if [ -z "${R_ARCH_NAME}" ]; then
   R_ARCH_NAME="$(uname -m 2>/dev/null || true)"
