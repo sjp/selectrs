@@ -21,7 +21,7 @@ crate-type = ["staticlib", "lib"]
 
 [dependencies]
 savvy = "=0.10.2"
-css-to-xpath = "=0.3.0"
+css-to-xpath = "=0.4.0"
 
 [profile.release]
 # The entire input surface is arbitrary user-supplied CSS flowing into

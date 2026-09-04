@@ -51,6 +51,31 @@ forEachBackend("an option in a disabled optgroup is :disabled", function(backend
                                               translator = "html")), "out")
 })
 
+forEachBackend("a disabled select disables the options below it", function(backend) {
+    # HTML's "actually disabled" walk ends at the nearest select, hr,
+    # datalist or option, so the one in the datalist stays enabled.
+    doc <- backend$parseHtml(paste0(
+        '<select id="sel" disabled><optgroup id="og"><option id="grouped">a</option>',
+        '</optgroup><option id="loose">b</option>',
+        '<datalist><option id="listed">c</option></datalist></select>'))
+    expect_equal(backend$ids(querySelectorAll(doc, ":disabled",
+                                              translator = "html")),
+                 c("sel", "og", "grouped", "loose"))
+    expect_equal(backend$ids(querySelectorAll(doc, "option:enabled",
+                                              translator = "html")), "listed")
+})
+
+forEachBackend("a leading :lang() wildcard stands for the first subtag", function(backend) {
+    # RFC 4647 extended filtering: `*-CH` asks for a CH subtag after the
+    # first one, so a tag that is only `ch` has nothing left to match.
+    doc <- backend$parseHtml(paste0(
+        '<p id="deCH" lang="de-CH">a</p><p id="frLatnCH" lang="fr-Latn-CH">b</p>',
+        '<p id="ch" lang="ch">c</p><p id="de" lang="de">d</p>'))
+    expect_equal(backend$ids(querySelectorAll(doc, "p:lang(*-CH)",
+                                              translator = "html")),
+                 c("deCH", "frLatnCH"))
+})
+
 forEachBackend("the xhtml translator reads xml:lang", function(backend) {
     doc <- backend$parse('<r xmlns="http://x"><p id="p" xml:lang="en">hi</p></r>')
     expect_equal(backend$ids(querySelectorAll(doc, "*|p:lang(en)",

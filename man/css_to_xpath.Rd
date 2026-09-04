@@ -100,21 +100,29 @@ css_to_xpath(selector,
   browser engine has shipped that change, and selectrs (like selectr)
   deliberately keeps the implemented-everywhere behaviour.
 
-  \code{:lang()} ranges are matched as RFC 4647 language ranges, with a
-  restriction on where the wildcard may appear: it is accepted as a
-  whole range (\code{:lang(*)}, matching any element whose content
-  language is tagged at all) or as the final subtag (\code{:lang(en-*)},
-  the same test as \code{:lang(en)}), quoted or not. A wildcard anywhere
-  else (\code{:lang(*-CH)}, \code{:lang(de-*-DE)}) would need RFC 4647
-  extended filtering, which is not implemented, and raises a translation
-  error with every translator rather than silently mis-matching. A range
-  naming a single subtag is a prefix test. Under the \code{html} and
-  \code{xhtml} translators a range naming more than one subtag is
-  approximated from the nearest language-attributed ancestor and may
-  skip subtags, so \code{:lang(de-DE)} matches \code{lang="de-Latn-DE"};
-  the generic translator has only XPath's \code{lang()} function, which
-  does Selectors 3 \code{|=}-style prefix matching, so there
+  \code{:lang()} ranges are matched as RFC 4647 language ranges,
+  wildcards included, quoted or not. A range naming a single subtag is a
+  prefix test. Under the \code{html} and \code{xhtml} translators a
+  range naming more than one subtag is approximated from the nearest
+  language-attributed ancestor and may skip subtags, so
+  \code{:lang(de-DE)} matches \code{lang="de-Latn-DE"}; the generic
+  translator has only XPath's \code{lang()} function, which does
+  Selectors 3 \code{|=}-style prefix matching, so there
   \code{:lang(de-DE)} matches a \code{de-DE} prefix only.
+
+  A wildcard as the whole range (\code{:lang(*)}) matches any element
+  whose content language is tagged at all, and one as the final subtag
+  (\code{:lang(en-*)}) is the same test as \code{:lang(en)}; both work
+  under every translator. Elsewhere in the range a wildcard needs RFC
+  4647 extended filtering, which the \code{html} and \code{xhtml}
+  translators do: a leading \code{*} stands for the tag's first subtag,
+  so \code{:lang(*-CH)} matches \code{de-CH} and \code{fr-Latn-CH} but
+  not \code{ch} itself, while a wildcard further in moves past nothing —
+  every range subtag after the first is already searched for through the
+  whole remaining tag — so \code{:lang(de-*-DE)} is the same test as
+  \code{:lang(de-DE)}. XPath's \code{lang()} has nowhere to put the rest
+  of a range it prefix-matches, so under the generic translator such a
+  range is a translation error rather than a silent mis-match.
 
   Which attribute supplies that language differs by translator: the
   \code{html} translator reads \code{lang}, while the \code{xhtml}
@@ -258,8 +266,8 @@ css_to_xpath(selector,
   \itemize{
     \item \code{selectrs_parse_error} — the selector is not valid CSS.
     Fields \code{selector}, \code{index} (which element of a vectorised
-    call failed) and \code{column}, the 1-based character column the
-    parse failed at.
+    call failed) and \code{column}, the 1-based character column of the
+    token the message names.
     \item \code{selectrs_translation_error} — the selector is valid CSS
     but uses a construct that has no XPath 1.0 equivalent. Fields
     \code{selector}, \code{index}, \code{construct}, and \code{column}

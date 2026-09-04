@@ -51,7 +51,7 @@
     \code{[attr~=val]} \tab includes a whitespace-separated token \tab \code{...[contains(concat(' ', normalize-space(@attr), ' '), ' val ')]} \cr
     \code{[attr|=val]} \tab equals, or a \code{"val-"} prefix \tab \code{...[@attr = 'val' or starts-with(@attr, 'val-')]} \cr
     \code{[attr^=val]} \tab starts with \tab \code{descendant-or-self::*[starts-with(@attr, 'val')]} \cr
-    \code{[attr$=val]} \tab ends with \tab \code{...[substring(@attr, string-length(@attr)-2) = 'val']} \cr
+    \code{[attr$=val]} \tab ends with \tab \code{...[substring(@attr, string-length(@attr) - 2) = 'val']} \cr
     \code{[attr*=val]} \tab contains substring \tab \code{descendant-or-self::*[contains(@attr, 'val')]} \cr
   }
 
@@ -98,8 +98,8 @@
   \tabular{lll}{
     \bold{Selector} \tab \bold{Status} \tab \bold{Notes} \cr
     \code{:lang(range)} \tab supported, translator-dependent \tab generic: XPath \code{lang()}, prefix match only. \code{html}/\code{xhtml}: matched against the nearest language-attributed ancestor, and a multi-subtag range may skip subtags, so \code{:lang(de-DE)} matches \code{lang="de-Latn-DE"}; see \code{\link{css_to_xpath}} for the full rules \cr
-    \code{:lang(*)}, \code{:lang(en-*)} \tab supported, every translator \tab a wildcard is accepted as the whole range or as the final subtag only; \code{:lang(en-*)} is the same test as \code{:lang(en)} \cr
-    \code{:lang(*-CH)} \tab error, every translator \tab a wildcard in any other position is rejected rather than approximated \cr
+    \code{:lang(*)}, \code{:lang(en-*)} \tab supported, every translator \tab a wildcard as the whole range asks only that a language is tagged at all; \code{:lang(en-*)} is the same test as \code{:lang(en)} \cr
+    \code{:lang(*-CH)} \tab supported under \code{html}/\code{xhtml}, error under \code{generic} \tab RFC 4647 extended filtering: a leading \code{*} stands for the tag's first subtag, so \code{:lang(*-CH)} matches \code{de-CH} and \code{fr-Latn-CH} but not \code{ch} itself. XPath's \code{lang()}, all the generic translator has, is a prefix match with nowhere to put the rest \cr
     \code{:dir()} \tab never matches, every translator \tab \code{descendant-or-self::*[0]}; directionality needs a live DOM (\code{dir="auto"}, \code{bdi}, form controls) \cr
   }
 }
@@ -127,7 +127,7 @@
 
   \tabular{ll}{
     \bold{Selector} \tab \bold{Elements and condition (html/xhtml)} \cr
-    \code{:enabled} / \code{:disabled} \tab \code{button}, \code{input}, \code{select}, \code{textarea}, \code{optgroup}, \code{option}, \code{fieldset}; a disabled ancestor \code{fieldset} disables descendants except inside its first \code{legend}, and a disabled \code{optgroup} disables its \code{option}s \cr
+    \code{:enabled} / \code{:disabled} \tab \code{button}, \code{input}, \code{select}, \code{textarea}, \code{optgroup}, \code{option}, \code{fieldset}; a disabled ancestor \code{fieldset} disables descendants except inside its first \code{legend}, an \code{option} is disabled by the nearest \code{optgroup} above it, and a disabled \code{select} disables the \code{optgroup}s and \code{option}s below it (but not an \code{option} inside a \code{datalist}) \cr
     \code{:checked} \tab checked \code{checkbox}/\code{radio} \code{input}s and selected \code{option}s; does \emph{not} infer the implicit default selection of an unadorned single-select or radio group \cr
     \code{:required} / \code{:optional} \tab \code{input} (not the \code{hidden}, \code{range}, \code{color}, \code{submit}, \code{image}, \code{reset} or \code{button} types), \code{select}, \code{textarea}, by presence of \code{required} \cr
     \code{:read-write} \tab an editable textual/numeric/date-time \code{input} or \code{textarea} that is not \code{readonly}/disabled, or an element whose nearest \code{contenteditable} ancestor-or-self is not \code{"false"} \cr
@@ -197,10 +197,14 @@
     \item Class/token matching (\code{.foo}, \code{[attr~=val]}) does
     not treat U+000C form feed as whitespace, unlike HTML's ASCII
     whitespace definition (see "Simple selectors" above).
-    \item \code{:lang()} accepts a wildcard only as the whole range or
-    as the final subtag. RFC 4647 extended filtering, where a wildcard
-    may skip a subtag in any position, is not implemented; such a range
-    is an error rather than a mis-match (see "Linguistic and
+    \item Under the \code{generic} translator \code{:lang()} accepts a
+    wildcard only as the whole range or as the final subtag, because
+    XPath's \code{lang()} does a prefix match with nowhere to put the
+    rest of the range; such a range is an error there rather than a
+    mis-match. The \code{html} and \code{xhtml} translators do RFC 4647
+    extended filtering, where a leading \code{*} stands for the tag's
+    first subtag, so \code{:lang(*-CH)} does not match the tag
+    \code{ch} itself, which selectr matches (see "Linguistic and
     directionality pseudo-classes" above).
   }
 }

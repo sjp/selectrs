@@ -32,7 +32,7 @@ test_that("?selectors attribute-selector examples match live translation", {
     expect_equal(css_to_xpath("[attr^=val]"),
                  "descendant-or-self::*[starts-with(@attr, 'val')]")
     expect_equal(css_to_xpath("[attr$=val]"),
-                 "descendant-or-self::*[substring(@attr, string-length(@attr)-2) = 'val']")
+                 "descendant-or-self::*[substring(@attr, string-length(@attr) - 2) = 'val']")
     expect_equal(css_to_xpath("[attr*=val]"),
                  "descendant-or-self::*[contains(@attr, 'val')]")
     expect_equal(css_to_xpath("[attr=val i]"),
@@ -99,9 +99,16 @@ test_that("?selectors linguistic/directionality examples match live translation"
     expect_equal(css_to_xpath(":lang(en-*)"), css_to_xpath(":lang(en)"))
     expect_equal(css_to_xpath(":lang(*)"),
                  "descendant-or-self::*[ancestor-or-self::*[@xml:lang][1][string-length(@xml:lang) > 0]]")
-    for (tr in c("generic", "html", "xhtml"))
-        expect_error(css_to_xpath(":lang(*-CH)", translator = tr),
-                     class = "selectrs_error")
+    # A wildcard anywhere else is RFC 4647 extended filtering, which only
+    # the html/xhtml translators do; a leading one stands for the tag's
+    # first subtag, so it moves the walk one subtag in.
+    expect_error(css_to_xpath(":lang(*-CH)", translator = "generic"),
+                 class = "selectrs_error")
+    for (tr in c("html", "xhtml"))
+        expect_true(grepl("'-ch-'", css_to_xpath(":lang(*-CH)", translator = tr),
+                          fixed = TRUE))
+    expect_equal(css_to_xpath(":lang(de-*-DE)", translator = "html"),
+                 css_to_xpath(":lang(de-DE)", translator = "html"))
     expect_equal(css_to_xpath(":dir(ltr)"), "descendant-or-self::*[0]")
 
     # generic prefix-matches; html/xhtml may skip subtags.
