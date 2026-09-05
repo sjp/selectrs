@@ -4,9 +4,13 @@
   Translate a CSS selector to an equivalent XPath expression
 }
 \description{
-  This function maps a CSS selector to its XPath equivalent, which can
-  then be used to query XML documents. Selectors using constructs
-  selectrs does not support raise an error naming the construct.
+  This function aims to create an XPath expression equivalent to what
+  would be matched by the given CSS selector. The reason the translation
+  is required is because the XML and xml2 packages, being libxml2
+  wrappers, can only evaluate XPath expressions.
+
+  Using this function, it is possible to search an XML tree without the
+  prerequisite of knowing XPath.
 }
 \usage{
 css_to_xpath(selector,
