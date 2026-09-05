@@ -20,9 +20,9 @@ dependencies = [
 
 [[package]]
 name = "css-to-xpath"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebbb9bea7c4a5f639ee584fe977a5d51c35f8b3057ea725fb6cc584c80cdfccb"
+checksum = "865941cc180da1e44fd57b86c2d323fe5e69c5c6a892ad94416599fd6da8472e"
 dependencies = [
  "cssparser",
  "precomputed-hash",

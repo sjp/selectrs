@@ -41,6 +41,13 @@ forEachBackend("generic :lang(*) needs a non-empty inherited language", function
     expect_equal(matched, "b")
 })
 
+forEachBackend(':lang("") is the untagged elements', function(backend) {
+    doc <- backend$parse('<r><a/><b xml:lang="en"/><c xml:lang=""/></r>')
+    matched <- vapply(backend$nodes(querySelectorAll(doc, ':lang("")')),
+                      backend$elementName, character(1))
+    expect_equal(matched, c("r", "a", "c"))
+})
+
 forEachBackend("an option in a disabled optgroup is :disabled", function(backend) {
     doc <- backend$parseHtml(paste0(
         '<select><optgroup disabled><option id="in">a</option></optgroup>',
@@ -124,7 +131,15 @@ test_that(":lang() takes a comma-separated list of language ranges", {
     expect_error(css_to_xpath(":lang(en fr)"))
     expect_error(css_to_xpath(":lang(en *)"))
     expect_error(css_to_xpath(":lang(en*)"))
-    expect_error(css_to_xpath(':lang("")'))
+    # a wildcard range is accepted wherever it falls in the list
+    expect_true(grepl("-ch-",
+                      css_to_xpath(":lang(en, *-CH)", translator = "html"),
+                      fixed = TRUE))
+    # the empty range is the complement of :lang(*): it asks for an
+    # element whose language is not tagged
+    expect_equal(css_to_xpath(':lang("")', prefix = ""),
+                 paste0("*[not(ancestor-or-self::*[@xml:lang][1]",
+                        "[string-length(@xml:lang) > 0])]"))
 })
 
 test_that("a namespace prefix survives a local name that needs quoting", {

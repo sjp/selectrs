@@ -100,6 +100,7 @@
     \code{:lang(range)} \tab supported, translator-dependent \tab generic: XPath \code{lang()}, prefix match only. \code{html}/\code{xhtml}: matched against the nearest language-attributed ancestor, and a multi-subtag range may skip subtags, so \code{:lang(de-DE)} matches \code{lang="de-Latn-DE"}; see \code{\link{css_to_xpath}} for the full rules \cr
     \code{:lang(*)}, \code{:lang(en-*)} \tab supported, every translator \tab a wildcard as the whole range asks only that a language is tagged at all; \code{:lang(en-*)} is the same test as \code{:lang(en)} \cr
     \code{:lang(*-CH)} \tab supported under \code{html}/\code{xhtml}, error under \code{generic} \tab RFC 4647 extended filtering: a leading \code{*} stands for the tag's first subtag, so \code{:lang(*-CH)} matches \code{de-CH} and \code{fr-Latn-CH} but not \code{ch} itself. XPath's \code{lang()}, all the generic translator has, is a prefix match with nowhere to put the rest \cr
+    \code{:lang("")} \tab supported, every translator \tab the complement of \code{:lang(*)}: an element whose language is not tagged at all, an empty language attribute included; an ill-formed range - an empty subtag (\code{en-}) or a \code{*} glued to one (\code{en*}) - is an error \cr
     \code{:dir()} \tab never matches, every translator \tab \code{descendant-or-self::*[0]}; directionality needs a live DOM (\code{dir="auto"}, \code{bdi}, form controls) \cr
   }
 }

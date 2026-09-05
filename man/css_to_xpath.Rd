@@ -129,6 +129,15 @@ css_to_xpath(selector,
   of a range it prefix-matches, so under the generic translator such a
   range is a translation error rather than a silent mis-match.
 
+  The empty range (\code{:lang("")}) is the complement of
+  \code{:lang(*)}: it matches an element whose content language is not
+  tagged at all, which includes one under an empty language attribute.
+  A range that no language tag could match — one with an empty subtag
+  (\code{en-}, \code{--x}) or a \code{*} glued to a subtag rather than
+  standing as a whole one (\code{en*}) — is a translation error naming
+  the range, rather than being normalised into a range that matches
+  something else.
+
   Which attribute supplies that language differs by translator: the
   \code{html} translator reads \code{lang}, while the \code{xhtml}
   translator reads \code{xml:lang} or \code{lang}, preferring
