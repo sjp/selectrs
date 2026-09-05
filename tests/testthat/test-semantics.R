@@ -150,6 +150,28 @@ test_that("a namespace prefix survives a local name that needs quoting", {
     expect_false(grepl("name() = 'svg:", xpath, fixed = TRUE))
 })
 
+test_that("an escaped * names an element; only the delimiter is universal", {
+    # \2a is an <ident> whose one character is '*', so it asks for an
+    # element of that name in whatever namespace the prefix allows
+    expect_equal(css_to_xpath("*|\\2a", prefix = ""),
+                 "*[local-name() = '*']")
+    expect_equal(css_to_xpath("|\\2a", prefix = ""),
+                 "*[name() = '*' and namespace-uri() = '']")
+    expect_equal(css_to_xpath("\\2a", prefix = ""),
+                 "*[name() = '*' and namespace-uri() = '']")
+    expect_equal(css_to_xpath("ns|\\2a", prefix = ""),
+                 "ns:*[local-name() = '*']")
+    # the delimiter keeps its meaning in every namespace form
+    expect_equal(css_to_xpath("*|*", prefix = ""), "*")
+    expect_equal(css_to_xpath("|*", prefix = ""), "*[namespace-uri() = '']")
+})
+
+forEachBackend("*|\\2a matches nothing in a document with no element named *", function(backend) {
+    doc <- backend$parse("<r><a/><b/></r>")
+    expect_equal(length(backend$nodes(querySelectorAll(doc, "*|\\2a"))), 0L)
+    expect_equal(length(backend$nodes(querySelectorAll(doc, "|\\2a"))), 0L)
+})
+
 test_that("html :checked is confined to HTML's element set", {
     # `command` was dropped from HTML long ago, and a name outside the
     # set collapses rather than being left for the XPath engine
