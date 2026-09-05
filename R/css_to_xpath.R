@@ -48,7 +48,7 @@ css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator =
     # and a long translator vector rarely holds more than the three names.
     distinct <- unique(unname(translator))
     matched <- vapply(distinct, matchTranslator, character(1), USE.NAMES = FALSE)
-    bad <- unique(tolower(distinct[is.na(matched)]))
+    bad <- unique(asciiLower(distinct[is.na(matched)]))
     if (length(bad))
         argumentError(paste0("'translator' must be one of \"",
                              paste0(translatorChoices, collapse = "\", \""),
@@ -85,11 +85,19 @@ css_to_xpath <- function(selector, prefix = "descendant-or-self::", translator =
 
 translatorChoices <- c("generic", "html", "xhtml")
 
+# The choices are ASCII, so fold A-Z and nothing else. tolower() folds by
+# the session's locale and maps every letter it knows, so a name spelled
+# with a dotted capital I would select "generic" in a UTF-8 locale but be
+# rejected under C.
+asciiLower <- function(x) {
+    chartr("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz", x)
+}
+
 # match.arg()'s semantics -- case-insensitive, a unique prefix accepted --
 # without its message, which names its own formal 'arg' rather than the
 # argument the user wrote. pmatch() returns NA for an unknown name, for an
 # ambiguous prefix and for "", which is exactly what match.arg() rejects;
 # the caller collects the NAs so that every bad value is named at once.
 matchTranslator <- function(name) {
-    translatorChoices[pmatch(tolower(name), translatorChoices)]
+    translatorChoices[pmatch(asciiLower(name), translatorChoices)]
 }

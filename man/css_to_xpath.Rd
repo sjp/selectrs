@@ -29,9 +29,10 @@ css_to_xpath(selector,
   }
   \item{translator}{
     A character vector of translators to use, each one of
-    \code{"generic"}, \code{"html"}, or \code{"xhtml"}, matched
-    case-insensitively and on a unique prefix. See the Translators
-    section.
+    \code{"generic"}, \code{"html"}, or \code{"xhtml"}, matched on a
+    unique prefix and case-insensitively over ASCII letters, so that the
+    same names are accepted whatever the session's locale. See the
+    Translators section.
   }
 }
 \details{

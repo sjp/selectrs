@@ -90,6 +90,11 @@ test_that("css_to_xpath handles bad arguments", {
     expect_error(css_to_xpath("a", translator = "XmL"),
                  "not \"xml\"$")
 
+    # folding is ASCII-only, so a letter that some locales lower-case to
+    # "i" cannot name a translator, and is echoed back untouched
+    expect_error(css_to_xpath("a", translator = "GENER\u0130C"),
+                 "not \"gener\u0130c\"", fixed = TRUE)
+
     # every distinct bad value is named at once, in the order they were
     # written, so fixing one does not just surface the next
     expect_error(css_to_xpath(c("a", "b", "c", "d"),
