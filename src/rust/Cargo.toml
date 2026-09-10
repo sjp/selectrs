@@ -6,7 +6,7 @@ name = "selectrs"
 # would be 0.1.0-9000.
 version = "0.1.0"
 edition = "2024"
-# The floor is set by savvy 0.10.2 (rust-version 1.88), the newest
+# The floor is set by css-to-xpath (rust-version 1.88), the newest
 # requirement in the pinned dependency tree; configure enforces the same
 # minimum with an actionable error message.
 rust-version = "1.88"

@@ -141,22 +141,22 @@ rustc-hash 2.1.3
   Authors: The Rust Project Developers
   Repository: https://github.com/rust-lang/rustc-hash
 
-savvy 0.10.2
+savvy 0.11.0
   License: MIT
   Authors: Hiroaki Yutani
   Repository: https://github.com/yutannihilation/savvy/
 
-savvy-bindgen 0.10.2
+savvy-bindgen 0.11.0
   License: MIT
   Authors: Hiroaki Yutani
   Repository: https://github.com/yutannihilation/savvy/
 
-savvy-ffi 0.10.2
+savvy-ffi 0.11.0
   License: MIT
   Authors: Hiroaki Yutani
   Repository: https://github.com/yutannihilation/savvy/
 
-savvy-macro 0.10.2
+savvy-macro 0.11.0
   License: MIT
   Authors: Hiroaki Yutani
   Repository: https://github.com/yutannihilation/savvy/
