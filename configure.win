@@ -71,7 +71,7 @@ fi
 echo "using Rust target: '${TARGET}'"
 echo "using linker: '${CARGO_LINKER}'"
 
-# Enforce the minimum supported Rust version (set by savvy 0.10.2, the
+# Enforce the minimum supported Rust version (set by css-to-xpath, the
 # newest rust-version requirement in the pinned dependency tree; declared
 # as rust-version in src/rust/Cargo.toml). When rustc's version cannot be
 # determined the check is skipped — cargo resolves rustc on its own and
