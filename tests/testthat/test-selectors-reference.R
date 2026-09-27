@@ -46,32 +46,36 @@ test_that("?selectors structural pseudo-class examples match live translation", 
     expect_equal(css_to_xpath(":root"),
                  "descendant-or-self::*[not(parent::*)]")
     expect_equal(css_to_xpath(":first-child"),
-                 "descendant-or-self::*[count(preceding-sibling::*) = 0]")
+                 "descendant-or-self::*[not(preceding-sibling::*[1])]")
     expect_equal(css_to_xpath(":last-child"),
-                 "descendant-or-self::*[count(following-sibling::*) = 0]")
+                 "descendant-or-self::*[not(following-sibling::*[1])]")
     expect_equal(css_to_xpath(":only-child"),
-                 "descendant-or-self::*[count(preceding-sibling::*) = 0 and count(following-sibling::*) = 0]")
+                 "descendant-or-self::*[not(preceding-sibling::*[1]) and not(following-sibling::*[1])]")
     expect_equal(css_to_xpath("e:first-of-type"),
-                 "descendant-or-self::e[count(preceding-sibling::e) = 0]")
+                 "descendant-or-self::e[not(preceding-sibling::e[1])]")
     expect_equal(css_to_xpath("e:last-of-type"),
-                 "descendant-or-self::e[count(following-sibling::e) = 0]")
+                 "descendant-or-self::e[not(following-sibling::e[1])]")
     expect_equal(css_to_xpath("e:only-of-type"),
-                 "descendant-or-self::e[count(preceding-sibling::e) = 0 and count(following-sibling::e) = 0]")
+                 "descendant-or-self::e[not(preceding-sibling::e[1]) and not(following-sibling::e[1])]")
     expect_error(css_to_xpath("*:first-of-type"), class = "selectrs_error")
     expect_equal(css_to_xpath(":nth-child(2n+1)"),
                  "descendant-or-self::*[count(preceding-sibling::*) mod 2 = 0]")
-    # A B outside the first cycle adds the bound and the offset the page
-    # describes.
+    # A B beyond A adds the bound, and one not congruent to 1 the offset,
+    # that the page describes.
     expect_equal(css_to_xpath(":nth-child(3n+2)"),
-                 "descendant-or-self::*[count(preceding-sibling::*) >= 1 and (count(preceding-sibling::*) + 2) mod 3 = 0]")
+                 "descendant-or-self::*[(count(preceding-sibling::*) + 2) mod 3 = 0]")
+    expect_equal(css_to_xpath(":nth-child(2n+3)"),
+                 "descendant-or-self::*[preceding-sibling::*[2] and count(preceding-sibling::*) mod 2 = 0]")
+    expect_equal(css_to_xpath(":nth-child(3)"),
+                 "descendant-or-self::*[preceding-sibling::*[2] and not(preceding-sibling::*[3])]")
     expect_equal(css_to_xpath(":nth-child(2n+1 of .a)"),
-                 "descendant-or-self::*[count(preceding-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' a ')]) mod 2 = 0 and contains(concat(' ', normalize-space(@class), ' '), ' a ')]")
+                 "descendant-or-self::*[contains(concat(' ', normalize-space(@class), ' '), ' a ') and count(preceding-sibling::*[contains(concat(' ', normalize-space(@class), ' '), ' a ')]) mod 2 = 0]")
     expect_equal(css_to_xpath(":nth-last-child(2)"),
-                 "descendant-or-self::*[count(following-sibling::*) = 1]")
+                 "descendant-or-self::*[following-sibling::*[1] and not(following-sibling::*[2])]")
     expect_equal(css_to_xpath("e:nth-of-type(2)"),
-                 "descendant-or-self::e[count(preceding-sibling::e) = 1]")
+                 "descendant-or-self::e[preceding-sibling::e[1] and not(preceding-sibling::e[2])]")
     expect_equal(css_to_xpath("e:nth-last-of-type(2)"),
-                 "descendant-or-self::e[count(following-sibling::e) = 1]")
+                 "descendant-or-self::e[following-sibling::e[1] and not(following-sibling::e[2])]")
     expect_equal(css_to_xpath(":empty"),
                  "descendant-or-self::*[not(*) and not(string-length())]")
     expect_equal(css_to_xpath(":scope"), "self::*")

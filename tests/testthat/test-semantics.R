@@ -109,7 +109,7 @@ forEachBackend("an empty :is() or :where() matches nothing", function(backend) {
 })
 
 test_that("an of-type pseudo-class needs a type, prefixed wildcard included", {
-    # a prefixed wildcard names a namespace, not a type, so counting its
+    # a prefixed wildcard names a namespace, not a type, so testing its
     # siblings would answer a different question than the selector asks
     expect_error(css_to_xpath("svg|*:first-of-type"),
                  "an of-type pseudo-class on the universal selector",
@@ -117,10 +117,10 @@ test_that("an of-type pseudo-class needs a type, prefixed wildcard included", {
     expect_error(css_to_xpath("*:first-of-type"),
                  "an of-type pseudo-class on the universal selector",
                  fixed = TRUE)
-    # an any-namespace type still has one, and counts by local name
+    # an any-namespace type still has one, and matches siblings by local name
     expect_equal(css_to_xpath("*|p:first-of-type", prefix = ""),
                  paste0("*[local-name() = 'p' and ",
-                        "count(preceding-sibling::*[local-name() = 'p']) = 0]"))
+                        "not(preceding-sibling::*[local-name() = 'p'][1])]"))
 })
 
 test_that(":lang() takes a comma-separated list of language ranges", {

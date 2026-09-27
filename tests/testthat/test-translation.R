@@ -13,7 +13,7 @@ test_that("translation of CSS to XPath occurs and threads through its arguments"
     expect_equal(xpath("e#myid"), "e[@id = 'myid']")
     expect_equal(xpath("e > f"), "e/f")
     expect_equal(xpath("e:first-child"),
-                 "e[count(preceding-sibling::*) = 0]")
+                 "e[not(preceding-sibling::*[1])]")
     expect_equal(xpath("div:has(p)"), "div[.//p]")
     expect_equal(xpath("div:is(p, span)"), "div[self::p or self::span]")
     expect_equal(xpath("*|e"), "*[local-name() = 'e']")

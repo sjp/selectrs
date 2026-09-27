@@ -65,15 +65,15 @@
   \tabular{lll}{
     \bold{Selector} \tab \bold{Status} \tab \bold{Example XPath} \cr
     \code{:root} \tab supported \tab \code{descendant-or-self::*[not(parent::*)]} \cr
-    \code{:first-child} \tab supported \tab \code{...[count(preceding-sibling::*) = 0]} \cr
-    \code{:last-child} \tab supported \tab \code{...[count(following-sibling::*) = 0]} \cr
-    \code{:only-child} \tab supported \tab preceding- and following-sibling counts both 0 \cr
-    \code{e:first-of-type} \tab supported (needs a named element) \tab \code{...e[count(preceding-sibling::e) = 0]} \cr
-    \code{e:last-of-type} \tab supported (needs a named element) \tab \code{...e[count(following-sibling::e) = 0]} \cr
-    \code{e:only-of-type} \tab supported (needs a named element) \tab preceding- and following-sibling \code{e} counts both 0 \cr
+    \code{:first-child} \tab supported \tab \code{...[not(preceding-sibling::*[1])]} \cr
+    \code{:last-child} \tab supported \tab \code{...[not(following-sibling::*[1])]} \cr
+    \code{:only-child} \tab supported \tab no preceding and no following sibling \cr
+    \code{e:first-of-type} \tab supported (needs a named element) \tab \code{...e[not(preceding-sibling::e[1])]} \cr
+    \code{e:last-of-type} \tab supported (needs a named element) \tab \code{...e[not(following-sibling::e[1])]} \cr
+    \code{e:only-of-type} \tab supported (needs a named element) \tab no preceding and no following sibling \code{e} \cr
     \code{*:first-of-type} etc. \tab error \tab needs each sibling's own name; not expressible in XPath 1.0 \cr
-    \code{:nth-child(An+B)} \tab supported \tab \code{:nth-child(2n+1)} gives \code{...[count(preceding-sibling::*) mod 2 = 0]}; a \code{B} outside the first cycle adds a \code{>= B-1} bound and an offset in the \code{mod} \cr
-    \code{:nth-child(An+B of S)} \tab supported \tab preceding-siblings filtered to \code{S}, plus a \code{S} test on the element itself \cr
+    \code{:nth-child(An+B)} \tab supported \tab \code{:nth-child(2n+1)} gives \code{...[count(preceding-sibling::*) mod 2 = 0]}; a \code{B} beyond \code{A} adds a \code{preceding-sibling::*[B-1]} bound, and one not congruent to 1 an offset in the \code{mod}; a fixed position such as \code{:nth-child(3)} gives \code{...[preceding-sibling::*[2] and not(preceding-sibling::*[3])]} \cr
+    \code{:nth-child(An+B of S)} \tab supported \tab a \code{S} test on the element itself, then preceding-siblings filtered to \code{S} \cr
     \code{:nth-last-child()} \tab supported \tab as \code{:nth-child()}, counting from the end \cr
     \code{e:nth-of-type()}, \code{e:nth-last-of-type()} \tab supported (needs a named element) \tab as above, restricted to siblings named \code{e} \cr
     \code{:empty} \tab supported, Selectors \bold{3} semantics \tab \code{...[not(*) and not(string-length())]} - see "Divergences" below \cr
