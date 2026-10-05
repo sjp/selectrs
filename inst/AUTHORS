@@ -31,12 +31,12 @@ cc 1.3.0
   Authors: Alex Crichton <alex@alexcrichton.com>
   Repository: https://github.com/rust-lang/cc-rs
 
-css-to-xpath 0.6.0
+css-to-xpath 0.6.1
   License: MIT
   Authors: (not stated; see repository)
   Repository: https://github.com/sjp/css-to-xpath
 
-cssparser 0.37.0
+cssparser 0.38.0
   License: MPL-2.0
   Authors: Simon Sapin <simon.sapin@exyr.org>
   Repository: https://github.com/servo/rust-cssparser
@@ -91,27 +91,22 @@ new_debug_unreachable 1.0.6
   Authors: Matt Brubeck <mbrubeck@limpet.net>, Jonathan Reem <jonathan.reem@gmail.com>
   Repository: https://github.com/mbrubeck/rust-debug-unreachable
 
-phf 0.13.1
+phf 0.14.0
   License: MIT
   Authors: Steven Fackler <sfackler@gmail.com>
   Repository: https://github.com/rust-phf/rust-phf
 
-phf_codegen 0.13.1
+phf_generator 0.14.0
   License: MIT
   Authors: Steven Fackler <sfackler@gmail.com>
   Repository: https://github.com/rust-phf/rust-phf
 
-phf_generator 0.13.1
+phf_macros 0.14.0
   License: MIT
   Authors: Steven Fackler <sfackler@gmail.com>
   Repository: https://github.com/rust-phf/rust-phf
 
-phf_macros 0.13.1
-  License: MIT
-  Authors: Steven Fackler <sfackler@gmail.com>
-  Repository: https://github.com/rust-phf/rust-phf
-
-phf_shared 0.13.1
+phf_shared 0.14.0
   License: MIT
   Authors: Steven Fackler <sfackler@gmail.com>
   Repository: https://github.com/rust-phf/rust-phf
@@ -161,7 +156,7 @@ savvy-macro 0.11.0
   Authors: Hiroaki Yutani
   Repository: https://github.com/yutannihilation/savvy/
 
-selectors 0.40.0
+selectors 0.41.0
   License: MPL-2.0
   Authors: The Servo Project Developers
   Repository: https://github.com/servo/stylo
@@ -186,7 +181,7 @@ serde_derive 1.0.229
   Authors: Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>
   Repository: https://github.com/serde-rs/serde
 
-servo_arc 0.4.3
+servo_arc 0.5.0
   License: MIT OR Apache-2.0
   Authors: The Servo Project Developers
   Repository: https://github.com/servo/stylo
