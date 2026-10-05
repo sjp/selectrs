@@ -25,3 +25,6 @@ target
 src/rust/vendor.tar.xz
 src/rust/vendor/
 src/.cargo/
+
+# macOS Finder metadata
+.DS_Store
